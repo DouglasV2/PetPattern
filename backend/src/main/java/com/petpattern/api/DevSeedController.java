@@ -5,13 +5,14 @@ import com.petpattern.domain.*;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.PetRepository;
-import org.springframework.context.annotation.Profile;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Random;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/dev")
@@ -31,8 +32,9 @@ public class DevSeedController {
 
     @PostMapping("/seed")
     @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
     public PetResponse seedBella() {
-        Pet pet = new Pet();
+        Pet pet = petRepository.findFirstByNameIgnoreCase("Bella").orElseGet(Pet::new);
         pet.setName("Bella");
         pet.setSpecies(Species.DOG);
         pet.setBreed("Labrador mix");
@@ -41,58 +43,86 @@ public class DevSeedController {
         pet.setCurrentWeightKg(new BigDecimal("24.60"));
         pet = petRepository.save(pet);
 
-        LocalDate start = LocalDate.now().minusDays(42);
-        Random random = new Random(7);
+        checkInRepository.deleteByPet(pet);
+        foodLogRepository.deleteByPet(pet);
 
-        createFood(pet, start, "North Bowl", "Lamb & Rice", "lamb", false, "Stable food before trial.");
-        createFood(pet, start.plusDays(14), "Happy Tail", "Chicken Comfort", "chicken", true, "Owner started chicken recipe trial.");
-        createFood(pet, start.plusDays(29), "North Bowl", "Lamb & Rice", "lamb", true, "Owner moved back to lamb after itching week.");
-        createFood(pet, start.plusDays(36), "Happy Tail", "Chicken Comfort", "chicken", true, "Chicken recipe retried.");
+        LocalDate start = LocalDate.now().minusDays(44);
+        createFood(pet, start, FoodKind.MAIN_FOOD, "North Bowl", "Lamb & Rice Adult", Protein.LAMB, Set.of(), false, false, "Stable main food before the tracked period.");
+        createFood(pet, start.plusDays(12), FoodKind.TREAT, "Happy Tail", "Chicken Training Bites", Protein.CHICKEN, Set.of(Protein.EGG), false, true, "New chicken treat during training.");
+        createFood(pet, start.plusDays(24), FoodKind.MAIN_FOOD, "North Bowl", "Salmon & Oat Sensitive", Protein.SALMON, Set.of(), false, true, "Main food changed after a scratchy week.");
+        createFood(pet, start.plusDays(34), FoodKind.TREAT, "Happy Tail", "Chicken Training Bites", Protein.CHICKEN, Set.of(Protein.EGG), false, true, "Chicken treat retried.");
 
-        for (int i = 0; i < 43; i++) {
+        Random random = new Random(11);
+        for (int i = 0; i < 45; i++) {
             LocalDate date = start.plusDays(i);
-            DailyCheckIn c = new DailyCheckIn();
-            c.setPet(pet);
-            c.setCheckInDate(date);
+            boolean chickenWindowOne = i >= 15 && i <= 21;
+            boolean chickenWindowTwo = i >= 37 && i <= 44;
+            boolean recentStoolSoft = i == 39 || i == 42;
+            boolean recentDiarrhea = i == 41;
+            boolean lowerWater = i >= 42;
 
-            boolean chickenWindowOne = i >= 18 && i <= 23;
-            boolean chickenWindowTwo = i >= 40;
+            DailyCheckIn checkIn = new DailyCheckIn();
+            checkIn.setPet(pet);
+            checkIn.setCheckInDate(date);
+            checkIn.setItchingScore(chickenWindowOne || chickenWindowTwo ? 6 + random.nextInt(3) : 2 + random.nextInt(2));
+            checkIn.setStoolState(recentDiarrhea ? StoolState.DIARRHEA : (recentStoolSoft || chickenWindowOne ? StoolState.SOFT : StoolState.NORMAL));
+            checkIn.setStoolScore(safeStoolScore(checkIn.getStoolState()));
+            checkIn.setDiarrhea(recentDiarrhea);
+            checkIn.setAppetiteLevel(i == 41 ? AppetiteLevel.LOWER : AppetiteLevel.NORMAL);
+            checkIn.setWaterLevel(lowerWater ? WaterLevel.LOWER : WaterLevel.NORMAL);
+            checkIn.setEnergyLevel(chickenWindowTwo ? EnergyLevel.RESTLESS : EnergyLevel.NORMAL);
+            checkIn.setWaterIntakeMl(lowerWater ? 610 + random.nextInt(45) : 820 + random.nextInt(130));
+            checkIn.setEnergyScore(chickenWindowTwo ? 6 : 8);
+            checkIn.setAppetiteScore(i == 41 ? 5 : 8);
+            checkIn.setSleepQualityScore(chickenWindowOne || chickenWindowTwo ? 6 : 8);
+            checkIn.setVomiting(false);
+            checkIn.setEarRedness(chickenWindowOne || chickenWindowTwo);
 
-            int itching = chickenWindowOne || chickenWindowTwo ? 6 + random.nextInt(3) : 2 + random.nextInt(2);
-            int stool = chickenWindowOne ? 2 + random.nextInt(2) : 3 + random.nextInt(2);
-
-            c.setItchingScore(itching);
-            c.setStoolScore(stool);
-            c.setEnergyScore(chickenWindowTwo ? 6 : 8);
-            c.setAppetiteScore(8);
-            c.setSleepQualityScore(chickenWindowOne || chickenWindowTwo ? 6 : 8);
-            c.setWaterIntakeMl(chickenWindowTwo ? 620 + random.nextInt(70) : 820 + random.nextInt(130));
-            c.setDiarrhea(i == 20 || i == 21);
-            c.setVomiting(false);
-            c.setEarRedness(chickenWindowOne || chickenWindowTwo);
-
-            if (i == 19) {
-                c.setNotes("More paw licking in the evening.");
+            if (i == 16) {
+                checkIn.setFreeTextNote("More paw licking in the evening.");
+                checkIn.setNotes("More paw licking in the evening.");
             } else if (i == 41) {
-                c.setNotes("Scratching again after chicken food restart.");
+                checkIn.setFreeTextNote("Soft stool and scratching after chicken treats returned.");
+                checkIn.setNotes("Soft stool and scratching after chicken treats returned.");
             }
 
-            checkInRepository.save(c);
+            checkInRepository.save(checkIn);
         }
 
         return PetResponse.from(pet);
     }
 
-    private void createFood(Pet pet, LocalDate date, String brand, String recipe, String protein, boolean isNew, String notes) {
+    private void createFood(Pet pet,
+                            LocalDate dateStarted,
+                            FoodKind foodKind,
+                            String brand,
+                            String productName,
+                            Protein primaryProtein,
+                            Set<Protein> secondaryProteins,
+                            boolean grainFree,
+                            boolean newFood,
+                            String notes) {
         FoodLog food = new FoodLog();
         food.setPet(pet);
-        food.setDate(date);
+        food.setDateStarted(dateStarted);
+        food.setFoodKind(foodKind);
         food.setBrand(brand);
-        food.setRecipeName(recipe);
-        food.setPrimaryProtein(protein);
-        food.setAmountGrams(280);
-        food.setNewFood(isNew);
+        food.setProductName(productName);
+        food.setPrimaryProtein(primaryProtein);
+        food.setSecondaryProteins(secondaryProteins);
+        food.setGrainFree(grainFree);
+        food.setNewFood(newFood);
+        food.setAmountGrams(foodKind == FoodKind.MAIN_FOOD ? 280 : 20);
         food.setNotes(notes);
         foodLogRepository.save(food);
+    }
+
+    private Integer safeStoolScore(StoolState state) {
+        return switch (state) {
+            case DIARRHEA -> 1;
+            case SOFT -> 2;
+            case NORMAL -> 3;
+            case NO_STOOL, UNKNOWN -> null;
+        };
     }
 }

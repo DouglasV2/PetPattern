@@ -28,6 +28,9 @@ public class DailyCheckIn {
     @Column(name = "check_in_date", nullable = false)
     private LocalDate checkInDate;
 
+    @Enumerated(EnumType.STRING)
+    private StoolState stoolState = StoolState.UNKNOWN;
+
     @Min(1)
     @Max(5)
     private Integer stoolScore;
@@ -35,6 +38,15 @@ public class DailyCheckIn {
     @Min(0)
     @Max(10)
     private Integer itchingScore;
+
+    @Enumerated(EnumType.STRING)
+    private AppetiteLevel appetiteLevel = AppetiteLevel.UNKNOWN;
+
+    @Enumerated(EnumType.STRING)
+    private WaterLevel waterLevel = WaterLevel.UNKNOWN;
+
+    @Enumerated(EnumType.STRING)
+    private EnergyLevel energyLevel = EnergyLevel.UNKNOWN;
 
     @Min(0)
     @Max(10)
@@ -54,6 +66,9 @@ public class DailyCheckIn {
     private boolean vomiting;
     private boolean diarrhea;
     private boolean earRedness;
+
+    @Column(length = 1200)
+    private String freeTextNote;
 
     @Column(length = 1200)
     private String notes;
@@ -81,6 +96,14 @@ public class DailyCheckIn {
         this.checkInDate = checkInDate;
     }
 
+    public StoolState getStoolState() {
+        return stoolState == null ? StoolState.UNKNOWN : stoolState;
+    }
+
+    public void setStoolState(StoolState stoolState) {
+        this.stoolState = stoolState == null ? StoolState.UNKNOWN : stoolState;
+    }
+
     public Integer getStoolScore() {
         return stoolScore;
     }
@@ -95,6 +118,30 @@ public class DailyCheckIn {
 
     public void setItchingScore(Integer itchingScore) {
         this.itchingScore = itchingScore;
+    }
+
+    public AppetiteLevel getAppetiteLevel() {
+        return appetiteLevel == null ? AppetiteLevel.UNKNOWN : appetiteLevel;
+    }
+
+    public void setAppetiteLevel(AppetiteLevel appetiteLevel) {
+        this.appetiteLevel = appetiteLevel == null ? AppetiteLevel.UNKNOWN : appetiteLevel;
+    }
+
+    public WaterLevel getWaterLevel() {
+        return waterLevel == null ? WaterLevel.UNKNOWN : waterLevel;
+    }
+
+    public void setWaterLevel(WaterLevel waterLevel) {
+        this.waterLevel = waterLevel == null ? WaterLevel.UNKNOWN : waterLevel;
+    }
+
+    public EnergyLevel getEnergyLevel() {
+        return energyLevel == null ? EnergyLevel.UNKNOWN : energyLevel;
+    }
+
+    public void setEnergyLevel(EnergyLevel energyLevel) {
+        this.energyLevel = energyLevel == null ? EnergyLevel.UNKNOWN : energyLevel;
     }
 
     public Integer getEnergyScore() {
@@ -153,8 +200,16 @@ public class DailyCheckIn {
         this.earRedness = earRedness;
     }
 
+    public String getFreeTextNote() {
+        return freeTextNote != null ? freeTextNote : notes;
+    }
+
+    public void setFreeTextNote(String freeTextNote) {
+        this.freeTextNote = freeTextNote;
+    }
+
     public String getNotes() {
-        return notes;
+        return notes != null ? notes : freeTextNote;
     }
 
     public void setNotes(String notes) {

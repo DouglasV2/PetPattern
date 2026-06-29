@@ -1,20 +1,55 @@
-### Seed demo data
+### Seed Bella demo
 POST http://localhost:8317/api/dev/seed
 
 ### List pets
 GET http://localhost:8317/api/pets
 
-### Create pet
-POST http://localhost:8317/api/pets
+### Pet overview
+GET http://localhost:8317/api/pets/{{petId}}/overview
+
+### Check-ins
+GET http://localhost:8317/api/pets/{{petId}}/check-ins
+
+### Latest check-in
+GET http://localhost:8317/api/pets/{{petId}}/check-ins/latest
+
+### Create or update check-in
+POST http://localhost:8317/api/pets/{{petId}}/check-ins
 Content-Type: application/json
 
 {
-  "name": "Milo",
-  "species": "DOG",
-  "breed": "Mixed breed",
-  "sex": "UNKNOWN",
-  "currentWeightKg": 18.4
+  "checkInDate": "2026-06-29",
+  "itchingScore": 6,
+  "stoolState": "SOFT",
+  "appetiteLevel": "NORMAL",
+  "waterLevel": "LOWER",
+  "energyLevel": "RESTLESS",
+  "vomiting": false,
+  "earRedness": true,
+  "freeTextNote": "More paw licking after dinner."
 }
 
-### Replace PET_ID before using
-GET http://localhost:8317/api/pets/PET_ID/insights
+### Food logs
+GET http://localhost:8317/api/pets/{{petId}}/food-logs
+
+### Current food
+GET http://localhost:8317/api/pets/{{petId}}/food-logs/current
+
+### Create food log
+POST http://localhost:8317/api/pets/{{petId}}/food-logs
+Content-Type: application/json
+
+{
+  "dateStarted": "2026-06-29",
+  "foodKind": "TREAT",
+  "brand": "Happy Tail",
+  "productName": "Chicken Training Bites",
+  "primaryProtein": "CHICKEN",
+  "secondaryProteins": ["EGG"],
+  "grainFree": false,
+  "newFood": true,
+  "notes": "Small treat during training."
+}
+
+### Patterns
+GET http://localhost:8317/api/pets/{{petId}}/patterns

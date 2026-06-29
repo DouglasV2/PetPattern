@@ -8,9 +8,11 @@ import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.PetRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,23 +31,40 @@ public class FoodLogController {
     @GetMapping
     public List<FoodLogResponse> list(@PathVariable UUID petId) {
         Pet pet = findPet(petId);
-        return foodLogRepository.findByPetOrderByDateDesc(pet).stream()
+        return foodLogRepository.findByPetOrderByDateStartedDesc(pet).stream()
                 .map(FoodLogResponse::from)
                 .toList();
+    }
+
+    @GetMapping("/current")
+    public ResponseEntity<FoodLogResponse> current(@PathVariable UUID petId) {
+        Pet pet = findPet(petId);
+        return foodLogRepository.findFirstByPetOrderByDateStartedDesc(pet)
+                .map(FoodLogResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.<FoodLogResponse>noContent().build());
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FoodLogResponse create(@PathVariable UUID petId, @Valid @RequestBody FoodLogRequest request) {
         Pet pet = findPet(petId);
+        LocalDate dateStarted = request.resolvedDateStarted();
+        if (dateStarted == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dateStarted is required");
+        }
+
         FoodLog foodLog = new FoodLog();
         foodLog.setPet(pet);
-        foodLog.setDate(request.date());
+        foodLog.setDateStarted(dateStarted);
+        foodLog.setFoodKind(request.resolvedFoodKind());
         foodLog.setBrand(clean(request.brand()));
-        foodLog.setRecipeName(clean(request.recipeName()));
-        foodLog.setPrimaryProtein(clean(request.primaryProtein()));
-        foodLog.setAmountGrams(request.amountGrams());
+        foodLog.setProductName(clean(request.resolvedProductName()));
+        foodLog.setPrimaryProtein(request.resolvedPrimaryProtein());
+        foodLog.setSecondaryProteins(request.resolvedSecondaryProteins());
+        foodLog.setGrainFree(request.grainFree());
         foodLog.setNewFood(request.newFood());
+        foodLog.setAmountGrams(request.amountGrams());
         foodLog.setNotes(clean(request.notes()));
         return FoodLogResponse.from(foodLogRepository.save(foodLog));
     }

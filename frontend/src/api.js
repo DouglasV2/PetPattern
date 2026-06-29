@@ -21,10 +21,13 @@ async function request(path, options = {}) {
 export const api = {
   listPets: () => request('/pets'),
   createPet: (payload) => request('/pets', { method: 'POST', body: JSON.stringify(payload) }),
-  listCheckIns: (petId) => request(`/pets/${petId}/checkins`),
-  saveCheckIn: (petId, payload) => request(`/pets/${petId}/checkins`, { method: 'POST', body: JSON.stringify(payload) }),
+  getOverview: (petId) => request(`/pets/${petId}/overview`),
+  listCheckIns: (petId) => request(`/pets/${petId}/check-ins`),
+  latestCheckIn: (petId) => request(`/pets/${petId}/check-ins/latest`),
+  saveCheckIn: (petId, payload) => request(`/pets/${petId}/check-ins`, { method: 'POST', body: JSON.stringify(payload) }),
   listFoodLogs: (petId) => request(`/pets/${petId}/food-logs`),
+  currentFood: (petId) => request(`/pets/${petId}/food-logs/current`),
   saveFoodLog: (petId, payload) => request(`/pets/${petId}/food-logs`, { method: 'POST', body: JSON.stringify(payload) }),
-  listInsights: (petId) => request(`/pets/${petId}/insights`),
+  listPatterns: (petId) => request(`/pets/${petId}/patterns`),
   seedDemo: () => request('/dev/seed', { method: 'POST' })
 }

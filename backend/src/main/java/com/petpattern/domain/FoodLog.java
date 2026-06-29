@@ -2,10 +2,11 @@ package com.petpattern.domain;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -20,18 +21,32 @@ public class FoodLog {
     @JoinColumn(name = "pet_id", nullable = false)
     private Pet pet;
 
-    @NotNull
-    @Column(nullable = false)
-    private LocalDate date;
+    @Column(name = "date_started", nullable = false)
+    private LocalDate dateStarted;
+
+    @Column(name = "date", nullable = false)
+    private LocalDate legacyDate;
+
+    @Enumerated(EnumType.STRING)
+    private FoodKind foodKind = FoodKind.MAIN_FOOD;
 
     private String brand;
-    private String recipeName;
-    private String primaryProtein;
+    private String productName;
+
+    @Convert(converter = ProteinAttributeConverter.class)
+    private Protein primaryProtein = Protein.UNKNOWN;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "food_log_secondary_proteins", joinColumns = @JoinColumn(name = "food_log_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "protein", nullable = false)
+    private Set<Protein> secondaryProteins = new LinkedHashSet<>();
+
+    private boolean grainFree;
+    private boolean newFood;
 
     @Min(0)
     private Integer amountGrams;
-
-    private boolean newFood;
 
     @Column(length = 1200)
     private String notes;
@@ -51,12 +66,29 @@ public class FoodLog {
         this.pet = pet;
     }
 
+    public LocalDate getDateStarted() {
+        return dateStarted != null ? dateStarted : legacyDate;
+    }
+
+    public void setDateStarted(LocalDate dateStarted) {
+        this.dateStarted = dateStarted;
+        this.legacyDate = dateStarted;
+    }
+
     public LocalDate getDate() {
-        return date;
+        return getDateStarted();
     }
 
     public void setDate(LocalDate date) {
-        this.date = date;
+        setDateStarted(date);
+    }
+
+    public FoodKind getFoodKind() {
+        return foodKind == null ? FoodKind.MAIN_FOOD : foodKind;
+    }
+
+    public void setFoodKind(FoodKind foodKind) {
+        this.foodKind = foodKind == null ? FoodKind.MAIN_FOOD : foodKind;
     }
 
     public String getBrand() {
@@ -67,28 +99,49 @@ public class FoodLog {
         this.brand = brand;
     }
 
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
     public String getRecipeName() {
-        return recipeName;
+        return productName;
     }
 
     public void setRecipeName(String recipeName) {
-        this.recipeName = recipeName;
+        this.productName = recipeName;
     }
 
-    public String getPrimaryProtein() {
-        return primaryProtein;
+    public Protein getPrimaryProtein() {
+        return primaryProtein == null ? Protein.UNKNOWN : primaryProtein;
     }
 
-    public void setPrimaryProtein(String primaryProtein) {
-        this.primaryProtein = primaryProtein;
+    public void setPrimaryProtein(Protein primaryProtein) {
+        this.primaryProtein = primaryProtein == null ? Protein.UNKNOWN : primaryProtein;
     }
 
-    public Integer getAmountGrams() {
-        return amountGrams;
+    public Set<Protein> getSecondaryProteins() {
+        return secondaryProteins;
     }
 
-    public void setAmountGrams(Integer amountGrams) {
-        this.amountGrams = amountGrams;
+    public void setSecondaryProteins(Set<Protein> secondaryProteins) {
+        this.secondaryProteins.clear();
+        if (secondaryProteins != null) {
+            secondaryProteins.stream()
+                    .filter(protein -> protein != null && protein != Protein.UNKNOWN)
+                    .forEach(this.secondaryProteins::add);
+        }
+    }
+
+    public boolean isGrainFree() {
+        return grainFree;
+    }
+
+    public void setGrainFree(boolean grainFree) {
+        this.grainFree = grainFree;
     }
 
     public boolean isNewFood() {
@@ -97,6 +150,14 @@ public class FoodLog {
 
     public void setNewFood(boolean newFood) {
         this.newFood = newFood;
+    }
+
+    public Integer getAmountGrams() {
+        return amountGrams;
+    }
+
+    public void setAmountGrams(Integer amountGrams) {
+        this.amountGrams = amountGrams;
     }
 
     public String getNotes() {
