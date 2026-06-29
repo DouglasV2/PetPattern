@@ -1,0 +1,24 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: petpattern-backend
+  datasource:
+    url: jdbc:postgresql://localhost:15437/petpattern
+    username: petpattern
+    password: petpattern
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+petpattern:
+  cors:
+    allowed-origins: "http://localhost:7317,http://127.0.0.1:7317"

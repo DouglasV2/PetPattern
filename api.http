@@ -1,0 +1,20 @@
+### Seed demo data
+POST http://localhost:8317/api/dev/seed
+
+### List pets
+GET http://localhost:8317/api/pets
+
+### Create pet
+POST http://localhost:8317/api/pets
+Content-Type: application/json
+
+{
+  "name": "Milo",
+  "species": "DOG",
+  "breed": "Mixed breed",
+  "sex": "UNKNOWN",
+  "currentWeightKg": 18.4
+}
+
+### Replace PET_ID before using
+GET http://localhost:8317/api/pets/PET_ID/insights

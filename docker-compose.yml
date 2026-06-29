@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: petpattern-postgres
+    environment:
+      POSTGRES_DB: petpattern
+      POSTGRES_USER: petpattern
+      POSTGRES_PASSWORD: petpattern
+    ports:
+      - "15437:5432"
+    volumes:
+      - petpattern_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U petpattern -d petpattern"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: petpattern-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/petpattern
+      SPRING_DATASOURCE_USERNAME: petpattern
+      SPRING_DATASOURCE_PASSWORD: petpattern
+      PETPATTERN_CORS_ALLOWED_ORIGINS: http://localhost:7317,http://127.0.0.1:7317
+    ports:
+      - "8317:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: petpattern-frontend
+    ports:
+      - "7317:80"
+    depends_on:
+      - backend
+
+volumes:
+  petpattern_pgdata:
