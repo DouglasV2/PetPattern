@@ -8,6 +8,7 @@ import {
   CalendarRange,
   Cat,
   Check,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   Copy,
@@ -35,7 +36,7 @@ import {
   X
 } from 'lucide-react'
 import { api, setUnauthorizedHandler } from './api'
-import { t, setLang, getLang, loadLang, persistLang } from './i18n'
+import { t, setLang, getLang, loadLang, persistLang, LANGUAGES } from './i18n'
 import { LEGAL } from './legal'
 import { track } from './analytics'
 
@@ -54,6 +55,25 @@ function BrandMark({ size = 20 }) {
       <path d="M12 12.2c2.15 0 3.75 1.55 3.75 3.4 0 1.55-1.5 2.4-3.75 2.4s-3.75-.85-3.75-2.4c0-1.85 1.6-3.4 3.75-3.4z" fill="currentColor" />
     </svg>
   )
+}
+
+// Small, self-contained flag glyphs for the language picker. Inline SVG (not
+// emoji) so they render the same on every OS — Windows shows flag emoji as bare
+// letters. Simplified but recognisable; 3:2 ratio.
+function Flag({ code, size = 20 }) {
+  const w = size, h = Math.round(size * 0.68)
+  const box = { width: w, height: h, viewBox: '0 0 24 16', style: { borderRadius: 2, display: 'block', flex: 'none' }, 'aria-hidden': true }
+  switch (code) {
+    case 'hr': return (<svg {...box}><rect width="24" height="5.33" fill="#c8102e"/><rect y="5.33" width="24" height="5.33" fill="#fff"/><rect y="10.66" width="24" height="5.34" fill="#1e40af"/><rect x="9.6" y="4.4" width="4.8" height="4.8" fill="#fff"/><rect x="9.6" y="4.4" width="1.6" height="1.6" fill="#c8102e"/><rect x="12.8" y="4.4" width="1.6" height="1.6" fill="#c8102e"/><rect x="11.2" y="6" width="1.6" height="1.6" fill="#c8102e"/><rect x="9.6" y="7.6" width="1.6" height="1.6" fill="#c8102e"/><rect x="12.8" y="7.6" width="1.6" height="1.6" fill="#c8102e"/></svg>)
+    case 'de': return (<svg {...box}><rect width="24" height="5.33" fill="#000"/><rect y="5.33" width="24" height="5.33" fill="#dd0000"/><rect y="10.66" width="24" height="5.34" fill="#ffce00"/></svg>)
+    case 'es': return (<svg {...box}><rect width="24" height="16" fill="#c60b1e"/><rect y="4" width="24" height="8" fill="#ffc400"/></svg>)
+    case 'fr': return (<svg {...box}><rect width="8" height="16" fill="#0055a4"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ef4135"/></svg>)
+    case 'it': return (<svg {...box}><rect width="8" height="16" fill="#009246"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ce2b37"/></svg>)
+    case 'pl': return (<svg {...box}><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#dc143c"/></svg>)
+    case 'no': return (<svg {...box}><rect width="24" height="16" fill="#ba0c2f"/><rect x="6" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="7" width="2" height="16" fill="#00205b"/><rect y="7" width="24" height="2" fill="#00205b"/></svg>)
+    case 'en': return (<svg {...box}><rect width="24" height="16" fill="#012169"/><path d="M0 0l24 16M24 0L0 16" stroke="#fff" strokeWidth="3.2"/><path d="M0 0l24 16M24 0L0 16" stroke="#c8102e" strokeWidth="1.6"/><rect x="9.5" width="5" height="16" fill="#fff"/><rect y="5.5" width="24" height="5" fill="#fff"/><rect x="10.5" width="3" height="16" fill="#c8102e"/><rect y="6.5" width="24" height="3" fill="#c8102e"/></svg>)
+    default: return (<svg {...box}><rect width="24" height="16" fill="#6d8b5f"/></svg>)
+  }
 }
 
 // The Google "G" in its four brand colours, for the sign-in button.
@@ -2888,19 +2908,41 @@ function MedicationsView({ pet, medications, onBack, onCreate, onAction }) {
 }
 
 function LangToggle({ lang, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+  }, [open])
+
+  const current = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0]
+
   return (
-    <div className="lang-toggle" role="group" aria-label="Language">
-      {['en', 'hr'].map((code) => (
-        <button
-          key={code}
-          type="button"
-          className={lang === code ? 'lang-button active' : 'lang-button'}
-          aria-pressed={lang === code}
-          onClick={() => onChange(code)}
-        >
-          {code.toUpperCase()}
-        </button>
-      ))}
+    <div className="lang-menu" ref={ref}>
+      <button type="button" className="lang-trigger" aria-haspopup="listbox" aria-expanded={open}
+              aria-label={`Language: ${current.label}`} onClick={() => setOpen((o) => !o)}>
+        <Flag code={current.code} size={20} />
+        <span>{current.code.toUpperCase()}</span>
+        <ChevronDown className="chev" size={15} />
+      </button>
+      {open && (
+        <div className="lang-list" role="listbox" aria-label="Language">
+          {LANGUAGES.map((l) => (
+            <button key={l.code} type="button" role="option" aria-selected={l.code === lang}
+                    className={l.code === lang ? 'lang-item active' : 'lang-item'}
+                    onClick={() => { onChange(l.code); setOpen(false) }}>
+              <Flag code={l.code} size={20} />
+              <span>{l.label}</span>
+              {l.code === lang && <Check className="check" size={15} />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
