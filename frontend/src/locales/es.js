@@ -1,4 +1,4 @@
-// Spanish (Español) — machine-assisted first pass; native review recommended before production.
+// Spanish (Español) — machine-assisted, native-reviewed. Keys are the English source.
 export default {
   "PetPattern": "PetPattern",
   "Private health memory for dogs": "Memoria de salud privada para perros",
@@ -131,7 +131,7 @@ export default {
   "Suggest fields": "Sugerir campos",
   "Reading…": "Leyendo…",
   "e.g. {name} scratched a lot today, stool was softer, ate normally, and we gave a new chicken treat yesterday.": "p. ej. {name} se ha rascado mucho hoy, las heces estaban más blandas, ha comido con normalidad y ayer le dimos una golosina nueva de pollo.",
-  "Could not read the note. You can still fill the fields in yourself.": "No se ha podido leer la nota. Puedes rellenar los campos tú mismo igualmente.",
+  "Could not read the note. You can still fill the fields in yourself.": "No se ha podido leer la nota. Aun así, puedes rellenar los campos a mano.",
   "Today's signals": "Señales de hoy",
   "Scratching / itching": "Rascado / picor",
   "Vomiting": "Vómitos",
@@ -139,7 +139,7 @@ export default {
   "Save today": "Guardar hoy",
   "Suggested fields": "Campos sugeridos",
   "Nothing's saved until you tap Save today.": "No se guarda nada hasta que pulses Guardar hoy.",
-  "No clear fields detected. Fill them in below.": "No se han detectado campos con claridad. Rellénalos abajo.",
+  "No clear fields detected. Fill them in below.": "No se han detectado campos con claridad. Rellénalos a continuación.",
   "Possible food change spotted:": "Posible cambio de comida detectado:",
   "Add as food change": "Añadir como cambio de comida",
   "Use these suggestions": "Usar estas sugerencias",
@@ -350,7 +350,7 @@ export default {
   "More": "Más",
   "Not used": "Sin usar",
   "Hiding more": "Se esconde más",
-  "Straining": "Esfuerzo al hacer",
+  "Straining": "Hace esfuerzos",
   "Weight concern": "Preocupación por el peso",
   "Urination change": "Cambio al orinar",
   "Write naturally — a note is often the most useful thing for a cat.": "Escribe con naturalidad: en los gatos, una nota suele ser lo más útil.",

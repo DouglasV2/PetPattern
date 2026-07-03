@@ -1,4 +1,4 @@
-// Italian (Italiano) — machine-assisted first pass; native review recommended before production.
+// Italian (Italiano) — machine-assisted, native-reviewed. Keys are the English source.
 export default {
   "PetPattern": "PetPattern",
   "Private health memory for dogs": "Memoria di salute privata per cani",
@@ -114,7 +114,7 @@ export default {
   "No stool": "Nessuna",
   "Lower": "Meno",
   "Higher": "Più",
-  "Refused": "Rifiuta il cibo",
+  "Refused": "Rifiutato",
   "Low": "Basso",
   "Restless": "Irrequieto",
   "High": "Alto",

@@ -1,4 +1,4 @@
-// French (Français) — machine-assisted first pass; native review recommended before production.
+// French (Français) — machine-assisted, native-reviewed. Keys are the English source.
 export default {
   "PetPattern": "PetPattern",
   "Private health memory for dogs": "Mémoire santé privée pour ton chien",
@@ -114,7 +114,7 @@ export default {
   "No stool": "Pas de selles",
   "Lower": "Plus bas",
   "Higher": "Plus haut",
-  "Refused": "Refuse de manger",
+  "Refused": "Refus",
   "Low": "Bas",
   "Restless": "Agité",
   "High": "Élevé",

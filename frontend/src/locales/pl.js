@@ -1,4 +1,4 @@
-// Polish (Polski) — machine-assisted first pass; native review recommended before production.
+// Polish (Polski) — machine-assisted, native-reviewed. Keys are the English source.
 export default {
   "PetPattern": "PetPattern",
   "Private health memory for dogs": "Prywatna pamięć zdrowia dla psów",
@@ -49,7 +49,7 @@ export default {
   "Worth watching": "Warto obserwować",
   "Changed": "Zmiana",
   "{name} needs a first baseline day.": "{name} czeka na swój pierwszy zapisany dzień.",
-  "{name} is worth watching today.": "Dziś warto trochę przypilnować {name}.",
+  "{name} is worth watching today.": "Dziś warto trochę poobserwować {name}.",
   "{name} needs today's check-in.": "{name} czeka na dzisiejszy wpis.",
   "{name} looks close to normal.": "{name} wygląda blisko normy.",
   "Chicken": "Kurczak",
@@ -119,7 +119,7 @@ export default {
   "Restless": "Niespokojny",
   "High": "Wysoka",
   "Daily check-in": "Codzienny wpis",
-  "How was {name} today?": "Jak się dziś miał {name}?",
+  "How was {name} today?": "Jak minął dzień {name}?",
   "A few seconds a day builds {name}'s record, so changes are easy to spot later.": "Kilka sekund dziennie buduje zapis {name}, więc zmiany łatwiej później dostrzec.",
   "Write what happened": "Napisz, co się działo",
   "Write naturally — PetPattern can suggest fields, but you stay in control.": "Pisz swobodnie — PetPattern może podpowiedzieć pola, ale to ty decydujesz.",
@@ -395,7 +395,7 @@ export default {
   "Preparing {name}'s summary…": "Przygotowuję podsumowanie dla {name}…",
   "No summary yet.": "Jeszcze brak podsumowania.",
   "PetPattern remembers what changed.": "PetPattern pamięta, co się zmieniło.",
-  "Log only what you noticed. A quick check-in is enough.": "Zapisz tylko to, co zauważyłeś. Krótki wpis wystarczy.",
+  "Log only what you noticed. A quick check-in is enough.": "Zapisz tylko to, co udało się zauważyć. Krótki wpis wystarczy.",
   "Food, stool, itching, vomiting, litter box, appetite, energy — small notes become useful over time.": "Jedzenie, stolec, swędzenie, wymioty, kuweta, apetyt, energia — drobne notatki z czasem stają się przydatne.",
   "Not a diagnosis. Not a vet chatbot. Just a clearer memory for your pet's health.": "To nie diagnoza. To nie chatbot weterynaryjny. Po prostu jaśniejsza pamięć zdrowia twojego pupila.",
   "No change noticed": "Nie zauważyłem zmian",
