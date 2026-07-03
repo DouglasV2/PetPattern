@@ -1,11 +1,16 @@
 package com.petpattern.i18n;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petpattern.domain.Protein;
 import org.springframework.context.i18n.LocaleContextHolder;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Backend copy localization — the same philosophy as the frontend i18n: the
@@ -32,17 +37,53 @@ public final class Copy {
     private Copy() {
     }
 
+    // Croatian stays inline in this class (the HR map below). The other locales
+    // load from /i18n/<code>.json resources, so adding a language is a data change,
+    // not a code change. Any locale missing a key falls back to English.
+    private static final Set<String> EXTRA_LANGS = Set.of("de", "es", "fr", "it", "no", "pl");
+    private static final Map<String, Map<String, String>> EXTRA = loadExtra();
+
+    private static Map<String, Map<String, String>> loadExtra() {
+        Map<String, Map<String, String>> all = new HashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+        for (String code : EXTRA_LANGS) {
+            try (InputStream in = Copy.class.getResourceAsStream("/i18n/" + code + ".json")) {
+                if (in != null) {
+                    all.put(code, mapper.readValue(in, new TypeReference<Map<String, String>>() {}));
+                }
+            } catch (IOException ex) {
+                // Missing/broken locale file — that language falls back to English.
+            }
+        }
+        return all;
+    }
+
+    /** The request's language code, e.g. "hr", "de", "en". */
+    private static String lang() {
+        return LocaleContextHolder.getLocale().getLanguage().toLowerCase(Locale.ROOT);
+    }
+
     public static boolean isHr() {
-        return "hr".equalsIgnoreCase(LocaleContextHolder.getLocale().getLanguage());
+        return "hr".equals(lang());
     }
 
     /** The active locale for date formatting (month names etc.). */
     public static Locale locale() {
-        return isHr() ? Locale.forLanguageTag("hr") : Locale.ENGLISH;
+        String lang = lang();
+        return ("hr".equals(lang) || EXTRA_LANGS.contains(lang)) ? Locale.forLanguageTag(lang) : Locale.ENGLISH;
     }
 
     public static String t(String english, Object... args) {
-        String template = isHr() ? HR.getOrDefault(english, english) : english;
+        String lang = lang();
+        String template = english;
+        if ("hr".equals(lang)) {
+            template = HR.getOrDefault(english, english);
+        } else {
+            Map<String, String> map = EXTRA.get(lang);
+            if (map != null) {
+                template = map.getOrDefault(english, english);
+            }
+        }
         for (int i = 0; i < args.length; i++) {
             template = template.replace("{" + i + "}", String.valueOf(args[i]));
         }
@@ -51,48 +92,85 @@ public final class Copy {
 
     /** "1 day" / "3 days" — HR: "1 dan" / "3 dana" / "21 dan". */
     public static String days(int count) {
-        if (isHr()) {
+        return count + switch (lang()) {
             // Croatian: n ending in 1 (except 11) takes the singular ("21 dan").
-            return count + ((count % 10 == 1 && count % 100 != 11) ? " dan" : " dana");
-        }
-        return count + (count == 1 ? " day" : " days");
+            case "hr" -> (count % 10 == 1 && count % 100 != 11) ? " dan" : " dana";
+            case "de" -> count == 1 ? " Tag" : " Tage";
+            case "es" -> count == 1 ? " día" : " días";
+            case "fr" -> count <= 1 ? " jour" : " jours";
+            case "it" -> count == 1 ? " giorno" : " giorni";
+            case "no" -> count == 1 ? " dag" : " dager";
+            case "pl" -> count == 1 ? " dzień" : " dni";
+            default -> count == 1 ? " day" : " days";
+        };
     }
 
     /** "1 year" / "3 years" — HR: "1 godina" / "2 godine" / "5 godina". */
     public static String years(int count) {
-        if (isHr()) {
-            int mod10 = count % 10;
-            int mod100 = count % 100;
-            if (mod10 == 1 && mod100 != 11) {
-                return count + " godina";
-            }
-            if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-                return count + " godine";
-            }
-            return count + " godina";
-        }
-        return count + (count == 1 ? " year" : " years");
+        int mod10 = count % 10;
+        int mod100 = count % 100;
+        boolean slavicFew = mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14);
+        return count + switch (lang()) {
+            case "hr" -> (mod10 == 1 && mod100 != 11) ? " godina" : (slavicFew ? " godine" : " godina");
+            case "de" -> count == 1 ? " Jahr" : " Jahre";
+            case "es" -> count == 1 ? " año" : " años";
+            case "fr" -> count <= 1 ? " an" : " ans";
+            case "it" -> count == 1 ? " anno" : " anni";
+            case "no" -> " år"; // same singular and plural
+            case "pl" -> count == 1 ? " rok" : (slavicFew ? " lata" : " lat");
+            default -> count == 1 ? " year" : " years";
+        };
     }
 
     /** Localized protein name, lowercase for mid-sentence use ("chicken" / "piletina"). */
     public static String protein(Protein protein) {
         Protein value = protein == null ? Protein.UNKNOWN : protein;
-        if (isHr()) {
-            return switch (value) {
-                case CHICKEN -> "piletina";
-                case BEEF -> "govedina";
-                case LAMB -> "janjetina";
-                case SALMON -> "losos";
-                case TURKEY -> "puretina";
-                case DUCK -> "pačetina";
-                case PORK -> "svinjetina";
-                case EGG -> "jaja";
-                case DAIRY -> "mliječni proizvodi";
-                case OTHER -> "drugo";
-                default -> "nepoznato";
+        return switch (lang()) {
+            case "hr" -> switch (value) {
+                case CHICKEN -> "piletina"; case BEEF -> "govedina"; case LAMB -> "janjetina";
+                case SALMON -> "losos"; case TURKEY -> "puretina"; case DUCK -> "pačetina";
+                case PORK -> "svinjetina"; case EGG -> "jaja"; case DAIRY -> "mliječni proizvodi";
+                case OTHER -> "drugo"; default -> "nepoznato";
             };
-        }
-        return value.displayName().toLowerCase(Locale.ROOT);
+            // German common nouns are always capitalised.
+            case "de" -> switch (value) {
+                case CHICKEN -> "Huhn"; case BEEF -> "Rind"; case LAMB -> "Lamm";
+                case SALMON -> "Lachs"; case TURKEY -> "Pute"; case DUCK -> "Ente";
+                case PORK -> "Schwein"; case EGG -> "Ei"; case DAIRY -> "Milchprodukte";
+                case OTHER -> "Sonstiges"; default -> "Unbekannt";
+            };
+            case "es" -> switch (value) {
+                case CHICKEN -> "pollo"; case BEEF -> "ternera"; case LAMB -> "cordero";
+                case SALMON -> "salmón"; case TURKEY -> "pavo"; case DUCK -> "pato";
+                case PORK -> "cerdo"; case EGG -> "huevo"; case DAIRY -> "lácteos";
+                case OTHER -> "otro"; default -> "desconocido";
+            };
+            case "fr" -> switch (value) {
+                case CHICKEN -> "poulet"; case BEEF -> "bœuf"; case LAMB -> "agneau";
+                case SALMON -> "saumon"; case TURKEY -> "dinde"; case DUCK -> "canard";
+                case PORK -> "porc"; case EGG -> "œuf"; case DAIRY -> "produits laitiers";
+                case OTHER -> "autre"; default -> "inconnu";
+            };
+            case "it" -> switch (value) {
+                case CHICKEN -> "pollo"; case BEEF -> "manzo"; case LAMB -> "agnello";
+                case SALMON -> "salmone"; case TURKEY -> "tacchino"; case DUCK -> "anatra";
+                case PORK -> "maiale"; case EGG -> "uovo"; case DAIRY -> "latticini";
+                case OTHER -> "altro"; default -> "sconosciuto";
+            };
+            case "no" -> switch (value) {
+                case CHICKEN -> "kylling"; case BEEF -> "storfe"; case LAMB -> "lam";
+                case SALMON -> "laks"; case TURKEY -> "kalkun"; case DUCK -> "and";
+                case PORK -> "svin"; case EGG -> "egg"; case DAIRY -> "meieriprodukter";
+                case OTHER -> "annet"; default -> "ukjent";
+            };
+            case "pl" -> switch (value) {
+                case CHICKEN -> "kurczak"; case BEEF -> "wołowina"; case LAMB -> "jagnięcina";
+                case SALMON -> "łosoś"; case TURKEY -> "indyk"; case DUCK -> "kaczka";
+                case PORK -> "wieprzowina"; case EGG -> "jajko"; case DAIRY -> "nabiał";
+                case OTHER -> "inne"; default -> "nieznane";
+            };
+            default -> value.displayName().toLowerCase(Locale.ROOT);
+        };
     }
 
     /** Localized protein name capitalized for labels ("Chicken" / "Piletina"). */
