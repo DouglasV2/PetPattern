@@ -1,0 +1,46 @@
+// Privacy-first product analytics.
+//
+// Purpose: measure the activation/retention funnel (did people register, add a
+// pet, log a check-in, look at their patterns / vet summary, export, delete) —
+// NOT to collect anything about the pet or its health.
+//
+// What is sent: only a fixed event name + a timestamp. Never pet names, notes,
+// symptoms/signs, emails, or any health content. Anything not on the allow-list
+// below is dropped, so a stray call can't accidentally introduce a new field.
+//
+// It is OFF unless VITE_ANALYTICS_URL is set, so dev is a silent no-op. The URL
+// should point at a privacy-friendly collector (self-hosted, or a Plausible-style
+// endpoint) that accepts a JSON body of { event, ts }.
+
+const ENDPOINT = import.meta.env.VITE_ANALYTICS_URL
+
+const ALLOWED = new Set([
+  'registered',
+  'pet_created',
+  'checkin_created',
+  'pattern_viewed',
+  'vet_summary_viewed',
+  'export_clicked',
+  'account_deleted'
+])
+
+export function track(event) {
+  if (!ENDPOINT || !ALLOWED.has(event)) return
+  try {
+    const body = JSON.stringify({ event, ts: Date.now() })
+    // sendBeacon survives page navigation (e.g. after account deletion) and never
+    // blocks the UI; fall back to keepalive fetch where it's unavailable.
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'application/json' }))
+    } else {
+      fetch(ENDPOINT, {
+        method: 'POST',
+        body,
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true
+      }).catch(() => {})
+    }
+  } catch {
+    // Analytics must never break the app.
+  }
+}

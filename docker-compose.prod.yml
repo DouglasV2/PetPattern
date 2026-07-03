@@ -1,0 +1,99 @@
+# Production stack. Reads secrets from a local .env (see .env.example).
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Differences from the dev compose (docker-compose.yml):
+#   - SPRING_PROFILES_ACTIVE=prod (JSON logs, HTTPS-only cookie)
+#   - Postgres has NO published port (internal network only)
+#   - Frontend binds to 127.0.0.1 — put a TLS reverse proxy in front (see DEPLOY.md)
+#   - restart: unless-stopped, and health-gated startup ordering
+#   - required secrets fail fast if unset (${VAR:?...})
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: petpattern-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-petpattern}
+      POSTGRES_USER: ${POSTGRES_USER:-petpattern}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - petpattern_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-petpattern} -d ${POSTGRES_DB:-petpattern}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: petpattern-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-petpattern}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-petpattern}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      # Public https origin — used for the session cookie + CORS. MUST be https.
+      PETPATTERN_CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in .env}
+      PETPATTERN_COOKIE_SECURE: "true"
+      PETPATTERN_DEMO_ENABLED: ${PETPATTERN_DEMO_ENABLED:-true}
+      # Used to build the password-reset link in emails (defaults to PUBLIC_ORIGIN).
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in .env}
+      TZ: UTC
+      # Password-reset email (optional). Off by default: the link is logged, not
+      # sent. Set PETPATTERN_MAIL_ENABLED=true + SPRING_MAIL_* to send real email.
+      PETPATTERN_MAIL_ENABLED: ${PETPATTERN_MAIL_ENABLED:-false}
+      PETPATTERN_MAIL_FROM: ${PETPATTERN_MAIL_FROM:-PetPattern <no-reply@petpattern.app>}
+      SPRING_MAIL_HOST: ${SMTP_HOST:-}
+      SPRING_MAIL_PORT: ${SMTP_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SMTP_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SMTP_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: ${SMTP_AUTH:-true}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: ${SMTP_STARTTLS:-true}
+      # Bound any SMTP hang so a slow mail server can't tie up request threads.
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT: "5000"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT: "5000"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT: "5000"
+      # Error tracking (optional). Empty SENTRY_DSN = disabled.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      PETPATTERN_AI_PROVIDER: ${PETPATTERN_AI_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PETPATTERN_AI_MODEL: ${PETPATTERN_AI_MODEL:-claude-haiku-4-5}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    # The frontend proxies /api over the internal network, so the backend needs
+    # no published port. Uncomment to route /api directly from a reverse proxy.
+    # ports: ["127.0.0.1:8317:8080"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      # VITE_* are inlined at build time. Empty = feature off (no Sentry, no
+      # analytics). Change any of these => rebuild the frontend image.
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+        VITE_ANALYTICS_URL: ${VITE_ANALYTICS_URL:-}
+    container_name: petpattern-frontend
+    restart: unless-stopped
+    # Bound to loopback: terminate TLS in a reverse proxy that forwards here.
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-7317}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  petpattern_pgdata:

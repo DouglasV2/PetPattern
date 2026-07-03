@@ -2,6 +2,7 @@ package com.petpattern.pattern;
 
 import com.petpattern.api.dto.InsightResponse;
 import com.petpattern.domain.Pet;
+import com.petpattern.i18n.Copy;
 import com.petpattern.patterns.PatternCandidate;
 import com.petpattern.patterns.PatternEngine;
 import com.petpattern.repository.DailyCheckInRepository;
@@ -17,7 +18,9 @@ import java.util.UUID;
 @Service
 public class InsightService {
 
-    private static final String MEDICAL_BOUNDARY = "This is not a medical conclusion. It is a pattern from stored history that may be useful to discuss with a veterinarian.";
+    private static String medicalBoundary() {
+        return Copy.t("This is not a medical conclusion. It is a pattern from stored history that may be useful to discuss with a veterinarian.");
+    }
 
     private final PatternEngine patternEngine;
     private final PetRepository petRepository;
@@ -41,11 +44,12 @@ public class InsightService {
             return List.of(new InsightResponse(
                     "BASELINE_BUILDING",
                     "calm",
-                    "PetPattern is still learning what normal looks like",
-                    pet.getName() + " has " + loggedDays + " logged days. Keep tracking food and daily signals so changes become easier to compare.",
+                    Copy.t("PetPattern is still learning what normal looks like"),
+                    Copy.t("{0} has {1} logged days. Keep tracking food and daily signals so changes become easier to compare.",
+                            pet.getName(), loggedDays),
                     "low",
-                    List.of("Logged days: " + loggedDays, "No deterministic threshold crossed in the current ruleset"),
-                    MEDICAL_BOUNDARY
+                    List.of(Copy.t("Logged days: {0}", loggedDays), Copy.t("Nothing outside the usual range yet")),
+                    medicalBoundary()
             ));
         }
 
@@ -62,14 +66,15 @@ public class InsightService {
                 candidate.summary(),
                 candidate.confidence().name().toLowerCase(Locale.ROOT),
                 candidate.evidence(),
-                MEDICAL_BOUNDARY
+                medicalBoundary()
         );
     }
 
     private String severity(PatternCandidate candidate) {
         return switch (candidate.type()) {
             case POSSIBLE_FOOD_TRIGGER -> "pattern";
-            case ITCHING_ABOVE_BASELINE, STOOL_INSTABILITY, WATER_DROP -> "watch";
+            case ITCHING_ABOVE_BASELINE, STOOL_INSTABILITY, WATER_DROP, RECURRING_EAR_REDNESS,
+                 APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING -> "watch";
         };
     }
 }

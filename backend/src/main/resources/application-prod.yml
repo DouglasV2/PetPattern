@@ -1,0 +1,23 @@
+# Production profile — activate with SPRING_PROFILES_ACTIVE=prod.
+# Everything else is inherited from application.yml (which reads DB/AI/CORS from
+# environment variables). See docker-compose.prod.yml + .env.example.
+server:
+  error:
+    # Never expose a stack trace (this is the Spring default, pinned for prod).
+    # include-message stays "always" (from application.yml) so our handled 4xx
+    # reason phrases still reach the UI; input is validated at the request layer
+    # so unhandled 500s shouldn't carry revealing messages.
+    include-stacktrace: never
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        # No pretty-printed SQL in production logs.
+        format_sql: false
+
+petpattern:
+  security:
+    # HTTPS-only session cookie. Prod MUST be served over TLS or login breaks.
+    # (Still overridable via PETPATTERN_COOKIE_SECURE.)
+    cookie-secure: ${PETPATTERN_COOKIE_SECURE:true}

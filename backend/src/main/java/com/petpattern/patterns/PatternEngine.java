@@ -3,6 +3,7 @@ package com.petpattern.patterns;
 import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.FoodLog;
 import com.petpattern.domain.Pet;
+import com.petpattern.domain.Species;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.PetRepository;
@@ -24,17 +25,20 @@ public class PatternEngine {
     private final FoodLogRepository foodLogRepository;
     private final SymptomTrendAnalyzer symptomTrendAnalyzer;
     private final FoodExposureAnalyzer foodExposureAnalyzer;
+    private final CatSymptomAnalyzer catSymptomAnalyzer;
 
     public PatternEngine(PetRepository petRepository,
                          DailyCheckInRepository checkInRepository,
                          FoodLogRepository foodLogRepository,
                          SymptomTrendAnalyzer symptomTrendAnalyzer,
-                         FoodExposureAnalyzer foodExposureAnalyzer) {
+                         FoodExposureAnalyzer foodExposureAnalyzer,
+                         CatSymptomAnalyzer catSymptomAnalyzer) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.symptomTrendAnalyzer = symptomTrendAnalyzer;
         this.foodExposureAnalyzer = foodExposureAnalyzer;
+        this.catSymptomAnalyzer = catSymptomAnalyzer;
     }
 
     public List<PatternCandidate> analyze(UUID petId) {
@@ -50,10 +54,21 @@ public class PatternEngine {
         }
 
         List<PatternCandidate> candidates = new ArrayList<>();
-        symptomTrendAnalyzer.itchingAboveBaseline(pet, checkIns).ifPresent(candidates::add);
-        symptomTrendAnalyzer.stoolInstability(pet, checkIns).ifPresent(candidates::add);
-        symptomTrendAnalyzer.waterDrop(pet, checkIns).ifPresent(candidates::add);
-        foodExposureAnalyzer.possibleFoodTrigger(pet, checkIns, foodLogs).ifPresent(candidates::add);
+        if (pet.getSpecies() == Species.CAT) {
+            // Cat rules: cautious, litter/appetite/water/hiding/vomiting focused.
+            catSymptomAnalyzer.appetiteLow(pet, checkIns).ifPresent(candidates::add);
+            catSymptomAnalyzer.waterChange(pet, checkIns).ifPresent(candidates::add);
+            catSymptomAnalyzer.litterBoxChange(pet, checkIns).ifPresent(candidates::add);
+            catSymptomAnalyzer.hidingIncreased(pet, checkIns).ifPresent(candidates::add);
+            catSymptomAnalyzer.repeatedVomiting(pet, checkIns).ifPresent(candidates::add);
+        } else {
+            // Dog rules (default).
+            symptomTrendAnalyzer.itchingAboveBaseline(pet, checkIns).ifPresent(candidates::add);
+            symptomTrendAnalyzer.stoolInstability(pet, checkIns).ifPresent(candidates::add);
+            symptomTrendAnalyzer.waterDrop(pet, checkIns).ifPresent(candidates::add);
+            symptomTrendAnalyzer.recurringEarRedness(pet, checkIns).ifPresent(candidates::add);
+            foodExposureAnalyzer.possibleFoodTrigger(pet, checkIns, foodLogs).ifPresent(candidates::add);
+        }
 
         candidates.sort(Comparator
                 .comparing((PatternCandidate candidate) -> confidenceRank(candidate.confidence())).reversed()

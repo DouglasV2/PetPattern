@@ -10,6 +10,8 @@ import java.util.OptionalDouble;
 @Component
 public class SymptomTrendAnalyzer {
 
+    private static final int ITCHING_ELEVATED = 5;
+
     private final BaselineCalculator baselineCalculator;
     private final PatternExplanationBuilder explanationBuilder;
 
@@ -29,12 +31,24 @@ public class SymptomTrendAnalyzer {
             return Optional.empty();
         }
 
+        // Adaptive (engine v2): the rise must clear this dog's own normal
+        // variability, with a floor so a very steady dog still needs a real jump.
+        // Measure that variability from CALM days only — a baseline window that
+        // already contains an earlier flare must not inflate the bar against the
+        // recurring patterns we exist to surface. Cap it as a second guard.
+        List<DailyCheckIn> calmBaseline = baseline.stream()
+                .filter(checkIn -> checkIn.getItchingScore() == null
+                        || checkIn.getItchingScore() < ITCHING_ELEVATED)
+                .toList();
+        double stdDev = baselineCalculator.itchingStandardDeviation(calmBaseline).orElse(0.0);
+        double threshold = Math.max(1.8, Math.min(stdDev, 3.0));
+
         double lift = recentAverage.getAsDouble() - baselineAverage.getAsDouble();
-        if (lift < 1.8 || recentAverage.getAsDouble() < 5.0) {
+        if (lift < threshold || recentAverage.getAsDouble() < 5.0) {
             return Optional.empty();
         }
 
-        PatternConfidence confidence = lift >= 3.0 ? PatternConfidence.HIGH : PatternConfidence.MEDIUM;
+        PatternConfidence confidence = lift >= threshold + 1.2 ? PatternConfidence.HIGH : PatternConfidence.MEDIUM;
         return Optional.of(explanationBuilder.itchingAboveBaseline(
                 pet,
                 confidence,
@@ -42,6 +56,17 @@ public class SymptomTrendAnalyzer {
                 baselineAverage.getAsDouble(),
                 recent
         ));
+    }
+
+    public Optional<PatternCandidate> recurringEarRedness(Pet pet, List<DailyCheckIn> checkIns) {
+        List<DailyCheckIn> recent = baselineCalculator.recentDays(checkIns, 14);
+        long earRednessDays = recent.stream().filter(DailyCheckIn::isEarRedness).count();
+
+        if (recent.size() < 7 || earRednessDays < 3) {
+            return Optional.empty();
+        }
+
+        return Optional.of(explanationBuilder.recurringEarRedness(pet, earRednessDays, recent));
     }
 
     public Optional<PatternCandidate> stoolInstability(Pet pet, List<DailyCheckIn> checkIns) {

@@ -2,7 +2,9 @@ package com.petpattern.api.dto;
 
 import com.petpattern.domain.FoodKind;
 import com.petpattern.domain.Protein;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
@@ -13,15 +15,15 @@ public record FoodLogRequest(
         LocalDate dateStarted,
         LocalDate date,
         FoodKind foodKind,
-        String brand,
-        String productName,
-        String recipeName,
+        @Size(max = 255, message = "That brand name is too long") String brand,
+        @Size(max = 255, message = "That product name is too long") String productName,
+        @Size(max = 255, message = "That name is too long") String recipeName,
         String primaryProtein,
         List<String> secondaryProteins,
         boolean grainFree,
         boolean newFood,
-        @Min(0) Integer amountGrams,
-        String notes
+        @Min(0) @Max(1000000) Integer amountGrams,
+        @Size(max = 1200, message = "The note is too long (max 1200 characters)") String notes
 ) {
     public LocalDate resolvedDateStarted() {
         return dateStarted != null ? dateStarted : date;

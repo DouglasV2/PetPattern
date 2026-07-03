@@ -13,8 +13,18 @@ frontend/dist/
 # Env
 .env
 *.env
+!.env.example
+
+# DB backups (ops/backup-db.sh)
+backups/
 
 # IDE
 .idea/
 .vscode/
 *.iml
+
+# Local test artifacts
+*_id.txt
+
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json

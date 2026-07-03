@@ -9,6 +9,9 @@ public record PetOverviewResponse(
         List<PatternResponse> patterns,
         String todayStatus,
         String todayExplanation,
-        String nextAction
+        String nextAction,
+        RetentionSummary retention,
+        String goodNews,
+        String watchOut
 ) {
 }

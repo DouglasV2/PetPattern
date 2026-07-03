@@ -25,7 +25,26 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/petpattern
       SPRING_DATASOURCE_USERNAME: petpattern
       SPRING_DATASOURCE_PASSWORD: petpattern
-      PETPATTERN_CORS_ALLOWED_ORIGINS: http://localhost:7317,http://127.0.0.1:7317
+      # 7317 is the production (nginx) origin; 5273 is the local Vite dev/preview
+      # origin, allowed so the dev server can call the API with cookies.
+      PETPATTERN_CORS_ALLOWED_ORIGINS: http://localhost:7317,http://127.0.0.1:7317,http://localhost:5273
+      # Pin the server day to UTC so "today" matches the frontend's UTC date
+      # (true per-user timezones need accounts — deferred to Route A).
+      TZ: UTC
+      # AI stays on the deterministic local reader unless you set these.
+      PETPATTERN_AI_PROVIDER: ${PETPATTERN_AI_PROVIDER:-mock}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PETPATTERN_AI_MODEL: ${PETPATTERN_AI_MODEL:-claude-haiku-4-5}
+      # The backend port is published directly here (no proxy in front of :8080),
+      # so trust no forwarded IP — the rate limiter keys on the real socket
+      # address and X-Real-IP can't be spoofed to dodge it. In prod the app runs
+      # behind nginx; leave the code default (private ranges) there.
+      PETPATTERN_SECURITY_TRUSTED_PROXIES: ""
+      # Google Sign-In (optional) — values come from .env (gitignored). Unset =
+      # the /api/auth/google/** endpoints 404 and no Google button is shown.
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:7317/api/auth/google/callback}
     ports:
       - "8317:8080"
     depends_on:

@@ -4,8 +4,9 @@ import com.petpattern.api.dto.FoodLogRequest;
 import com.petpattern.api.dto.FoodLogResponse;
 import com.petpattern.domain.FoodLog;
 import com.petpattern.domain.Pet;
+import com.petpattern.auth.PetAccess;
+import com.petpattern.i18n.Copy;
 import com.petpattern.repository.FoodLogRepository;
-import com.petpattern.repository.PetRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +21,11 @@ import java.util.UUID;
 @RequestMapping("/api/pets/{petId}/food-logs")
 public class FoodLogController {
 
-    private final PetRepository petRepository;
+    private final PetAccess petAccess;
     private final FoodLogRepository foodLogRepository;
 
-    public FoodLogController(PetRepository petRepository, FoodLogRepository foodLogRepository) {
-        this.petRepository = petRepository;
+    public FoodLogController(PetAccess petAccess, FoodLogRepository foodLogRepository) {
+        this.petAccess = petAccess;
         this.foodLogRepository = foodLogRepository;
     }
 
@@ -53,6 +54,18 @@ public class FoodLogController {
         if (dateStarted == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "dateStarted is required");
         }
+        // A start date can't be in the future — a fat-fingered year (e.g. 2090)
+        // otherwise sorts to the top and masks the real current food, and corrupts
+        // the food-trigger windows. One day of tolerance for east-of-UTC clocks,
+        // mirroring the check-in guard.
+        LocalDate today = LocalDate.now();
+        if (dateStarted.isAfter(today.plusDays(1))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Copy.t("A food start date can't be in the future"));
+        }
+        // Reject absurd past years (typos like 1200) that no pet could predate.
+        if (dateStarted.isBefore(today.minusYears(50))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Copy.t("Check the start year — that date is too far in the past"));
+        }
 
         FoodLog foodLog = new FoodLog();
         foodLog.setPet(pet);
@@ -69,9 +82,18 @@ public class FoodLogController {
         return FoodLogResponse.from(foodLogRepository.save(foodLog));
     }
 
+    @DeleteMapping("/{foodLogId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID petId, @PathVariable UUID foodLogId) {
+        Pet pet = findPet(petId);
+        FoodLog foodLog = foodLogRepository.findById(foodLogId)
+                .filter(existing -> existing.getPet().getId().equals(pet.getId()))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Food log not found"));
+        foodLogRepository.delete(foodLog);
+    }
+
     private Pet findPet(UUID petId) {
-        return petRepository.findById(petId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
+        return petAccess.requireOwnedPet(petId);
     }
 
     private String clean(String value) {

@@ -17,6 +17,12 @@ public class Pet {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    // Nullable at the DB level so ddl-auto=update can add the column to existing
+    // rows without a default; always set in code for new pets.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private Owner owner;
+
     @NotBlank
     @Column(nullable = false)
     private String name;
@@ -40,6 +46,14 @@ public class Pet {
 
     public UUID getId() {
         return id;
+    }
+
+    public Owner getOwner() {
+        return owner;
+    }
+
+    public void setOwner(Owner owner) {
+        this.owner = owner;
     }
 
     public String getName() {

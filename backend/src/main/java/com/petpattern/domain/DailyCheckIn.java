@@ -67,6 +67,19 @@ public class DailyCheckIn {
     private boolean diarrhea;
     private boolean earRedness;
 
+    // --- Cat-specific signals (null/UNKNOWN for dogs) ---
+    @Enumerated(EnumType.STRING)
+    private LitterBoxUse litterBoxUse = LitterBoxUse.UNKNOWN;
+
+    @Enumerated(EnumType.STRING)
+    private UrinationChange urinationChange = UrinationChange.UNKNOWN;
+
+    @Enumerated(EnumType.STRING)
+    private HidingBehavior hidingBehavior = HidingBehavior.UNKNOWN;
+
+    private boolean straining;
+    private boolean weightConcern;
+
     @Column(length = 1200)
     private String freeTextNote;
 
@@ -198,6 +211,46 @@ public class DailyCheckIn {
 
     public void setEarRedness(boolean earRedness) {
         this.earRedness = earRedness;
+    }
+
+    public LitterBoxUse getLitterBoxUse() {
+        return litterBoxUse == null ? LitterBoxUse.UNKNOWN : litterBoxUse;
+    }
+
+    public void setLitterBoxUse(LitterBoxUse litterBoxUse) {
+        this.litterBoxUse = litterBoxUse == null ? LitterBoxUse.UNKNOWN : litterBoxUse;
+    }
+
+    public UrinationChange getUrinationChange() {
+        return urinationChange == null ? UrinationChange.UNKNOWN : urinationChange;
+    }
+
+    public void setUrinationChange(UrinationChange urinationChange) {
+        this.urinationChange = urinationChange == null ? UrinationChange.UNKNOWN : urinationChange;
+    }
+
+    public HidingBehavior getHidingBehavior() {
+        return hidingBehavior == null ? HidingBehavior.UNKNOWN : hidingBehavior;
+    }
+
+    public void setHidingBehavior(HidingBehavior hidingBehavior) {
+        this.hidingBehavior = hidingBehavior == null ? HidingBehavior.UNKNOWN : hidingBehavior;
+    }
+
+    public boolean isStraining() {
+        return straining;
+    }
+
+    public void setStraining(boolean straining) {
+        this.straining = straining;
+    }
+
+    public boolean isWeightConcern() {
+        return weightConcern;
+    }
+
+    public void setWeightConcern(boolean weightConcern) {
+        this.weightConcern = weightConcern;
     }
 
     public String getFreeTextNote() {

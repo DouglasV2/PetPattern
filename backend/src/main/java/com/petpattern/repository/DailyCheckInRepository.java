@@ -15,5 +15,7 @@ public interface DailyCheckInRepository extends JpaRepository<DailyCheckIn, UUID
     List<DailyCheckIn> findByPetAndCheckInDateGreaterThanEqualOrderByCheckInDateAsc(Pet pet, LocalDate fromDate);
     Optional<DailyCheckIn> findByPetAndCheckInDate(Pet pet, LocalDate checkInDate);
     Optional<DailyCheckIn> findFirstByPetOrderByCheckInDateDesc(Pet pet);
+    Optional<DailyCheckIn> findFirstByPetOrderByCheckInDateAsc(Pet pet);
+    long countByPet(Pet pet);
     void deleteByPet(Pet pet);
 }

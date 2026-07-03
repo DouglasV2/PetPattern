@@ -1,6 +1,18 @@
 ### Seed Bella demo
 POST http://localhost:8317/api/dev/seed
 
+### Forgot password (always 200 + neutral message; never reveals if the email exists)
+POST http://localhost:8317/api/auth/forgot-password
+Content-Type: application/json
+
+{ "email": "you@example.com" }
+
+### Reset password (token comes from the email; dev logs it as "reset link")
+POST http://localhost:8317/api/auth/reset-password
+Content-Type: application/json
+
+{ "token": "PASTE_TOKEN_FROM_LINK", "password": "newpassword123" }
+
 ### List pets
 GET http://localhost:8317/api/pets
 
@@ -51,5 +63,40 @@ Content-Type: application/json
   "notes": "Small treat during training."
 }
 
+### Delete a check-in (Sprint 12)
+DELETE http://localhost:8317/api/pets/{{petId}}/check-ins/{{checkInId}}
+
+### Delete a food log (Sprint 12)
+DELETE http://localhost:8317/api/pets/{{petId}}/food-logs/{{foodLogId}}
+
 ### Patterns
 GET http://localhost:8317/api/pets/{{petId}}/patterns
+
+### Set owner status on a pattern (Sprint 8)
+POST http://localhost:8317/api/pets/{{petId}}/patterns/{{patternId}}/status
+Content-Type: application/json
+
+{
+  "status": "SHARED_WITH_VET"
+}
+
+### Pattern timeline by stable id (Sprint 5)
+GET http://localhost:8317/api/pets/{{petId}}/patterns/{{patternId}}/timeline
+
+### Pattern timeline by type (fallback)
+GET http://localhost:8317/api/pets/{{petId}}/patterns/timeline?type=POSSIBLE_FOOD_TRIGGER
+
+### Vet-ready summary (Sprint 6)
+GET http://localhost:8317/api/pets/{{petId}}/vet-summary
+
+### Vet-ready summary for a custom range
+GET http://localhost:8317/api/pets/{{petId}}/vet-summary?days=45
+
+### AI-assisted daily note parse (Sprint 7)
+POST http://localhost:8317/api/ai/parse-daily-note
+Content-Type: application/json
+
+{
+  "petId": "{{petId}}",
+  "note": "Bella scratched a lot today, stool was softer, she ate normally, and yesterday we gave her a new chicken treat."
+}

@@ -2,11 +2,15 @@ package com.petpattern.api.dto;
 
 import com.petpattern.domain.AppetiteLevel;
 import com.petpattern.domain.EnergyLevel;
+import com.petpattern.domain.HidingBehavior;
+import com.petpattern.domain.LitterBoxUse;
 import com.petpattern.domain.StoolState;
+import com.petpattern.domain.UrinationChange;
 import com.petpattern.domain.WaterLevel;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
@@ -20,14 +24,34 @@ public record CheckInRequest(
         EnergyLevel energyLevel,
         boolean vomiting,
         boolean earRedness,
-        String freeTextNote,
+        // Matches the 1200-char DB column; without this an oversized note reached
+        // the database and surfaced as a 500 that leaked the SQL statement.
+        @Size(max = 1200, message = "The note is too long (max 1200 characters)") String freeTextNote,
         @Min(0) @Max(10) Integer energyScore,
         @Min(0) @Max(10) Integer appetiteScore,
         @Min(0) @Max(10) Integer sleepQualityScore,
-        @Min(0) Integer waterIntakeMl,
+        @Min(0) @Max(50000) Integer waterIntakeMl,
         boolean diarrhea,
-        String notes
+        @Size(max = 1200, message = "The note is too long (max 1200 characters)") String notes,
+        // Cat-specific (null/false for dogs)
+        LitterBoxUse litterBoxUse,
+        UrinationChange urinationChange,
+        boolean straining,
+        HidingBehavior hidingBehavior,
+        boolean weightConcern
 ) {
+    public LitterBoxUse resolvedLitterBoxUse() {
+        return litterBoxUse == null ? LitterBoxUse.UNKNOWN : litterBoxUse;
+    }
+
+    public UrinationChange resolvedUrinationChange() {
+        return urinationChange == null ? UrinationChange.UNKNOWN : urinationChange;
+    }
+
+    public HidingBehavior resolvedHidingBehavior() {
+        return hidingBehavior == null ? HidingBehavior.UNKNOWN : hidingBehavior;
+    }
+
     public StoolState resolvedStoolState() {
         if (stoolState != null) {
             return stoolState;

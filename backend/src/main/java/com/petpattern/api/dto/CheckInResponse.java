@@ -3,7 +3,10 @@ package com.petpattern.api.dto;
 import com.petpattern.domain.AppetiteLevel;
 import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.EnergyLevel;
+import com.petpattern.domain.HidingBehavior;
+import com.petpattern.domain.LitterBoxUse;
 import com.petpattern.domain.StoolState;
+import com.petpattern.domain.UrinationChange;
 import com.petpattern.domain.WaterLevel;
 
 import java.time.LocalDate;
@@ -26,7 +29,12 @@ public record CheckInResponse(
         Integer sleepQualityScore,
         Integer waterIntakeMl,
         boolean diarrhea,
-        String notes
+        String notes,
+        LitterBoxUse litterBoxUse,
+        UrinationChange urinationChange,
+        boolean straining,
+        HidingBehavior hidingBehavior,
+        boolean weightConcern
 ) {
     public static CheckInResponse from(DailyCheckIn checkIn) {
         return new CheckInResponse(
@@ -46,7 +54,12 @@ public record CheckInResponse(
                 checkIn.getSleepQualityScore(),
                 checkIn.getWaterIntakeMl(),
                 checkIn.isDiarrhea(),
-                checkIn.getNotes()
+                checkIn.getNotes(),
+                checkIn.getLitterBoxUse(),
+                checkIn.getUrinationChange(),
+                checkIn.isStraining(),
+                checkIn.getHidingBehavior(),
+                checkIn.isWeightConcern()
         );
     }
 }
