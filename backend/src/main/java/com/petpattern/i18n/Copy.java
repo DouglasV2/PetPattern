@@ -40,7 +40,8 @@ public final class Copy {
     // Croatian stays inline in this class (the HR map below). The other locales
     // load from /i18n/<code>.json resources, so adding a language is a data change,
     // not a code change. Any locale missing a key falls back to English.
-    private static final Set<String> EXTRA_LANGS = Set.of("de", "es", "fr", "it", "no", "pl");
+    private static final Set<String> EXTRA_LANGS =
+            Set.of("de", "es", "fr", "it", "no", "pl", "nl", "sv", "da", "pt", "ro", "cs", "sk", "el");
     private static final Map<String, Map<String, String>> EXTRA = loadExtra();
 
     private static Map<String, Map<String, String>> loadExtra() {
@@ -90,17 +91,30 @@ public final class Copy {
         return template;
     }
 
-    /** "1 day" / "3 days" — HR: "1 dan" / "3 dana" / "21 dan". */
+    /** "1 day" / "3 days" — plural forms differ per language. */
     public static String days(int count) {
+        int mod10 = count % 10;
+        int mod100 = count % 100;
+        boolean slavicFew = mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14);
         return count + switch (lang()) {
             // Croatian: n ending in 1 (except 11) takes the singular ("21 dan").
-            case "hr" -> (count % 10 == 1 && count % 100 != 11) ? " dan" : " dana";
+            case "hr" -> (mod10 == 1 && mod100 != 11) ? " dan" : " dana";
             case "de" -> count == 1 ? " Tag" : " Tage";
             case "es" -> count == 1 ? " día" : " días";
             case "fr" -> count <= 1 ? " jour" : " jours";
             case "it" -> count == 1 ? " giorno" : " giorni";
             case "no" -> count == 1 ? " dag" : " dager";
             case "pl" -> count == 1 ? " dzień" : " dni";
+            case "nl" -> count == 1 ? " dag" : " dagen";
+            case "sv" -> count == 1 ? " dag" : " dagar";
+            case "da" -> count == 1 ? " dag" : " dage";
+            case "pt" -> count == 1 ? " dia" : " dias";
+            // Romanian: 1 zi; 2–19 zile; ≥20 take "de zile".
+            case "ro" -> count == 1 ? " zi" : (count < 20 ? " zile" : " de zile");
+            // Czech/Slovak: 1 / 2–4 / 5+ (12–14 fall to the 5+ form).
+            case "cs" -> count == 1 ? " den" : (slavicFew ? " dny" : " dní");
+            case "sk" -> count == 1 ? " deň" : (slavicFew ? " dni" : " dní");
+            case "el" -> count == 1 ? " μέρα" : " μέρες";
             default -> count == 1 ? " day" : " days";
         };
     }
@@ -118,6 +132,14 @@ public final class Copy {
             case "it" -> count == 1 ? " anno" : " anni";
             case "no" -> " år"; // same singular and plural
             case "pl" -> count == 1 ? " rok" : (slavicFew ? " lata" : " lat");
+            case "nl" -> " jaar"; // "jaar" stays after a number (3 jaar)
+            case "sv" -> " år";
+            case "da" -> " år";
+            case "pt" -> count == 1 ? " ano" : " anos";
+            case "ro" -> count == 1 ? " an" : (count < 20 ? " ani" : " de ani");
+            case "cs" -> count == 1 ? " rok" : (slavicFew ? " roky" : " let");
+            case "sk" -> count == 1 ? " rok" : (slavicFew ? " roky" : " rokov");
+            case "el" -> count == 1 ? " χρόνος" : " χρόνια";
             default -> count == 1 ? " year" : " years";
         };
     }
@@ -168,6 +190,54 @@ public final class Copy {
                 case SALMON -> "łosoś"; case TURKEY -> "indyk"; case DUCK -> "kaczka";
                 case PORK -> "wieprzowina"; case EGG -> "jajko"; case DAIRY -> "nabiał";
                 case OTHER -> "inne"; default -> "nieznane";
+            };
+            case "nl" -> switch (value) {
+                case CHICKEN -> "kip"; case BEEF -> "rund"; case LAMB -> "lam";
+                case SALMON -> "zalm"; case TURKEY -> "kalkoen"; case DUCK -> "eend";
+                case PORK -> "varken"; case EGG -> "ei"; case DAIRY -> "zuivel";
+                case OTHER -> "overig"; default -> "onbekend";
+            };
+            case "sv" -> switch (value) {
+                case CHICKEN -> "kyckling"; case BEEF -> "nötkött"; case LAMB -> "lamm";
+                case SALMON -> "lax"; case TURKEY -> "kalkon"; case DUCK -> "anka";
+                case PORK -> "fläsk"; case EGG -> "ägg"; case DAIRY -> "mejeriprodukter";
+                case OTHER -> "annat"; default -> "okänt";
+            };
+            case "da" -> switch (value) {
+                case CHICKEN -> "kylling"; case BEEF -> "oksekød"; case LAMB -> "lam";
+                case SALMON -> "laks"; case TURKEY -> "kalkun"; case DUCK -> "and";
+                case PORK -> "svinekød"; case EGG -> "æg"; case DAIRY -> "mejeriprodukter";
+                case OTHER -> "andet"; default -> "ukendt";
+            };
+            case "pt" -> switch (value) {
+                case CHICKEN -> "frango"; case BEEF -> "vaca"; case LAMB -> "borrego";
+                case SALMON -> "salmão"; case TURKEY -> "peru"; case DUCK -> "pato";
+                case PORK -> "porco"; case EGG -> "ovo"; case DAIRY -> "laticínios";
+                case OTHER -> "outro"; default -> "desconhecido";
+            };
+            case "ro" -> switch (value) {
+                case CHICKEN -> "pui"; case BEEF -> "vită"; case LAMB -> "miel";
+                case SALMON -> "somon"; case TURKEY -> "curcan"; case DUCK -> "rață";
+                case PORK -> "porc"; case EGG -> "ou"; case DAIRY -> "lactate";
+                case OTHER -> "altele"; default -> "necunoscut";
+            };
+            case "cs" -> switch (value) {
+                case CHICKEN -> "kuře"; case BEEF -> "hovězí"; case LAMB -> "jehněčí";
+                case SALMON -> "losos"; case TURKEY -> "krůta"; case DUCK -> "kachna";
+                case PORK -> "vepřové"; case EGG -> "vejce"; case DAIRY -> "mléčné výrobky";
+                case OTHER -> "jiné"; default -> "neznámé";
+            };
+            case "sk" -> switch (value) {
+                case CHICKEN -> "kura"; case BEEF -> "hovädzie"; case LAMB -> "jahňacie";
+                case SALMON -> "losos"; case TURKEY -> "morka"; case DUCK -> "kačka";
+                case PORK -> "bravčové"; case EGG -> "vajce"; case DAIRY -> "mliečne výrobky";
+                case OTHER -> "iné"; default -> "neznáme";
+            };
+            case "el" -> switch (value) {
+                case CHICKEN -> "κοτόπουλο"; case BEEF -> "βοδινό"; case LAMB -> "αρνί";
+                case SALMON -> "σολομός"; case TURKEY -> "γαλοπούλα"; case DUCK -> "πάπια";
+                case PORK -> "χοιρινό"; case EGG -> "αυγό"; case DAIRY -> "γαλακτοκομικά";
+                case OTHER -> "άλλο"; default -> "άγνωστο";
             };
             default -> value.displayName().toLowerCase(Locale.ROOT);
         };

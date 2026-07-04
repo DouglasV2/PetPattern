@@ -186,7 +186,7 @@ export default {
   "First noticed {date}": "Notato per la prima volta il {date}",
   "Settled — last seen today": "Rientrato — visto l'ultima volta oggi",
   "Not seen in {n} day": "Non visto da {n} giorno",
-  "Not seen in {n} days": "Non visto da {n} gg",
+  "Not seen in {n} days": "Non visto da {n} giorni",
   "What changed before this?": "Cosa è cambiato prima di questo?",
   "PetPattern looks at the days before {name}'s signals changed.": "PetPattern guarda i giorni prima che i segnali di {name} cambiassero.",
   "Pulling together {name}'s days…": "Sto mettendo insieme i giorni di {name}…",

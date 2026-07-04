@@ -13,7 +13,7 @@ export default {
   "Weight kg, optional": "Poids en kg, facultatif",
   "Create profile": "Créer le profil",
   "Just a moment…": "Un instant…",
-  "Welcome back": "Content de te revoir",
+  "Welcome back": "Te revoilà !",
   "Create your account": "Crée ton compte",
   "Your pet's record stays private to your account.": "Le carnet de ton animal reste privé, lié à ton compte.",
   "Your name, optional": "Ton nom, facultatif",

@@ -16,6 +16,14 @@ import fr from './locales/fr'
 import it from './locales/it'
 import no from './locales/no'
 import pl from './locales/pl'
+import nl from './locales/nl'
+import sv from './locales/sv'
+import da from './locales/da'
+import pt from './locales/pt'
+import ro from './locales/ro'
+import cs from './locales/cs'
+import sk from './locales/sk'
+import el from './locales/el'
 
 let currentLang = 'en'
 
@@ -24,15 +32,23 @@ export const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'hr', label: 'Hrvatski' },
   { code: 'de', label: 'Deutsch' },
+  { code: 'nl', label: 'Nederlands' },
   { code: 'es', label: 'Español' },
+  { code: 'pt', label: 'Português' },
   { code: 'fr', label: 'Français' },
   { code: 'it', label: 'Italiano' },
+  { code: 'ro', label: 'Română' },
   { code: 'no', label: 'Norsk' },
-  { code: 'pl', label: 'Polski' }
+  { code: 'sv', label: 'Svenska' },
+  { code: 'da', label: 'Dansk' },
+  { code: 'pl', label: 'Polski' },
+  { code: 'cs', label: 'Čeština' },
+  { code: 'sk', label: 'Slovenčina' },
+  { code: 'el', label: 'Ελληνικά' }
 ]
 
 // English is the base (keys are English), so it has no map.
-const LOCALES = { hr, de, es, fr, it, no, pl }
+const LOCALES = { hr, de, es, fr, it, no, pl, nl, sv, da, pt, ro, cs, sk, el }
 const SUPPORTED = new Set(LANGUAGES.map((l) => l.code))
 const STORAGE_KEY = 'petpattern.lang'
 
