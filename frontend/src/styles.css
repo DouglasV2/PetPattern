@@ -155,7 +155,17 @@ p {
 .brand-line {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.55rem;
+}
+
+/* On phones the header action buttons collapse to icons so the brand row
+   never overflows — verbose locales (e.g. Greek "Λογαριασμός"/"Αποσύνδεση")
+   otherwise pushed the row past a 375px viewport. Icons keep their title. */
+@media (max-width: 560px) {
+  .brand-line .text-button .btn-label {
+    display: none;
+  }
 }
 
 .brand-mark {

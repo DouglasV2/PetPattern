@@ -846,10 +846,10 @@ function App() {
             <strong>PetPattern</strong>
             <LangToggle lang={lang} onChange={switchLang} />
             <button className="text-button" type="button" onClick={() => go('account')} title={t('Account')}>
-              <Settings size={16} /> {t('Account')}
+              <Settings size={16} /> <span className="btn-label">{t('Account')}</span>
             </button>
             <button className="text-button logout-button" type="button" onClick={logout} title={owner?.email}>
-              <LogOut size={16} /> {t('Sign out')}
+              <LogOut size={16} /> <span className="btn-label">{t('Sign out')}</span>
             </button>
           </div>
           {invites.length > 0 && (
@@ -876,10 +876,10 @@ function App() {
           <strong>PetPattern</strong>
           <LangToggle lang={lang} onChange={switchLang} />
           <button className="text-button" type="button" onClick={() => go('account')} title={t('Account')}>
-            <Settings size={16} /> {t('Account')}
+            <Settings size={16} /> <span className="btn-label">{t('Account')}</span>
           </button>
           <button className="text-button logout-button" type="button" onClick={logout} title={owner?.email}>
-            <LogOut size={16} /> {t('Sign out')}
+            <LogOut size={16} /> <span className="btn-label">{t('Sign out')}</span>
           </button>
         </div>
         <div className="pet-tabs">
