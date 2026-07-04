@@ -1,23 +1,36 @@
 :root {
   color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f6f7f3;
-  color: #1f2933;
+  background: #f3efe6;
+  color: #2b2419;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  --ink: #1f2933;
-  --muted: #5f6f7a;
-  --line: #d9dfd8;
-  --paper: #ffffff;
-  --surface: #f0f4ef;
+  /* Warm "health notebook" palette. Neutrals lean toward paper/ink so the app
+     reads as a private paper record, not a white SaaS dashboard. The teal/coral/
+     sage/gold accents stay as calm, earthy semantic colors. */
+  --ink: #2b2419;
+  --muted: #6b6452;
+  --line: #e4dcc9;
+  --line-strong: #d5cbb2;
+  --paper: #fffdf7;
+  --paper-2: #f8f3e8;
+  --surface: #efe8d9;
   --teal: #2f766d;
-  --teal-soft: #dcefeb;
-  --coral: #c75b46;
-  --coral-soft: #f6ddd6;
-  --sage: #6d8b5f;
-  --sage-soft: #e4ecd9;
-  --gold: #a87f2f;
-  --gold-soft: #f1e5c7;
+  --teal-soft: #dbebe4;
+  --coral: #c1543f;
+  --coral-soft: #f3ddd3;
+  --sage: #647f54;
+  --sage-soft: #e2e8d3;
+  --gold: #9c7524;
+  --gold-soft: #efe4c5;
+  /* Corners stay modest — a notebook, not a pill-shaped SaaS card. */
+  --radius: 9px;
+  --radius-sm: 6px;
+  --radius-lg: 13px;
+  /* Elevation is almost flat: a hairline warm border does the work, not a
+     floaty drop-shadow. Reserve the soft shadow for true pop-overs. */
+  --shadow-card: 0 1px 1px rgba(43, 36, 25, 0.04);
+  --shadow-pop: 0 8px 22px rgba(43, 36, 25, 0.12);
 }
 
 * {
@@ -28,7 +41,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f6f7f3;
+  background: #f3efe6;
 }
 
 button,
@@ -86,9 +99,9 @@ p {
 .flow-panel,
 .state-panel {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--paper);
-  box-shadow: 0 12px 30px rgba(31, 41, 51, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 .loading-panel {
@@ -309,8 +322,7 @@ textarea {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(246, 247, 243, 0.94);
-  backdrop-filter: blur(10px);
+  background: var(--paper-2);
 }
 
 .pet-tabs,
@@ -340,8 +352,7 @@ textarea {
   z-index: 2;
   padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--line);
-  background: rgba(246, 247, 243, 0.94);
-  backdrop-filter: blur(10px);
+  background: var(--paper-2);
 }
 
 .view-tab {
@@ -374,7 +385,7 @@ textarea {
 
 .today-copy {
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--paper);
   border: 1px solid var(--line);
 }
@@ -397,14 +408,17 @@ textarea {
 
 .state-panel.normal {
   background: var(--sage-soft);
+  border-left: 3px solid var(--sage);
 }
 
 .state-panel.watch {
   background: var(--gold-soft);
+  border-left: 3px solid var(--gold);
 }
 
 .state-panel.changed {
   background: var(--coral-soft);
+  border-left: 3px solid var(--coral);
 }
 
 .home-grid {
@@ -428,6 +442,18 @@ textarea {
   margin: 0;
 }
 
+/* A thin ruled line under each section title — the app reads like a page in a
+   health record rather than a stack of identical floating cards. */
+.panel-heading {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.panel-heading svg {
+  color: var(--teal);
+}
+
 .profile-list {
   display: grid;
   gap: 0.5rem;
@@ -440,7 +466,7 @@ textarea {
   display: grid;
   gap: 0.2rem;
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
@@ -1100,7 +1126,7 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--paper);
-  box-shadow: 0 12px 30px rgba(31, 41, 51, 0.12);
+  box-shadow: var(--shadow-pop);
   display: grid;
   gap: 0.1rem;
 }
@@ -2019,7 +2045,7 @@ textarea {
   text-align: left;
   padding: 1.1rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--paper);
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
@@ -2072,7 +2098,7 @@ textarea {
 .brand-mark.big {
   width: 54px;
   height: 54px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--teal-soft);
   color: var(--teal);
 }
@@ -2082,6 +2108,183 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+/* ============================================================
+   Revamp additions — auth hero, evidence strip, find-a-day
+   ============================================================ */
+
+/* Auth: the value proposition is the headline; "Welcome back" is a quiet form
+   label, not a marketing hero. */
+.auth-hero {
+  font-size: 2rem;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+
+.form-title {
+  margin: 0.4rem 0 0;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* "Evidence over time" — a compact strip of recent days, tinted by how that day's
+   one signal read. Reads like a margin note in a record, not a fitness chart. */
+.evidence {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.25rem 0;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+
+.evidence-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.evidence-empty {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.evidence-strip {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  padding-bottom: 3px;
+}
+
+.evidence-cell {
+  flex: 1 1 0;
+  min-width: 6px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.evidence-cell.none {
+  background: repeating-linear-gradient(-45deg, transparent, transparent 2px, var(--line) 2px, var(--line) 3px);
+  opacity: 0.7;
+}
+
+.evidence-cell.calm { background: var(--sage-soft); border-color: var(--sage); }
+.evidence-cell.watch { background: var(--gold-soft); border-color: var(--gold); }
+.evidence-cell.changed { background: var(--coral-soft); border-color: var(--coral); }
+
+/* A day with a food change gets a small ink tick beneath the cell. */
+.evidence-cell.food::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translateX(-50%);
+}
+
+.evidence-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.7rem;
+  font-size: 0.72rem;
+}
+
+.evidence-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ev-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.ev-dot.calm { background: var(--sage-soft); border: 1px solid var(--sage); }
+.ev-dot.watch { background: var(--gold-soft); border: 1px solid var(--gold); }
+.ev-dot.changed { background: var(--coral-soft); border: 1px solid var(--coral); }
+
+.ev-tick {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: inline-block;
+}
+
+/* Find a day — a small date lookup tucked into Recent memory. */
+.find-day {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.15rem 0 0.85rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+
+.find-day-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.find-day-head svg {
+  color: var(--teal);
+}
+
+.find-day-input {
+  margin-left: auto;
+  width: auto;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.find-day-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.find-day-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.find-day-result .timeline-main {
+  display: grid;
+  gap: 0.15rem;
+  background: transparent;
+  padding: 0;
 }
 
 /* Registration acceptance + legal + account */

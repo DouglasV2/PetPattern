@@ -26,6 +26,7 @@ import {
   Pill,
   Plus,
   Printer,
+  Search,
   Settings,
   Share2,
   Stethoscope,
@@ -680,6 +681,14 @@ function App() {
     go('check-in')
   }
 
+  // Open a fresh check-in seeded to a specific past day (from "Find a day" → "Log
+  // this day"). The form's date field stays visible and is capped at today.
+  function openCheckInForDate(date) {
+    const day = date && date > today ? today : date
+    setCheckInForm({ ...emptyCheckInFor(selectedPet?.species), checkInDate: day })
+    go('check-in')
+  }
+
   // Leaving onboarding: select the new pet and go where they chose.
   function finishOnboarding(pet, where) {
     setSelectedPetId(pet.id)
@@ -941,6 +950,8 @@ function App() {
           <PatternsView
             pet={selectedPet}
             patterns={patterns}
+            checkIns={checkIns}
+            foodLogs={foodLogs}
             recap={recap}
             onBack={() => go('today')}
             onShowTimeline={openTimeline}
@@ -1039,6 +1050,7 @@ function App() {
             onDeleteCheckIn={removeCheckIn}
             onQuickLog={quickLog}
             onCaregivers={() => go('caregivers')}
+            onLogDay={openCheckInForDate}
           />
         )}
       </main>
@@ -1046,7 +1058,7 @@ function App() {
   )
 }
 
-function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers }) {
+function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay }) {
   return (
     <>
       <section className="today-spine">
@@ -1152,7 +1164,7 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
         </article>
       </section>
 
-      <RecentTimeline pet={pet} checkIns={checkIns} onEdit={onEditCheckIn} onDelete={onDeleteCheckIn} />
+      <RecentTimeline pet={pet} checkIns={checkIns} onEdit={onEditCheckIn} onDelete={onDeleteCheckIn} onLogDay={onLogDay} />
 
       <div className="care-circle-line no-print">
         <Users size={15} />
@@ -1567,7 +1579,7 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
   )
 }
 
-function PatternsView({ pet, patterns, recap, onBack, onShowTimeline, onSetStatus, onRecap, onVetSummary }) {
+function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShowTimeline, onSetStatus, onRecap, onVetSummary }) {
   const active = patterns.filter((pattern) => patternGroup(pattern) === 'active')
   const settled = patterns.filter((pattern) => patternGroup(pattern) === 'settled')
   const dismissed = patterns.filter((pattern) => patternGroup(pattern) === 'dismissed')
@@ -1595,7 +1607,7 @@ function PatternsView({ pet, patterns, recap, onBack, onShowTimeline, onSetStatu
           </article>
         )}
         {active.map((pattern) => (
-          <PatternCard key={pattern.id} pattern={pattern} variant="active" onShowTimeline={onShowTimeline} onSetStatus={onSetStatus} />
+          <PatternCard key={pattern.id} pattern={pattern} variant="active" checkIns={checkIns} foodLogs={foodLogs} onShowTimeline={onShowTimeline} onSetStatus={onSetStatus} />
         ))}
       </div>
 
@@ -1632,7 +1644,97 @@ function PatternsView({ pet, patterns, recap, onBack, onShowTimeline, onSetStatu
   )
 }
 
-function PatternCard({ pattern, variant, onShowTimeline, onSetStatus }) {
+// How many recent days the evidence strip shows. 14 keeps it compact and legible
+// on a phone, and still spans enough days to see a change line up with a food swap.
+const EVIDENCE_WINDOW = 14
+
+// For a given pattern, the ONE signal we show over time and how to read a single
+// check-in into a calm/watch/changed tone plus a short value for the tooltip.
+// Species is implicit in the pattern type, so we never mix dog/cat signals.
+function evidenceSignal(pattern) {
+  const lvl = (v, calm, watch, changed) =>
+    v == null || v === 'UNKNOWN' ? null : { tone: changed.includes(v) ? 'changed' : watch.includes(v) ? 'watch' : 'calm', value: levelLabel(v) }
+  switch (pattern.type) {
+    case 'ITCHING_ABOVE_BASELINE':
+    case 'POSSIBLE_FOOD_TRIGGER':
+      return { label: t('Scratching'), read: (c) => c.itchingScore == null ? null
+        : { tone: c.itchingScore >= 7 ? 'changed' : c.itchingScore >= 4 ? 'watch' : 'calm', value: `${c.itchingScore}/10` } }
+    case 'STOOL_INSTABILITY':
+      return { label: t('Stool'), read: (c) => !c.stoolState || c.stoolState === 'UNKNOWN' ? null
+        : { tone: c.stoolState === 'DIARRHEA' ? 'changed' : (c.stoolState === 'SOFT' || c.stoolState === 'NO_STOOL') ? 'watch' : 'calm', value: stoolLabel(c.stoolState) } }
+    case 'WATER_DROP':
+    case 'WATER_CHANGE':
+      return { label: t('Water'), read: (c) => lvl(c.waterLevel, [], ['LOWER', 'HIGHER'], []) }
+    case 'RECURRING_EAR_REDNESS':
+      return { label: t('Ears'), read: (c) => ({ tone: c.earRedness ? 'watch' : 'calm', value: c.earRedness ? t('Redness') : t('Clear') }) }
+    case 'APPETITE_LOW':
+      return { label: t('Appetite'), read: (c) => lvl(c.appetiteLevel, [], ['LOWER', 'HIGHER'], ['REFUSED']) }
+    case 'LITTER_BOX_CHANGE':
+      return { label: t('Litter box'), read: (c) => {
+        const off = (v) => v && v !== 'NORMAL' && v !== 'UNKNOWN'
+        const blank = (v) => v == null || v === 'UNKNOWN'
+        if (c.litterBoxUse === 'NONE') return { tone: 'changed', value: litterLabel(c.litterBoxUse) }
+        if (c.straining) return { tone: 'watch', value: t('Straining') }
+        if (off(c.litterBoxUse) || off(c.urinationChange)) return { tone: 'watch', value: litterLabel(c.litterBoxUse) }
+        if (blank(c.litterBoxUse) && blank(c.urinationChange)) return null
+        return { tone: 'calm', value: litterLabel(c.litterBoxUse) }
+      } }
+    case 'HIDING_INCREASED':
+      return { label: t('Hiding'), read: (c) => c.hidingBehavior === 'UNKNOWN' || c.hidingBehavior == null ? null
+        : { tone: c.hidingBehavior === 'MORE' ? 'watch' : 'calm', value: hidingLabel(c.hidingBehavior) } }
+    case 'REPEATED_VOMITING':
+      return { label: t('Vomiting'), read: (c) => ({ tone: c.vomiting ? 'changed' : 'calm', value: c.vomiting ? t('Vomiting') : t('None') }) }
+    default:
+      return null
+  }
+}
+
+// A small "evidence over time" strip: one cell per recent day, tinted by how that
+// day's signal read, with a marker on days a food change was logged. Deliberately
+// not a chart — it's a page in a record, and it never invents data it doesn't have.
+function PatternEvidence({ pattern, checkIns, foodLogs }) {
+  const sig = evidenceSignal(pattern)
+  if (!sig) return null
+  const byDate = new Map((checkIns || []).map((c) => [c.checkInDate, c]))
+  const foodByDate = new Set((foodLogs || []).map((f) => f.dateStarted))
+  const base = new Date(`${today}T00:00:00`)
+  const days = []
+  for (let i = EVIDENCE_WINDOW - 1; i >= 0; i--) {
+    const d = new Date(base)
+    d.setDate(base.getDate() - i)
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const entry = byDate.get(iso)
+    const read = entry ? sig.read(entry) : null
+    days.push({ iso, tone: read ? read.tone : 'none', value: read ? read.value : null, food: foodByDate.has(iso) })
+  }
+  const logged = days.filter((d) => d.tone !== 'none').length
+
+  return (
+    <div className="evidence">
+      <p className="evidence-label">{t('Evidence over time')}{logged >= 3 ? ` · ${sig.label}` : ''}</p>
+      {logged < 3 ? (
+        <p className="evidence-empty muted">{t('A few more logs will make this easier to see.')}</p>
+      ) : (
+        <>
+          <div className="evidence-strip" role="img" aria-label={sig.label}>
+            {days.map((d) => (
+              <span key={d.iso} className={`evidence-cell ${d.tone}${d.food ? ' food' : ''}`}
+                title={`${formatDate(d.iso)} · ${d.value ? `${sig.label}: ${d.value}` : t('No check-in')}${d.food ? ` · ${t('food change')}` : ''}`} />
+            ))}
+          </div>
+          <div className="evidence-legend muted">
+            <span><i className="ev-dot calm" />{t('calm')}</span>
+            <span><i className="ev-dot watch" />{t('watch')}</span>
+            <span><i className="ev-dot changed" />{t('changed')}</span>
+            <span><i className="ev-tick" />{t('food change')}</span>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onSetStatus }) {
   const meta = statusMeta(pattern.status)
   const muted = variant !== 'active'
 
@@ -1654,6 +1756,9 @@ function PatternCard({ pattern, variant, onShowTimeline, onSetStatus }) {
         <ul className="evidence-list">
           {pattern.evidence.map((line) => <li key={line}>{line}</li>)}
         </ul>
+      )}
+      {variant === 'active' && (
+        <PatternEvidence pattern={pattern} checkIns={checkIns} foodLogs={foodLogs} />
       )}
       {variant === 'active' && (
         <button className="text-button" type="button" onClick={() => onShowTimeline(pattern)}>
@@ -2281,15 +2386,46 @@ function maybeNotify(pet, pref, loggedToday, key) {
   }
 }
 
-function RecentTimeline({ pet, checkIns, onEdit, onDelete }) {
-  if (!checkIns.length) return null
+function RecentTimeline({ pet, checkIns, onEdit, onDelete, onLogDay }) {
   const cat = isCat(pet)
+  const [findDate, setFindDate] = useState('')
+  if (!checkIns.length) return null
+  const found = findDate ? checkIns.find((c) => c.checkInDate === findDate) : null
   return (
     <section className="panel timeline-panel">
       <div className="panel-heading">
         <CalendarDays size={18} />
         <h2>{t('Recent memory')}</h2>
       </div>
+
+      {onLogDay && (
+        <div className="find-day no-print">
+          <div className="find-day-head">
+            <Search size={15} />
+            <span>{t('Find a day')}</span>
+            <input type="date" className="find-day-input" max={today} value={findDate}
+              onChange={(e) => setFindDate(e.target.value)} aria-label={t('Pick a date to see what you logged.')} />
+          </div>
+          {!findDate && <p className="find-day-hint muted">{t('Pick a date to see what you logged.')}</p>}
+          {findDate && found && (
+            <div className="find-day-result">
+              <div className="timeline-main">
+                <span>{formatDate(found.checkInDate)}</span>
+                <strong>{timelineSummary(found, cat)}</strong>
+                <small>{timelineFlags(found, cat)}</small>
+              </div>
+              <button className="chip-button" type="button" onClick={() => onEdit(found)}>{t('Edit')}</button>
+            </div>
+          )}
+          {findDate && !found && (
+            <div className="find-day-result empty">
+              <span className="muted">{t('No check-in logged for this day.')}</span>
+              <button className="chip-button" type="button" onClick={() => onLogDay(findDate)}>{t('Log this day')}</button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="timeline">
         {checkIns.slice(0, 8).map((item) => (
           <div className="timeline-row editable" key={item.id}>
@@ -2748,8 +2884,7 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, demoEnabl
           <strong>PetPattern</strong>
           <LangToggle lang={lang} onChange={onLangChange} />
         </div>
-        <p className="kicker">{t('PetPattern remembers what changed.')}</p>
-        <h1>{mode === 'login' ? t('Welcome back') : mode === 'register' ? t('Create your account') : t('Reset your password')}</h1>
+        <h1 className="auth-hero">{t('PetPattern remembers what changed.')}</h1>
         <p className="lead">{mode === 'forgot' ? t("Enter your email and we'll send a link to set a new password.") : t('Log only what you noticed. A quick check-in is enough.')}</p>
         {mode !== 'forgot' && (
           <p className="start-sub muted">{t('Food, stool, itching, vomiting, litter box, appetite, energy — small notes become useful over time.')}</p>
@@ -2764,6 +2899,7 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, demoEnabl
           </>
         )}
 
+        <p className="form-title">{mode === 'login' ? t('Welcome back') : mode === 'register' ? t('Create your account') : t('Reset your password')}</p>
         <form onSubmit={submit} className="stack-form">
           {mode === 'register' && (
             <input placeholder={t('Your name, optional')} value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
@@ -3706,16 +3842,28 @@ function dateLocale() {
   return getLang() === 'hr' ? 'hr' : 'en'
 }
 
+// Parse a bare 'YYYY-MM-DD' as a LOCAL calendar date. new Date('YYYY-MM-DD')
+// parses as UTC midnight, which renders one day early in negative-UTC-offset
+// zones — so date-only strings (check-in dates, food dates) must be built from
+// local components to label the right day.
+function parseLocalDate(value) {
+  if (typeof value === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+  }
+  return new Date(value)
+}
+
 function formatDate(value) {
   if (!value) return ''
-  const date = new Date(value)
+  const date = parseLocalDate(value)
   if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric' }).format(date)
 }
 
 function formatLongDate(value) {
   if (!value) return ''
-  return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(value))
+  return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric' }).format(parseLocalDate(value))
 }
 
 function timelineIcon(type) {

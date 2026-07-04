@@ -497,6 +497,23 @@ export default {
 
   // --- Human-launch polish: first screen ------------------------------------
   'PetPattern remembers what changed.': 'PetPattern pamti što se promijenilo.',
+
+  // --- Revamp: evidence strip + find-a-day ----------------------------------
+  'Find a day': 'Pronađi dan',
+  'Pick a date to see what you logged.': 'Odaberi datum i vidi što si zabilježio.',
+  'No check-in logged for this day.': 'Za ovaj dan nema check-ina.',
+  'Log this day': 'Zabilježi ovaj dan',
+  'Evidence over time': 'Kroz vrijeme',
+  'A few more logs will make this easier to see.': 'Još nekoliko unosa pomoći će da se ovo jasnije vidi.',
+  'calm': 'mirno',
+  'watch': 'pratiti',
+  'changed': 'promjena',
+  'food change': 'promjena hrane',
+  'No check-in': 'Nema check-ina',
+  'Clear': 'Uredno',
+  'Redness': 'Crvenilo',
+  'None': 'Ništa',
+  'Edit': 'Uredi',
   'Log only what you noticed. A quick check-in is enough.':
     'Zabilježi samo ono što si primijetio. Kratki check-in je dovoljan.',
   'Food, stool, itching, vomiting, litter box, appetite, energy — small notes become useful over time.':
