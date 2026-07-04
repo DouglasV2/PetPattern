@@ -1,36 +1,37 @@
 :root {
   color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f3efe6;
-  color: #2b2419;
+  background: #f3f5f2;
+  color: #1f2933;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  /* Warm "health notebook" palette. Neutrals lean toward paper/ink so the app
-     reads as a private paper record, not a white SaaS dashboard. The teal/coral/
-     sage/gold accents stay as calm, earthy semantic colors. */
-  --ink: #2b2419;
-  --muted: #6b6452;
-  --line: #e4dcc9;
-  --line-strong: #d5cbb2;
-  --paper: #fffdf7;
-  --paper-2: #f8f3e8;
-  --surface: #efe8d9;
-  --teal: #2f766d;
-  --teal-soft: #dbebe4;
-  --coral: #c1543f;
-  --coral-soft: #f3ddd3;
-  --sage: #647f54;
-  --sage-soft: #e2e8d3;
-  --gold: #9c7524;
-  --gold-soft: #efe4c5;
-  /* Corners stay modest — a notebook, not a pill-shaped SaaS card. */
-  --radius: 9px;
-  --radius-sm: 6px;
-  --radius-lg: 13px;
-  /* Elevation is almost flat: a hairline warm border does the work, not a
+  /* Calm "private health record" palette. Cool off-white paper + slate ink, a
+     muted deep teal, and quiet sage/ochre for the calm/watch tones. Coral is a
+     tiny marker only. Deliberately cooler and less warm than a beige notebook —
+     a quiet record, not a SaaS dashboard and not a warm scrapbook. */
+  --ink: #1f2933;
+  --muted: #5f6f68;
+  --line: #dde3df;
+  --line-strong: #c7d0cb;
+  --paper: #fbfcfb;
+  --paper-2: #eef1ee;
+  --surface: #eaeeeb;
+  --teal: #35706a;
+  --teal-soft: #dde9e5;
+  --coral: #bf5a46;
+  --coral-soft: #eeddd7;
+  --sage: #4f6854;
+  --sage-soft: #dde6dc;
+  --gold: #6f6231;
+  --gold-soft: #e7e5d5;
+  /* Corners stay modest — a record, not a pill-shaped SaaS card. */
+  --radius: 8px;
+  --radius-sm: 5px;
+  --radius-lg: 12px;
+  /* Elevation is almost flat: a hairline cool border does the work, not a
      floaty drop-shadow. Reserve the soft shadow for true pop-overs. */
-  --shadow-card: 0 1px 1px rgba(43, 36, 25, 0.04);
-  --shadow-pop: 0 8px 22px rgba(43, 36, 25, 0.12);
+  --shadow-card: 0 1px 1px rgba(31, 41, 51, 0.04);
+  --shadow-pop: 0 8px 22px rgba(31, 41, 51, 0.12);
 }
 
 * {
@@ -41,7 +42,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f3efe6;
+  background: #f3f5f2;
 }
 
 button,
@@ -67,10 +68,10 @@ p {
 }
 
 h1 {
-  margin-bottom: 0.75rem;
-  font-size: 2.35rem;
-  line-height: 1.05;
-  letter-spacing: 0;
+  margin-bottom: 0.7rem;
+  font-size: 1.95rem;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
 }
 
 h2 {
@@ -191,13 +192,14 @@ p {
   color: #fff;
 }
 
+/* A quiet context label above a heading — a record's section note, not a teal
+   SaaS "eyebrow". Sentence case, muted, unobtrusive. */
 .kicker {
-  margin: 1rem 0 0.4rem;
-  color: var(--teal);
-  font-size: 0.78rem;
-  font-weight: 800;
+  margin: 1rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
   letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .lead {
@@ -216,8 +218,6 @@ p {
 .secondary-button,
 .text-button,
 .back-button,
-.view-tab,
-.pet-tab,
 .choice-button,
 .toggle-button {
   min-height: 42px;
@@ -227,7 +227,7 @@ p {
   gap: 0.45rem;
   border-radius: 8px;
   border: 1px solid transparent;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -333,41 +333,74 @@ textarea {
   scrollbar-width: none;
 }
 
+/* Pet selector: quiet text tabs, not bordered white pills. */
 .pet-tab {
   flex: 0 0 auto;
-  background: #fff;
-  border-color: var(--line);
-  padding: 0 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 30px;
+  padding: 0.2rem 0.5rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
   color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .pet-tab.active {
-  color: var(--teal);
-  border-color: var(--teal);
+  color: var(--ink);
+  background: var(--surface);
+  font-weight: 700;
 }
 
+/* Section nav: notebook index tabs. No floating pills — a thin teal underline
+   marks the active section, the label carries the weight. */
 .view-tabs {
   position: sticky;
   top: 96px;
   z-index: 2;
-  padding: 0.65rem 1rem;
+  gap: 0.85rem;
+  padding: 0 1rem;
   border-bottom: 1px solid var(--line);
   background: var(--paper-2);
 }
 
 .view-tab {
   flex: 0 0 auto;
-  min-height: 38px;
-  background: #fff;
-  border-color: var(--line);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 42px;
+  padding: 0.5rem 0.15rem;
+  margin-bottom: -1px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   color: var(--muted);
-  padding: 0 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.view-tab svg {
+  opacity: 0.55;
+}
+
+.view-tab:hover {
+  color: var(--ink);
 }
 
 .view-tab.active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom-color: var(--teal);
+}
+
+.view-tab.active svg {
+  opacity: 1;
+  color: var(--teal);
 }
 
 .screen {
@@ -398,7 +431,7 @@ textarea {
 }
 
 .state-panel span {
-  font-weight: 900;
+  font-weight: 700;
   color: var(--muted);
 }
 
@@ -480,7 +513,7 @@ textarea {
 
 .profile-list dd {
   margin: 0;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .signal-list {
@@ -512,21 +545,22 @@ textarea {
   gap: 0.45rem;
 }
 
+/* Quiet inline tags, not filled SaaS pills. */
 .chip {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 0.55rem;
-  border-radius: 8px;
-  background: var(--teal-soft);
-  color: var(--teal);
-  font-weight: 800;
-  font-size: 0.86rem;
+  min-height: 22px;
+  padding: 0.05rem 0.42rem;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
 }
 
 .chip.alert {
-  background: var(--gold-soft);
-  color: var(--gold);
+  background: var(--teal-soft);
+  color: var(--teal);
 }
 
 .pattern-teaser strong {
@@ -546,7 +580,7 @@ textarea {
 }
 
 .choice-block > span {
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .choice-grid,
@@ -591,28 +625,35 @@ textarea {
   justify-content: space-between;
 }
 
+/* Confidence reads as a quiet dot + label, not a colored metric pill. High is a
+   calm teal, not a loud coral. */
 .confidence {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 0.55rem;
-  border-radius: 8px;
-  font-size: 0.82rem;
-  font-weight: 900;
+  gap: 0.34rem;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.confidence::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .confidence.high {
-  background: var(--coral-soft);
-  color: var(--coral);
+  color: var(--teal);
 }
 
 .confidence.medium {
-  background: var(--gold-soft);
   color: var(--gold);
 }
 
 .confidence.low {
-  background: var(--surface);
   color: var(--muted);
 }
 
@@ -632,7 +673,7 @@ textarea {
 
 @media (min-width: 700px) {
   h1 {
-    font-size: 3rem;
+    font-size: 2.15rem;
   }
 
   .start-shell {
@@ -687,10 +728,7 @@ textarea {
 }
 
 @media (min-width: 980px) {
-  .home-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
+  /* Today stays a calm two-column record, not a wide four-across dashboard. */
   .pattern-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -789,9 +827,8 @@ textarea {
 
 .story-date {
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--muted);
-  text-transform: uppercase;
   letter-spacing: 0;
 }
 
@@ -848,9 +885,8 @@ textarea {
 
 .form-section-label {
   margin: 0.25rem 0 0;
-  font-weight: 900;
+  font-weight: 700;
   color: var(--muted);
-  text-transform: uppercase;
   font-size: 0.78rem;
 }
 
@@ -911,12 +947,14 @@ textarea {
   padding: 0 0.9rem;
 }
 
+/* The vet summary reads like a printable paper form: flat, generous margins,
+   quiet ruled sections — not a dashboard of cards. */
 .vet-sheet {
   display: grid;
-  gap: 0.9rem;
-  padding: 1rem;
+  gap: 1.15rem;
+  padding: 1.4rem 1.5rem;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--paper);
 }
 
@@ -934,11 +972,11 @@ textarea {
 
 .vet-block h3 {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
-  letter-spacing: 0;
-  color: var(--teal);
-  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .vet-block h2 {
@@ -994,11 +1032,11 @@ textarea {
 .status-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 0.55rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 900;
+  min-height: 22px;
+  padding: 0.05rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
   background: var(--surface);
   color: var(--muted);
 }
@@ -1202,14 +1240,17 @@ textarea {
   flex-wrap: wrap;
 }
 
+/* Not dashboard metric tiles — just two quiet notes on the record. */
 .retention-stat {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--teal);
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  color: var(--muted);
+}
+
+.retention-stat svg {
+  opacity: 0.6;
 }
 
 .retention-stat div {
@@ -1218,8 +1259,13 @@ textarea {
 }
 
 .retention-stat strong {
-  font-size: 1.15rem;
+  font-size: 1.02rem;
+  font-weight: 700;
   color: var(--ink);
+}
+
+.retention-stats {
+  gap: 1.4rem;
 }
 
 .retention-stat span {
@@ -1591,9 +1637,8 @@ textarea {
 
 .photo-date {
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--muted);
-  text-transform: uppercase;
 }
 
 .photo-caption {
@@ -1734,9 +1779,9 @@ textarea {
 }
 
 .trial-window-label {
-  font-size: 0.74rem;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--muted);
   color: var(--muted);
 }
 
@@ -1786,10 +1831,9 @@ textarea {
 }
 
 .recap-stat span {
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--muted);
-  text-transform: uppercase;
 }
 
 .recap-trend p {
@@ -1847,9 +1891,8 @@ textarea {
 
 .optional-details > summary {
   cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-size: 0.82rem;
+  font-weight: 700;
   color: var(--muted);
   padding: 0.2rem 0;
   list-style: none;
@@ -2126,10 +2169,9 @@ textarea {
 
 .form-title {
   margin: 0.4rem 0 0;
-  font-weight: 800;
-  font-size: 0.82rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0;
   color: var(--muted);
 }
 
@@ -2147,10 +2189,9 @@ textarea {
 
 .evidence-label {
   margin: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
   color: var(--muted);
 }
 

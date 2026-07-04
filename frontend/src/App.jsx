@@ -51,7 +51,7 @@ function BrandMark({ size = 20 }) {
       <circle cx="7.45" cy="10.65" r="1.75" fill="currentColor" />
       <circle cx="10.35" cy="8.35" r="1.75" fill="currentColor" />
       <circle cx="13.65" cy="8.35" r="1.75" fill="currentColor" />
-      <circle cx="16.55" cy="10.65" r="1.75" fill="#c75b46" />
+      <circle cx="16.55" cy="10.65" r="1.75" fill="#bf5a46" />
       <path d="M12 12.2c2.15 0 3.75 1.55 3.75 3.4 0 1.55-1.5 2.4-3.75 2.4s-3.75-.85-3.75-2.4c0-1.85 1.6-3.4 3.75-3.4z" fill="currentColor" />
     </svg>
   )
