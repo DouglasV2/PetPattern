@@ -110,6 +110,8 @@ export default {
   'day streak': 'dana zaredom',
   'days logged': 'dana zabilježeno',
   'Logged today — {n} days in a row.': 'Zabilježeno danas — {n}. dan zaredom.',
+  'baseline days': 'dani zabilježeni',
+  'Logged today — {n} days on record.': 'Zabilježeno danas — {n} dana u zapisu.',
   "Logged today — that's a start.": 'Zabilježeno danas — dobar početak.',
   "Start {name}'s memory with a quick check-in.": 'Započni zapis za {name} brzim pregledom.',
   "Add today's check-in so {name}'s record stays complete.":
@@ -310,15 +312,15 @@ export default {
   // Medications (treatment tracking)
   'Medications': 'Lijekovi',
   "{name}'s medications": 'Lijekovi za {name}',
-  'A simple record of medicines and treatments — handy to show your vet, and to line up against how {name} has been.':
-    'Jednostavan zapis lijekova i tretmana — zgodno za pokazati veterinaru i usporediti s time kako se {name} osjeća.',
+  'A simple record of medicines and care notes — handy to show your vet, and to line up against how {name} has been.':
+    'Jednostavan zapis lijekova i bilježaka o njezi — zgodno za pokazati veterinaru i usporediti s time kako se {name} osjeća.',
   'e.g. Otiderm ear drops': 'npr. Otiderm kapi za uši',
   'End date (optional)': 'Datum završetka (nije obavezno)',
   'Dose, reason, who prescribed it…': 'Doza, razlog, tko je propisao…',
   'Add medication': 'Dodaj lijek',
   'No medications yet': 'Još nema lijekova',
-  'Add a medicine or treatment above when {name} starts one.':
-    'Dodaj lijek ili tretman gore kad {name} počne s njim.',
+  'Add a medicine or care note above when {name} starts one.':
+    'Dodaj lijek ili bilješku o njezi gore kad {name} počne s njim.',
   'Ongoing': 'Aktivno',
   'ongoing': 'aktivno',
   'Finished': 'Završeno',
@@ -326,8 +328,8 @@ export default {
   'Delete medication': 'Izbriši lijek',
   'Could not add the medication. Try again.': 'Nije bilo moguće dodati lijek. Pokušaj ponovno.',
   'Delete this medication? This cannot be undone.': 'Izbrisati ovaj lijek? Ovo se ne može poništiti.',
-  'Add a medication or treatment': 'Dodaj lijek ili tretman',
-  'Medications & treatments': 'Lijekovi i tretmani',
+  'Add a medication or care note': 'Dodaj lijek ili bilješku o njezi',
+  'Medications & care notes': 'Lijekovi i bilješke o njezi',
   'No medications logged in this period.': 'U ovom razdoblju nema zabilježenih lijekova.',
   'Manage medications': 'Upravljaj lijekovima',
   '{logged} of {days} days logged · calmest stretch {streak} days':

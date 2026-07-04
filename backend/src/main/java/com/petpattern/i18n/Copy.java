@@ -59,9 +59,17 @@ public final class Copy {
         return all;
     }
 
-    /** The request's language code, e.g. "hr", "de", "en". */
+    // Publicly served backend languages for v0.1.0-beta. The EXTRA locale maps stay
+    // loaded (see EXTRA_LANGS) as future work, but are intentionally NOT served
+    // until each is complete end-to-end — beta serves only Croatian; every other
+    // Accept-Language (de, fr, es, …) falls back to English. To re-enable one, add
+    // its code here once it is fully localized.
+    private static final Set<String> BETA_PUBLIC_LANGS = Set.of("hr");
+
+    /** The request's language code, gated to the beta-public set (else "en"). */
     private static String lang() {
-        return LocaleContextHolder.getLocale().getLanguage().toLowerCase(Locale.ROOT);
+        String code = LocaleContextHolder.getLocale().getLanguage().toLowerCase(Locale.ROOT);
+        return BETA_PUBLIC_LANGS.contains(code) ? code : "en";
     }
 
     public static boolean isHr() {
@@ -371,8 +379,8 @@ public final class Copy {
                 "PetPattern gleda dane prije nego što su se znakovi promijenili.");
         put("Started {0}", "Početak: {0}");
         put("Finished {0}", "Kraj: {0}");
-        put("A medication or treatment was started.",
-                "Započet je lijek ili tretman.");
+        put("A medication or care note was logged.",
+                "Zabilježen je lijek ili bilješka o njezi.");
         put("This medication was marked finished.",
                 "Ovaj lijek označen je kao završen.");
         put("Scratching increased", "Češanje se pojačalo");
@@ -505,7 +513,7 @@ public final class Copy {
         put("FOOD EXPOSURE HISTORY", "POVIJEST HRANE");
         put("No food changes logged in this period.",
                 "U ovom razdoblju nema zabilježenih promjena hrane.");
-        put("MEDICATIONS & TREATMENTS", "LIJEKOVI I TRETMANI");
+        put("MEDICATIONS & CARE NOTES", "LIJEKOVI I BILJEŠKE O NJEZI");
         put("None logged in this period.", "Ništa zabilježeno u ovom razdoblju.");
         put("ongoing", "u tijeku");
         put("LITTER BOX & BEHAVIOR", "PIJESAK I PONAŠANJE");

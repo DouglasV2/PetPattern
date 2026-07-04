@@ -5,9 +5,9 @@
 //
 // Scope note: this covers the static frontend copy. Backend-generated content
 // (pattern cards, timeline, vet summary, recap, AI note) is localised server-side
-// via Accept-Language; the backend currently ships English + Croatian, so the
-// other locales see English backend text until those maps are added. The UI
-// shell is fully translated regardless. See docs/i18n.md.
+// via Accept-Language. For v0.1.0-beta only English + Croatian are offered here
+// (see LANGUAGES); the backend is likewise gated to serve only HR + EN. The other
+// locale maps stay in the codebase as future work. See docs/i18n.md.
 
 import hr from './locales/hr'
 import de from './locales/de'
@@ -27,10 +27,19 @@ import el from './locales/el'
 
 let currentLang = 'en'
 
-// Order shown in the language picker. `label` is each language's own name.
+// Public, user-selectable languages for v0.1.0-beta. English and Croatian are the
+// only languages localized end-to-end (UI + backend-generated text, legal, vet
+// summary, pattern explanations, email). This is the ONLY list the picker shows,
+// and the only set treated as supported for fallback.
 export const LANGUAGES = [
   { code: 'en', label: 'English' },
-  { code: 'hr', label: 'Hrvatski' },
+  { code: 'hr', label: 'Hrvatski' }
+]
+
+// Translated in the codebase (see ./locales/*) but HIDDEN from the UI until each
+// is complete end-to-end. Kept as future work — nothing here is deleted. To
+// re-enable a language once it's fully localized, move its entry into LANGUAGES.
+export const HIDDEN_LANGUAGES = [
   { code: 'de', label: 'Deutsch' },
   { code: 'nl', label: 'Nederlands' },
   { code: 'es', label: 'Español' },
@@ -65,9 +74,14 @@ export function loadLang() {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved && SUPPORTED.has(saved)) {
       currentLang = saved
+    } else if (saved) {
+      // A previously-saved locale that is no longer public (an older build, or a
+      // now-hidden language) safely falls back to English, and the stale value is
+      // rewritten so it doesn't linger. currentLang stays 'en' (the default).
+      persistLang('en')
     }
   } catch (err) {
-    // ignore blocked storage
+    // Blocked/unavailable storage — stay on the English default, never throw.
   }
   return currentLang
 }

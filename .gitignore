@@ -26,5 +26,15 @@ backups/
 # Local test artifacts
 *_id.txt
 
+# Logs & database dumps (never commit runtime logs or DB dumps). NB: *.sql is
+# intentionally NOT ignored — Flyway migrations under db/migration are source.
+*.log
+*.dump
+*.sql.gz
+*.dump.gz
+
+# Distributable archives
+*.zip
+
 # Claude Code local settings (machine-specific)
 .claude/settings.local.json

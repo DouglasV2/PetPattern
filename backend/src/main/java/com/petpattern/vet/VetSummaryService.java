@@ -399,7 +399,7 @@ public class VetSummaryService {
         }
         out.append("\n");
 
-        out.append(Copy.t("MEDICATIONS & TREATMENTS")).append('\n');
+        out.append(Copy.t("MEDICATIONS & CARE NOTES")).append('\n');
         if (medications.isEmpty()) {
             out.append("- ").append(Copy.t("None logged in this period.")).append('\n');
         } else {

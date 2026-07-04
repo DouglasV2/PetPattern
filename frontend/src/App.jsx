@@ -15,7 +15,6 @@ import {
   Dog,
   Download,
   Droplets,
-  Flame,
   FlaskConical,
   HeartPulse,
   ImagePlus,
@@ -1407,7 +1406,7 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
             <ImagePlus size={18} /> {t('Add a photo if it helps')}
           </button>
           <button type="button" className="ghost-button wide" onClick={onAddMedication}>
-            <Pill size={18} /> {t('Add a medication or treatment')}
+            <Pill size={18} /> {t('Add a medication or care note')}
           </button>
         </details>
 
@@ -1996,7 +1995,7 @@ function VetSheet({ summary, onMedications }) {
         )}
       </VetBlock>
 
-      <VetBlock title={t('Medications & treatments')}>
+      <VetBlock title={t('Medications & care notes')}>
         {summary.medications?.length ? (
           <ul className="vet-list">
             {summary.medications.map((med, index) => (
@@ -2216,7 +2215,7 @@ function VetBlock({ title, children }) {
 
 function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickLog }) {
   if (!retention) return null
-  const { loggedToday, streakDays, daysSinceLastCheckIn, loggedDaysLast30 } = retention
+  const { loggedToday, daysSinceLastCheckIn, loggedDaysLast30 } = retention
   // Before there are seven days of history, show a calm "build the baseline"
   // progress instead of a streak — it matches how the pattern engine actually
   // needs about a week before it can compare anything, and it never scolds a
@@ -2228,8 +2227,8 @@ function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickL
       {baselineBuilt ? (
         <div className="retention-stats">
           <div className="retention-stat">
-            <Flame size={18} />
-            <div><strong>{streakDays}</strong><span>{t('day streak')}</span></div>
+            <ClipboardList size={18} />
+            <div><strong>{checkInCount}</strong><span>{t('baseline days')}</span></div>
           </div>
           <div className="retention-stat">
             <CalendarDays size={18} />
@@ -2258,7 +2257,7 @@ function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickL
 
       <div className={loggedToday ? 'retention-nudge done' : 'retention-nudge todo'}>
         {loggedToday ? (
-          <span><Check size={16} /> {streakDays > 1 ? t('Logged today — {n} days in a row.', { n: streakDays }) : t("Logged today — that's a start.")}</span>
+          <span><Check size={16} /> {checkInCount > 1 ? t('Logged today — {n} days on record.', { n: checkInCount }) : t("Logged today — that's a start.")}</span>
         ) : (
           <>
             <span>{nudgeText(pet, daysSinceLastCheckIn)}</span>
@@ -3011,7 +3010,7 @@ function MedicationsView({ pet, medications, onBack, onCreate, onAction }) {
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
       <p className="kicker">{t('Medications')}</p>
       <h1>{t("{name}'s medications", { name: pet.name })}</h1>
-      <p className="lead">{t('A simple record of medicines and treatments — handy to show your vet, and to line up against how {name} has been.', { name: pet.name })}</p>
+      <p className="lead">{t('A simple record of medicines and care notes — handy to show your vet, and to line up against how {name} has been.', { name: pet.name })}</p>
 
       <form className="quick-form" onSubmit={submit}>
         <label className="field-label">
@@ -3039,7 +3038,7 @@ function MedicationsView({ pet, medications, onBack, onCreate, onAction }) {
       {medications.length === 0 ? (
         <article className="panel">
           <h2>{t('No medications yet')}</h2>
-          <p className="muted">{t('Add a medicine or treatment above when {name} starts one.', { name: pet.name })}</p>
+          <p className="muted">{t('Add a medicine or care note above when {name} starts one.', { name: pet.name })}</p>
         </article>
       ) : (
         <>

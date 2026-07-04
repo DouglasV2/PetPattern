@@ -190,7 +190,7 @@ public class PatternTimelineService {
             if (start != null && !start.isBefore(window.start()) && !start.isAfter(window.end())) {
                 String detail = med.getNotes() != null && !med.getNotes().isBlank()
                         ? med.getNotes()
-                        : Copy.t("A medication or treatment was started.");
+                        : Copy.t("A medication or care note was logged.");
                 events.add(new PatternTimelineEventDto(
                         start, "MEDICATION_STARTED", Copy.t("Started {0}", med.getName()), detail,
                         "info", "MEDICATION", med.getId()));
