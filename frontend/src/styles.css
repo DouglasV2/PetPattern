@@ -1,37 +1,42 @@
 :root {
   color-scheme: light;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f3f5f2;
-  color: #1f2933;
+  background: #f4efe3;
+  color: #2c2a20;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  /* Calm "private health record" palette. Cool off-white paper + slate ink, a
-     muted deep teal, and quiet sage/ochre for the calm/watch tones. Coral is a
-     tiny marker only. Deliberately cooler and less warm than a beige notebook —
-     a quiet record, not a SaaS dashboard and not a warm scrapbook. */
-  --ink: #1f2933;
-  --muted: #5f6f68;
-  --line: #dde3df;
-  --line-strong: #c7d0cb;
-  --paper: #fbfcfb;
-  --paper-2: #eef1ee;
-  --surface: #eaeeeb;
-  --teal: #35706a;
-  --teal-soft: #dde9e5;
-  --coral: #bf5a46;
-  --coral-soft: #eeddd7;
-  --sage: #4f6854;
-  --sage-soft: #dde6dc;
-  --gold: #6f6231;
-  --gold-soft: #e7e5d5;
-  /* Corners stay modest — a record, not a pill-shaped SaaS card. */
-  --radius: 8px;
-  --radius-sm: 5px;
-  --radius-lg: 12px;
-  /* Elevation is almost flat: a hairline cool border does the work, not a
-     floaty drop-shadow. Reserve the soft shadow for true pop-overs. */
-  --shadow-card: 0 1px 1px rgba(31, 41, 51, 0.04);
-  --shadow-pop: 0 8px 22px rgba(31, 41, 51, 0.12);
+  /* Warm "health notebook" palette: cream paper + ink-brown text, a calm forest
+     green as the primary accent, and warm sage/amber/coral for the calm / watch /
+     changed tones. A private pet record kept by hand — warm and human, not a
+     clinical dashboard. (--teal is kept as the token name but is now forest green.) */
+  --ink: #2c2a20;
+  --muted: #6c6346;
+  --line: #e3dac5;
+  --line-strong: #cfc4a7;
+  --paper: #fbf8f0;
+  --paper-2: #efe8d5;
+  --surface: #ece3d0;
+  --teal: #3d6349;
+  --teal-soft: #dde8db;
+  --coral: #bf5a40;
+  --coral-soft: #f1dccf;
+  --sage: #4c6845;
+  --sage-soft: #dfe6d3;
+  --gold: #726020;
+  --gold-soft: #efe6cb;
+  /* Dark forest-green account sidebar (the record's cover). */
+  --sidebar-bg: #2e3d2f;
+  --sidebar-ink: #f2ede0;
+  --sidebar-muted: #a7b19f;
+  --sidebar-line: rgba(242, 237, 224, 0.16);
+  /* Gently rounded, like a notebook card — not sharp, not a pill. */
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-lg: 14px;
+  /* A soft, subtle paper lift on cards; the deeper shadow is reserved for
+     pop-overs and the pet photo. */
+  --shadow-card: 0 1px 2px rgba(44, 42, 32, 0.05);
+  --shadow-pop: 0 10px 26px rgba(44, 42, 32, 0.14);
 }
 
 * {
@@ -42,7 +47,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f3f5f2;
+  background: #f4efe3;
 }
 
 button,
@@ -314,15 +319,37 @@ textarea {
   min-height: 100vh;
 }
 
+/* Mobile: a compact horizontal top bar. On desktop this whole element becomes
+   the dark-green account sidebar (see the 900px block). */
 .top-bar {
   position: sticky;
   top: 0;
   z-index: 3;
-  display: grid;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  padding: 0.55rem 1rem;
   border-bottom: 1px solid var(--line);
   background: var(--paper-2);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+/* Sidebar-only pieces are hidden in the compact mobile bar; on mobile the
+   rail-group wrapper dissolves so pets + account controls sit in the bar row. */
+.brand-tagline,
+.rail-label,
+.rail-owner {
+  display: none;
+}
+
+.rail-group {
+  display: contents;
 }
 
 .pet-tabs {
@@ -428,56 +455,124 @@ textarea {
   padding: 1rem;
 }
 
-/* Desktop: the spine becomes a left vertical record index and the content reads
-   as the open page of the record. */
-@media (min-width: 860px) {
+/* Nav icons show only in the desktop notebook index; the mobile strip is text. */
+.record-tab svg {
+  display: none;
+}
+
+.record-nav-head {
+  display: none;
+}
+
+/* Desktop: three columns — dark-green account sidebar | notebook index | the
+   open record page. */
+@media (min-width: 900px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 252px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .top-bar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 1.3rem;
+    padding: 1.5rem 1.2rem;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-ink);
+    border-right: 1px solid var(--sidebar-line);
+    border-bottom: none;
+  }
+
+  .top-bar .brand-line { flex-wrap: nowrap; align-items: flex-start; gap: 0.6rem; }
+  .top-bar strong { color: var(--sidebar-ink); font-size: 1.12rem; }
+  .top-bar .brand-mark { background: rgba(242, 237, 224, 0.12); color: var(--sidebar-ink); }
+  .top-bar .brand-tagline { display: block; color: var(--sidebar-muted); font-size: 0.76rem; line-height: 1.35; margin-top: 0.2rem; }
+
+  .top-bar .rail-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .top-bar .rail-label { display: block; color: var(--sidebar-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin: 0 0 0.1rem; }
+  .top-bar .rail-account { margin-top: auto; }
+  .top-bar .rail-owner { display: block; color: var(--sidebar-ink); font-weight: 600; font-size: 0.9rem; }
+
+  .top-bar .pet-tabs { flex-direction: column; gap: 0.3rem; overflow: visible; }
+  .top-bar .pet-tab { width: 100%; justify-content: flex-start; padding: 0.4rem 0.55rem; color: var(--sidebar-muted); border-radius: var(--radius-sm); }
+  .top-bar .pet-tab.active { background: rgba(242, 237, 224, 0.11); color: var(--sidebar-ink); box-shadow: inset 2px 0 0 var(--gold); }
+  .top-bar .add-pet-tab { color: var(--sidebar-muted); border: 1px dashed var(--sidebar-line); }
+
+  .top-bar .lang-trigger { color: var(--sidebar-ink); background: rgba(242, 237, 224, 0.07); border-color: var(--sidebar-line); }
+  .top-bar .lang-trigger .chev { color: var(--sidebar-muted); }
+  .top-bar .text-button { color: var(--sidebar-ink); justify-content: flex-start; padding: 0.25rem 0; min-height: 0; }
+  .top-bar .text-button:hover { color: #fff; }
+  .top-bar .btn-label { display: inline; }
+
   .record-body {
     display: grid;
-    grid-template-columns: 176px minmax(0, 1fr);
+    grid-template-columns: 190px minmax(0, 1fr);
     align-items: start;
+    max-width: none;
+    margin: 0;
   }
 
   .record-nav {
     flex-direction: column;
-    gap: 0;
+    gap: 0.1rem;
     overflow: visible;
-    top: 62px;
+    top: 0;
     align-self: start;
-    padding: 1.4rem 0 1rem;
+    height: 100vh;
+    padding: 1.5rem 0.6rem 1rem 0.9rem;
     border-bottom: none;
     border-right: 1px solid var(--line);
-    background: transparent;
+    background: var(--paper-2);
+  }
+
+  .record-nav-head {
+    display: block;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin: 0 0 0.6rem;
+    padding-left: 0.5rem;
   }
 
   .record-tab {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     width: 100%;
     text-align: left;
     min-height: 0;
-    padding: 0.5rem 0.9rem 0.5rem 1.15rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--radius-sm);
     overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--muted);
   }
 
+  .record-tab svg { display: inline-block; flex: 0 0 auto; opacity: 0.7; }
+  .record-tab span { overflow: hidden; text-overflow: ellipsis; }
+
+  /* Active = the currently open record section: a soft green tab, not a pill or
+     a bare underline. */
   .record-tab.active {
-    background: var(--paper);
+    background: var(--teal-soft);
+    color: var(--ink);
+    font-weight: 700;
   }
 
-  /* Active marker (desktop): a short teal notch on the leading edge of the open
-     record section — a divider-tab marker, not a sidebar border. */
-  .record-tab.active::before {
-    top: 0.5rem;
-    bottom: 0.5rem;
-    left: 0;
-    transform: none;
-    width: 3px;
-    height: auto;
-    border-radius: 0 2px 2px 0;
-  }
+  .record-tab.active svg { opacity: 1; color: var(--teal); }
+  .record-tab.active::before { display: none; }
 
   .record-tab:hover:not(.active) {
     color: var(--ink);
-    background: rgba(31, 41, 51, 0.025);
+    background: rgba(44, 42, 32, 0.045);
   }
 }
 

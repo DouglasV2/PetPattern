@@ -203,6 +203,19 @@ function App() {
     setLang(next)
     persistLang(next)
     setLangState(next)
+    // Backend-generated text (pattern cards, vet summary, recap, timeline) is
+    // localized server-side at fetch time. Without this re-fetch it would stay in
+    // the previous language after a switch (e.g. an open Vet summary keeping its
+    // English text). loadPetData refreshes the lists and clears the detail caches;
+    // re-open whichever detail view is currently showing.
+    if (selectedPetId) {
+      const activeView = view
+      const activePattern = selectedPattern
+      loadPetData(selectedPetId).then(() => {
+        if (activeView === 'vet') openVetSummary(vetDays)
+        else if (activeView === 'timeline' && activePattern) openTimeline(activePattern)
+      })
+    }
   }
 
   const selectedPet = useMemo(() => {
@@ -880,8 +893,30 @@ function App() {
     <div className="app-shell">
       <header className="top-bar">
         <div className="brand-line">
-          <span className="brand-mark"><BrandMark size={18} /></span>
-          <strong>PetPattern</strong>
+          <span className="brand-mark"><BrandMark size={20} /></span>
+          <span className="brand-text">
+            <strong>PetPattern</strong>
+            <span className="brand-tagline">{t('A private health notebook for your pets')}</span>
+          </span>
+        </div>
+
+        <div className="rail-group">
+          <p className="rail-label">{t('My pets')}</p>
+          <div className="pet-tabs">
+            {pets.map((pet) => (
+              <button key={pet.id} className={pet.id === selectedPetId ? 'pet-tab active' : 'pet-tab'} type="button" onClick={() => setSelectedPetId(pet.id)}>
+                {pet.name}
+              </button>
+            ))}
+            <button className="pet-tab add-pet-tab" type="button" onClick={() => go('add-pet')}>
+              <Plus size={15} /> {t('Add pet')}
+            </button>
+          </div>
+        </div>
+
+        <div className="rail-group rail-account">
+          <p className="rail-label">{t('My account')}</p>
+          {owner && <span className="rail-owner">{owner.displayName || owner.email}</span>}
           <LangToggle lang={lang} onChange={switchLang} />
           <button className="text-button" type="button" onClick={() => go('account')} title={t('Account')}>
             <Settings size={16} /> <span className="btn-label">{t('Account')}</span>
@@ -890,29 +925,19 @@ function App() {
             <LogOut size={16} /> <span className="btn-label">{t('Sign out')}</span>
           </button>
         </div>
-        <div className="pet-tabs">
-          {pets.map((pet) => (
-            <button key={pet.id} className={pet.id === selectedPetId ? 'pet-tab active' : 'pet-tab'} type="button" onClick={() => setSelectedPetId(pet.id)}>
-              {pet.name}
-            </button>
-          ))}
-          <button className="pet-tab add-pet-tab" type="button" onClick={() => go('add-pet')}>
-            <Plus size={15} /> {t('Add pet')}
-          </button>
-        </div>
       </header>
 
+      <div className="record-body">
       {invites.length > 0 && (
         <InvitesBanner invites={invites} onAccept={acceptInvite} onDecline={declineInvite} />
       )}
-
-      <div className="record-body">
       <nav className="record-nav" aria-label="PetPattern sections">
-        <Tab active={view === 'today'} onClick={() => go('today')} label={t('{name} today', { name: selectedPet.name })} />
-        <Tab active={view === 'check-in' || view === 'photos'} onClick={openCheckIn} label={t('Log')} />
-        <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} label={t('Food')} />
-        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} label={t('Patterns')} />
-        <Tab active={view === 'vet'} onClick={() => openVetSummary()} label={t('Vet')} />
+        <p className="rail-label record-nav-head">{t('Notebook')}</p>
+        <Tab active={view === 'today'} onClick={() => go('today')} icon={<PawPrint size={16} />} label={t('{name} today', { name: selectedPet.name })} />
+        <Tab active={view === 'check-in' || view === 'photos'} onClick={openCheckIn} icon={<ClipboardList size={16} />} label={t('Log')} />
+        <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} icon={<Utensils size={16} />} label={t('Food')} />
+        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={16} />} label={t('Patterns')} />
+        <Tab active={view === 'vet'} onClick={() => openVetSummary()} icon={<Stethoscope size={16} />} label={t('Vet')} />
       </nav>
 
       <main className="screen">
@@ -3092,9 +3117,10 @@ function LangToggle({ lang, onChange }) {
   )
 }
 
-function Tab({ active, onClick, label }) {
+function Tab({ active, onClick, icon, label }) {
   return (
     <button className={active ? 'record-tab active' : 'record-tab'} type="button" onClick={onClick} aria-current={active ? 'page' : undefined}>
+      {icon}
       <span>{label}</span>
     </button>
   )
