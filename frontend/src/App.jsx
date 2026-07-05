@@ -906,12 +906,13 @@ function App() {
         <InvitesBanner invites={invites} onAccept={acceptInvite} onDecline={declineInvite} />
       )}
 
-      <nav className="view-tabs" aria-label="PetPattern sections">
-        <Tab active={view === 'today'} onClick={() => go('today')} icon={<PawPrint size={17} />} label={t('{name} today', { name: selectedPet.name })} />
-        <Tab active={view === 'check-in' || view === 'photos'} onClick={openCheckIn} icon={<ClipboardList size={17} />} label={t('Log today')} />
-        <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} icon={<Utensils size={17} />} label={t('Food change')} />
-        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={17} />} label={t('Patterns')} />
-        <Tab active={view === 'vet'} onClick={() => openVetSummary()} icon={<Stethoscope size={17} />} label={t('Vet summary')} />
+      <div className="record-body">
+      <nav className="record-nav" aria-label="PetPattern sections">
+        <Tab active={view === 'today'} onClick={() => go('today')} label={t('{name} today', { name: selectedPet.name })} />
+        <Tab active={view === 'check-in' || view === 'photos'} onClick={openCheckIn} label={t('Log')} />
+        <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} label={t('Food')} />
+        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} label={t('Patterns')} />
+        <Tab active={view === 'vet'} onClick={() => openVetSummary()} label={t('Vet')} />
       </nav>
 
       <main className="screen">
@@ -1053,6 +1054,7 @@ function App() {
           />
         )}
       </main>
+      </div>
     </div>
   )
 }
@@ -3090,10 +3092,9 @@ function LangToggle({ lang, onChange }) {
   )
 }
 
-function Tab({ active, onClick, icon, label }) {
+function Tab({ active, onClick, label }) {
   return (
-    <button className={active ? 'view-tab active' : 'view-tab'} type="button" onClick={onClick} aria-current={active ? 'page' : undefined}>
-      {icon}
+    <button className={active ? 'record-tab active' : 'record-tab'} type="button" onClick={onClick} aria-current={active ? 'page' : undefined}>
       <span>{label}</span>
     </button>
   )

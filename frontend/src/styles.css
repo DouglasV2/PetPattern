@@ -325,8 +325,7 @@ textarea {
   background: var(--paper-2);
 }
 
-.pet-tabs,
-.view-tabs {
+.pet-tabs {
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
@@ -355,60 +354,131 @@ textarea {
   font-weight: 700;
 }
 
-/* Section nav: notebook index tabs. No floating pills — a thin teal underline
-   marks the active section, the label carries the weight. */
-.view-tabs {
+/* ---- Record spine navigation ---------------------------------------------
+   The section index IS the spine of the pet's record: on desktop a narrow
+   vertical list of record sections beside the open record page; on phones a
+   compact record strip. Deliberately not a dashboard tab bar — no pills, no
+   floating segmented control, no icons, no full underline. The active section
+   carries only a small teal record marker. */
+.record-body {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.record-nav {
+  display: flex;
+  gap: 1.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
   position: sticky;
   top: 96px;
   z-index: 2;
-  gap: 0.85rem;
-  padding: 0 1rem;
+  padding: 0.3rem 1rem 0;
   border-bottom: 1px solid var(--line);
   background: var(--paper-2);
 }
 
-.view-tab {
+.record-tab {
   flex: 0 0 auto;
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  min-height: 42px;
-  padding: 0.5rem 0.15rem;
-  margin-bottom: -1px;
+  min-height: 40px;
+  padding: 0.5rem 0.1rem;
   background: transparent;
   border: 0;
-  border-bottom: 2px solid transparent;
   border-radius: 0;
   color: var(--muted);
   font-weight: 600;
   white-space: nowrap;
 }
 
-.view-tab svg {
-  opacity: 0.55;
-}
-
-.view-tab:hover {
+.record-tab:hover {
   color: var(--ink);
 }
 
-.view-tab.active {
+.record-tab.active {
   color: var(--ink);
   font-weight: 700;
-  border-bottom-color: var(--teal);
 }
 
-.view-tab.active svg {
-  opacity: 1;
-  color: var(--teal);
+/* Active marker (phone): a small teal record dot above the section — never an
+   underline, never a pill. */
+.record-tab.active::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.record-tab:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 .screen {
   display: grid;
   gap: 1rem;
   padding: 1rem;
-  max-width: 1180px;
-  margin: 0 auto;
+}
+
+/* Desktop: the spine becomes a left vertical record index and the content reads
+   as the open page of the record. */
+@media (min-width: 860px) {
+  .record-body {
+    display: grid;
+    grid-template-columns: 176px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .record-nav {
+    flex-direction: column;
+    gap: 0;
+    overflow: visible;
+    top: 62px;
+    align-self: start;
+    padding: 1.4rem 0 1rem;
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+    background: transparent;
+  }
+
+  .record-tab {
+    display: block;
+    width: 100%;
+    text-align: left;
+    min-height: 0;
+    padding: 0.5rem 0.9rem 0.5rem 1.15rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .record-tab.active {
+    background: var(--paper);
+  }
+
+  /* Active marker (desktop): a short teal notch on the leading edge of the open
+     record section — a divider-tab marker, not a sidebar border. */
+  .record-tab.active::before {
+    top: 0.5rem;
+    bottom: 0.5rem;
+    left: 0;
+    transform: none;
+    width: 3px;
+    height: auto;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .record-tab:hover:not(.active) {
+    color: var(--ink);
+    background: rgba(31, 41, 51, 0.025);
+  }
 }
 
 .today-spine {
@@ -699,9 +769,8 @@ textarea {
     justify-content: flex-end;
   }
 
-  .view-tabs {
+  .record-nav {
     top: 62px;
-    justify-content: center;
   }
 
   .today-spine {
@@ -1513,7 +1582,7 @@ textarea {
   }
 
   .top-bar,
-  .view-tabs,
+  .record-nav,
   .no-print,
   .vet-toolbar,
   .error-box {

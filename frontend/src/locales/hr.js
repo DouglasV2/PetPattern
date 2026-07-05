@@ -56,6 +56,9 @@ export default {
 
   // Nav
   '{name} today': '{name} danas',
+  'Log': 'Zapis',
+  'Food': 'Hrana',
+  'Vet': 'Vet',
   'Normal for {name}': 'Normalno za {name}',
   'Worth watching': 'Vrijedi pripaziti',
   'Changed': 'Promjena',
