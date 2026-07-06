@@ -18,6 +18,7 @@ import {
   FlaskConical,
   HeartPulse,
   ImagePlus,
+  Leaf,
   LogOut,
   Mail,
   PawPrint,
@@ -54,6 +55,80 @@ function BrandMark({ size = 20 }) {
       <circle cx="16.55" cy="10.65" r="1.75" fill="#bf5a46" />
       <path d="M12 12.2c2.15 0 3.75 1.55 3.75 3.4 0 1.55-1.5 2.4-3.75 2.4s-3.75-.85-3.75-2.4c0-1.85 1.6-3.4 3.75-3.4z" fill="currentColor" />
     </svg>
+  )
+}
+
+// A small round pet avatar: the pet's most-recent photo thumbnail when there is
+// one, otherwise an original initials placeholder tinted by species. No stock art
+// or downloaded assets — the fallback is just a letter on a soft disc.
+function PetAvatar({ pet, size = 26 }) {
+  const [failed, setFailed] = useState(false)
+  // A new photo gives the same pet a fresh avatarImageUrl; clear a past load
+  // failure so the new (loadable) image gets a chance instead of sticking on
+  // the initials placeholder for the life of this reused component instance.
+  useEffect(() => { setFailed(false) }, [pet?.avatarImageUrl])
+  const initial = (pet?.name || '').trim().charAt(0).toUpperCase() || '·'
+  const showImage = pet?.avatarImageUrl && !failed
+  return (
+    <span className={`pet-avatar ${isCat(pet) ? 'is-cat' : 'is-dog'}`}
+          style={{ width: size, height: size, fontSize: Math.round(size * 0.46) }} aria-hidden="true">
+      {showImage
+        ? <img className="pet-avatar-img" src={pet.avatarImageUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
+        : <span className="pet-avatar-initial">{initial}</span>}
+    </span>
+  )
+}
+
+// The selected pet's two-or-three most-recent photos as gently rotated snapshot
+// cards — a quiet "this is their notebook" moment at the top of the sidebar, and
+// also the simplest place to ADD a photo (tap it to pick one from the device).
+// Desktop only (CSS hides it on narrow screens so it never crowds the header);
+// shows a soft placeholder that invites a first photo when there are none yet.
+function PetPhotoStack({ pet, photos, onAddPhoto }) {
+  const [busy, setBusy] = useState(false)
+  const fileRef = useRef(null)
+  const shots = (photos || []).slice(0, 3)
+  const hasPhotos = shots.length > 0
+
+  async function onFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setBusy(true)
+    try {
+      await onAddPhoto(file)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="pet-photo-stack">
+      <button type="button" className="pet-photo-stack-btn" disabled={busy}
+              onClick={() => fileRef.current?.click()}
+              aria-label={hasPhotos
+                ? t('Add another photo of {name}', { name: pet.name })
+                : t('Add a photo of {name}', { name: pet.name })}>
+        <span className="snap-set" aria-hidden="true">
+          {hasPhotos
+            ? shots.map((photo, i) => (
+                <span className={`snap snap-${i}`} key={photo.id}>
+                  <img src={`${photo.imageUrl}?w=320`} alt="" loading="lazy" />
+                </span>
+              ))
+            : (
+              <span className="snap snap-placeholder">
+                <PetAvatar pet={pet} size={58} />
+              </span>
+            )}
+        </span>
+        <span className="pet-photo-hint">
+          <ImagePlus size={13} />
+          {busy ? t('Adding…') : (hasPhotos ? t('Add another') : t('Add a photo of {name}', { name: pet.name }))}
+        </span>
+      </button>
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={onFile} />
+    </div>
   )
 }
 
@@ -107,6 +182,7 @@ const emptyCheckIn = {
   energyLevel: 'NORMAL',
   vomiting: false,
   earRedness: false,
+  pawLicking: false,
   freeTextNote: ''
 }
 
@@ -123,6 +199,25 @@ const emptyFood = {
 }
 
 const proteinOptions = ['CHICKEN', 'BEEF', 'LAMB', 'SALMON', 'TURKEY', 'DUCK', 'PORK', 'EGG', 'DAIRY', 'OTHER']
+
+// Breed suggestions for the onboarding autocomplete (a native <datalist>, so it
+// only suggests — the owner can still type anything, incl. a Croatian name).
+const DOG_BREEDS = [
+  'Mixed breed', 'Labrador Retriever', 'Golden Retriever', 'German Shepherd', 'French Bulldog',
+  'Bulldog', 'Poodle', 'Beagle', 'Rottweiler', 'Dachshund', 'Yorkshire Terrier', 'Boxer',
+  'Cavalier King Charles Spaniel', 'Australian Shepherd', 'Siberian Husky', 'Cane Corso',
+  'Great Dane', 'Miniature Schnauzer', 'Doberman Pinscher', 'Shih Tzu', 'Boston Terrier',
+  'Bernese Mountain Dog', 'Pomeranian', 'Havanese', 'Cocker Spaniel', 'Border Collie', 'Maltese',
+  'Chihuahua', 'Shiba Inu', 'Vizsla', 'Pembroke Welsh Corgi', 'Australian Cattle Dog',
+  'Basset Hound', 'Bichon Frise', 'Belgian Malinois', 'Jack Russell Terrier', 'Weimaraner',
+  'Pug', 'Samoyed', 'Akita', 'Whippet', 'German Shorthaired Pointer'
+]
+const CAT_BREEDS = [
+  'Mixed breed', 'Domestic Shorthair', 'Domestic Longhair', 'Maine Coon', 'Persian', 'Ragdoll',
+  'British Shorthair', 'Siamese', 'Sphynx', 'Bengal', 'Scottish Fold', 'Abyssinian',
+  'American Shorthair', 'Norwegian Forest Cat', 'Russian Blue', 'Birman', 'Oriental Shorthair',
+  'Devon Rex', 'Burmese', 'Exotic Shorthair'
+]
 
 const PHOTO_AREAS = ['EAR', 'PAW', 'SKIN', 'COAT', 'EYE', 'STOOL', 'OTHER']
 
@@ -157,7 +252,7 @@ function emptyCheckInFor(species) {
   if (species === 'CAT') {
     return { ...base, litterBoxUse: 'NORMAL', urinationChange: 'NORMAL', straining: false, hidingBehavior: 'NORMAL', weightConcern: false }
   }
-  return { ...base, itchingScore: 2, stoolState: 'NORMAL', earRedness: false }
+  return { ...base, itchingScore: 2, stoolState: 'NORMAL', earRedness: false, pawLicking: false }
 }
 
 function App() {
@@ -183,6 +278,10 @@ function App() {
   const [vetSummary, setVetSummary] = useState(null)
   const [vetLoading, setVetLoading] = useState(false)
   const [vetDays, setVetDays] = useState(30)
+  // A brief confirmation toast (e.g. after adding a pattern to the vet summary).
+  // Keyed by a bumping sequence so the same message re-fires the dismiss timer.
+  const [toast, setToast] = useState(null)
+  const toastSeq = useRef(0)
   const [lang, setLangState] = useState(() => loadLang())
   const [owner, setOwner] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
@@ -194,6 +293,14 @@ function App() {
   // Whether "Continue with Google" is offered — only when the backend has Google
   // OAuth configured (env-driven), so the button never leads to a 404.
   const [googleEnabled, setGoogleEnabled] = useState(false)
+  // Whether the note "Suggest fields" helper is offered. Default OFF, and only
+  // turned on when the backend reports a real, configured AI provider. The local
+  // mock parser is keyword-only (no negation, English-only) and would misread
+  // notes like "no vomiting" / "nije povraćala", so it stays hidden for launch.
+  const [aiSuggestEnabled, setAiSuggestEnabled] = useState(false)
+  // Max pets per account (server-enforced). Used to hide "Add pet" at the limit
+  // so a user can't pile up (or spam) dozens of pets. Comes from /config.
+  const [maxPets, setMaxPets] = useState(20)
   // Captured once from the URL on load. Held in state (not re-derived each render)
   // so ResetPasswordView can strip the token from the URL without the view being
   // dropped when other state (the auth check) updates.
@@ -252,6 +359,8 @@ function App() {
     api.config().then((cfg) => {
       if (cfg && typeof cfg.demoEnabled === 'boolean') setDemoEnabled(cfg.demoEnabled)
       if (cfg && typeof cfg.googleLoginEnabled === 'boolean') setGoogleEnabled(cfg.googleLoginEnabled)
+      if (cfg && typeof cfg.aiSuggestEnabled === 'boolean') setAiSuggestEnabled(cfg.aiSuggestEnabled)
+      if (cfg && Number.isFinite(cfg.maxPets) && cfg.maxPets > 0) setMaxPets(cfg.maxPets)
     }).catch(() => {})
   }, [])
 
@@ -395,6 +504,17 @@ function App() {
     go('today')
   }
 
+  // Owner permanently deletes one of their own pets and all its data. Reselect
+  // another pet (or fall back to onboarding when none remain). Throws on failure
+  // so the caller can surface the message.
+  async function removePet(petId) {
+    await api.deletePet(petId)
+    const nextPets = await api.listPets()
+    setPets(nextPets)
+    setSelectedPetId((prev) => (prev === petId ? (nextPets[0]?.id ?? null) : prev))
+    setOverview(null)
+  }
+
   async function loadPetData(petId) {
     setError('')
     try {
@@ -464,11 +584,19 @@ function App() {
     }
   }
 
+  // Show a brief confirmation. A new object each time (via the bumping seq) so
+  // the dismiss effect re-runs and the timer restarts even for a repeat message.
+  function showToast(message) {
+    toastSeq.current += 1
+    setToast({ message, key: toastSeq.current })
+  }
+
   async function setPatternStatus(pattern, status) {
     if (!selectedPet || !pattern) return
     setError('')
     try {
       await api.setPatternStatus(selectedPet.id, pattern.id, status)
+      if (status === 'SHARED_WITH_VET') showToast(t('Added to vet summary'))
       const nextPatterns = await api.listPatterns(selectedPet.id)
       setPatterns(nextPatterns)
       const nextOverview = await api.getOverview(selectedPet.id)
@@ -496,6 +624,28 @@ function App() {
       setPhotos(await api.listPhotos(selectedPet.id))
     } catch (err) {
       setError('Could not refresh photos. Try again in a moment.')
+    }
+  }
+
+  // Add a photo straight from the sidebar. It goes into the same photo store as
+  // the gallery (as a general "other" photo, not a symptom shot); the newest photo
+  // becomes the pet's avatar and the top of the snapshot stack. Refreshes both the
+  // selected pet's photos (for the stack) and the pet list (for the list avatars).
+  async function addPetPhoto(file) {
+    if (!selectedPet || !file) return
+    setError('')
+    try {
+      const blob = await resizeImage(file, 1400, 0.82)
+      const formData = new FormData()
+      formData.append('file', blob, 'photo.jpg')
+      formData.append('area', 'OTHER')
+      formData.append('capturedDate', today)
+      await api.uploadPhoto(selectedPet.id, formData)
+      setPhotos(await api.listPhotos(selectedPet.id))
+      setPets(await api.listPets())
+      showToast(t("Photo added — that's {name} now.", { name: selectedPet.name }))
+    } catch (err) {
+      setError('That photo could not be added. Try a JPEG or PNG.')
     }
   }
 
@@ -626,7 +776,8 @@ function App() {
         // from the AI parse path).
         itchingScore: item.itchingScore == null ? 0 : Math.min(10, Math.round(item.itchingScore / 2) * 2),
         stoolState: item.stoolState ?? 'NORMAL',
-        earRedness: !!item.earRedness
+        earRedness: !!item.earRedness,
+        pawLicking: !!item.pawLicking
       })
     }
     go('check-in')
@@ -766,12 +917,18 @@ function App() {
           // Acute flags are never carried forward — a quiet day starts clean.
           vomiting: false,
           earRedness: false,
+          pawLicking: false,
           freeTextNote: ''
         }
       }
       await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
+      setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
+      showToast(t('Saved — quiet days matter too.'))
+      // Works from both the Today nudge and the Daily Log form — a no-op if
+      // already on Today, and returns to Today when saved from the form.
+      go('today')
     } catch (err) {
       setError("Couldn't save today's quick log. Try again in a moment.")
     } finally {
@@ -855,7 +1012,7 @@ function App() {
   // Account/settings is a standalone screen (not a nav tab) so it works even for
   // an owner with no pets.
   if (view === 'account') {
-    return <AccountView owner={owner} onBack={() => go('today')} onDeleted={afterAccountDeleted} />
+    return <AccountView owner={owner} pets={pets} onDeletePet={removePet} onBack={() => go('today')} onDeleted={afterAccountDeleted} />
   }
 
   if (!selectedPet) {
@@ -900,17 +1057,28 @@ function App() {
           </span>
         </div>
 
+        {selectedPet && <PetPhotoStack pet={selectedPet} photos={photos} onAddPhoto={addPetPhoto} />}
+
         <div className="rail-group">
           <p className="rail-label">{t('My pets')}</p>
+          <PetSwitcher
+            pets={pets}
+            selectedPetId={selectedPetId}
+            onSelect={setSelectedPetId}
+            onAdd={() => go('add-pet')}
+            canAdd={pets.length < maxPets}
+          />
           <div className="pet-tabs">
             {pets.map((pet) => (
               <button key={pet.id} className={pet.id === selectedPetId ? 'pet-tab active' : 'pet-tab'} type="button" onClick={() => setSelectedPetId(pet.id)}>
-                {pet.name}
+                <PetAvatar pet={pet} size={22} /> {pet.name}
               </button>
             ))}
-            <button className="pet-tab add-pet-tab" type="button" onClick={() => go('add-pet')}>
-              <Plus size={15} /> {t('Add pet')}
-            </button>
+            {pets.length < maxPets && (
+              <button className="pet-tab add-pet-tab" type="button" onClick={() => go('add-pet')}>
+                <Plus size={15} /> {t('Add pet')}
+              </button>
+            )}
           </div>
         </div>
 
@@ -936,7 +1104,7 @@ function App() {
         <Tab active={view === 'today'} onClick={() => go('today')} icon={<PawPrint size={16} />} label={t('{name} today', { name: selectedPet.name })} />
         <Tab active={view === 'check-in' || view === 'photos'} onClick={openCheckIn} icon={<ClipboardList size={16} />} label={t('Log')} />
         <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} icon={<Utensils size={16} />} label={t('Food')} />
-        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={16} />} label={t('Patterns')} />
+        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={16} />} label={t('Changes')} />
         <Tab active={view === 'vet'} onClick={() => openVetSummary()} icon={<Stethoscope size={16} />} label={t('Vet')} />
       </nav>
 
@@ -949,8 +1117,10 @@ function App() {
             form={checkInForm}
             setForm={setCheckInForm}
             saving={saving}
+            aiSuggestEnabled={aiSuggestEnabled}
             onBack={() => go('today')}
             onSave={saveCheckIn}
+            onQuickLog={quickLog}
             onAddFood={addFoodFromSuggestion}
             onAddPhoto={() => go('photos')}
             onAddMedication={() => go('medications')}
@@ -1080,11 +1250,89 @@ function App() {
         )}
       </main>
       </div>
+      {toast && <Toast key={toast.key} message={toast.message} onDismiss={() => setToast(null)} />}
     </div>
   )
 }
 
+// A brief, self-dismissing confirmation that floats above the record. Announced
+// politely to assistive tech and dismissable early with the close button. It owns
+// its own auto-dismiss timer so it can pause while hovered or keyboard-focused —
+// otherwise the 3.2s timeout could yank the close button out from under a
+// keyboard user and drop their focus to <body>.
+function Toast({ message, onDismiss }) {
+  const [paused, setPaused] = useState(false)
+  const dismissRef = useRef(onDismiss)
+  dismissRef.current = onDismiss
+  useEffect(() => {
+    if (paused) return undefined
+    const id = setTimeout(() => dismissRef.current(), 3200)
+    return () => clearTimeout(id)
+  }, [paused])
+  return (
+    <div className="toast" role="status" aria-live="polite"
+      onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+      <span className="toast-icon"><Check size={15} /></span>
+      <span className="toast-text">{message}</span>
+      <button className="toast-close" type="button" aria-label={t('Dismiss')} onClick={onDismiss}>
+        <X size={14} />
+      </button>
+    </div>
+  )
+}
+
+// Original inline SVG glyph drawn for PetPattern — a small dog-eared note page
+// with a soft memory dot. Not from any icon pack, stock set, or external source.
+function NoteGlyph({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+      <path d="M6.5 3.5h6.2l4.8 4.8V19a1.5 1.5 0 0 1-1.5 1.5h-9.5A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5Z"
+        fill="currentColor" fillOpacity="0.1" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M12.6 3.7v3.1a1.5 1.5 0 0 0 1.5 1.5h3.2" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M8 12h6M8 15h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="14.8" cy="15" r="1.1" fill="currentColor" />
+    </svg>
+  )
+}
+
+// One calm, human note at the top of Today — a single sentence, never a list.
+// It surfaces the most reassuring or useful thing there is to say right now, in
+// priority order, and is written to sound like a note the owner might keep — not
+// a diagnosis, a score, or anything analytical.
+function TodayNoteCard({ pet, overview, topPattern, checkIns, loggedToday }) {
+  let tone = 'calm'
+  let title
+  let body
+  if (overview?.goodNews) {
+    tone = 'good'; title = t('Nice little win'); body = overview.goodNews
+  } else if (overview?.watchOut) {
+    tone = 'watch'; title = t('Worth keeping an eye on'); body = overview.watchOut
+  } else if (topPattern) {
+    tone = 'watch'; title = t('Something changed'); body = topPattern.summary
+  } else if (!checkIns.length) {
+    title = t('Start with one easy note')
+    body = t('A few quick logs help PetPattern learn what normal looks like for {name}.', { name: pet.name })
+  } else if (!loggedToday) {
+    title = t('A quick note keeps the picture clear')
+    body = t('No need to write much — just save how {name} seems today.', { name: pet.name })
+  } else {
+    title = t('Everything looks pretty steady')
+    body = t('Nothing unusual stands out from the latest note.')
+  }
+  return (
+    <section className={`today-note tone-${tone}`} aria-label={title}>
+      <span className="today-note-mark" aria-hidden="true"><NoteGlyph /></span>
+      <div className="today-note-body">
+        <p className="today-note-title">{title}</p>
+        <p className="today-note-text">{body}</p>
+      </div>
+    </section>
+  )
+}
+
 function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay }) {
+  const loggedToday = overview?.retention?.loggedToday ?? checkIns.some((c) => c.checkInDate === today)
   return (
     <>
       <section className="today-spine">
@@ -1092,17 +1340,16 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
           <p className="kicker">{t('{name} today', { name: pet.name })}</p>
           <h1>{todayHeadline(pet, overview, topPattern, latestCheckIn)}</h1>
           <p>{overview?.todayExplanation ?? `${pet.name} is ready for a first check-in.`}</p>
-          {overview?.goodNews && (
-            <p className="moment good">{overview.goodNews}</p>
-          )}
-          {overview?.watchOut && (
-            <p className="moment watch">{overview.watchOut}</p>
-          )}
           <div className="action-row">
             <button className="primary-button" type="button" onClick={onLogToday}>
               <ClipboardList size={18} /> {t('Log today')}
             </button>
-            <button className="secondary-button" type="button" onClick={onFoodChange}>
+            {!loggedToday && (
+              <button className="secondary-button quiet-day" type="button" onClick={onQuickLog}>
+                <Check size={18} /> {t('Everything looked normal today')}
+              </button>
+            )}
+            <button className="ghost-button" type="button" onClick={onFoodChange}>
               <Utensils size={18} /> {t('Add food change')}
             </button>
             <button className="ghost-button" type="button" onClick={onVetSummary}>
@@ -1116,6 +1363,8 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
           <strong>{overview?.nextAction ?? t('Log today')}</strong>
         </div>
       </section>
+
+      <TodayNoteCard pet={pet} overview={overview} topPattern={topPattern} checkIns={checkIns} loggedToday={loggedToday} />
 
       <RetentionStrip pet={pet} retention={overview?.retention} checkInCount={checkIns.length} onLogToday={onLogToday} onQuickLog={onQuickLog} />
 
@@ -1203,7 +1452,7 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
   )
 }
 
-function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, onAddPhoto, onAddMedication }) {
+function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddMedication }) {
   const [note, setNote] = useState(form.freeTextNote || '')
   const [suggestion, setSuggestion] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -1223,6 +1472,12 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
     setApplied(false)
     try {
       const result = await api.parseDailyNote({ petId: pet.id, note })
+      // The Scratching control only offers 0/2/4/6/8/10, so snap an odd score
+      // (a hosted model can return any 0–10) to the nearest chip before it ever
+      // reaches the preview or the form.
+      if (result && result.itchingScore != null) {
+        result.itchingScore = Math.min(10, Math.max(0, Math.round(result.itchingScore / 2) * 2))
+      }
       setSuggestion(result)
     } catch (err) {
       setAiError(t('Could not read the note. You can still fill the fields in yourself.'))
@@ -1260,11 +1515,20 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
           : t('Only log what you noticed. A quick check-in is enough.')}
       </p>
 
+      {onQuickLog && (
+        <div className="quiet-day">
+          <button type="button" className="quiet-day-button" onClick={onQuickLog} disabled={saving}>
+            <Check size={16} /> {t('No change noticed')}
+          </button>
+          <span className="quiet-day-hint">{t('Saves a calm day — nothing to fill in.')}</span>
+        </div>
+      )}
+
       <form className="quick-form" onSubmit={onSave}>
-        <label className="field-label">
+        <div className="field-label">
           {t('Date')}
-          <input type="date" value={form.checkInDate} max={today} onChange={(e) => setForm({ ...form, checkInDate: e.target.value })} />
-        </label>
+          <DateField value={form.checkInDate} onChange={(d) => setForm({ ...form, checkInDate: d })} />
+        </div>
 
         <p className="form-section-label">{t('How was {name}?', { name: pet.name })}</p>
 
@@ -1347,6 +1611,7 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
             <div className="toggle-grid">
               <ToggleButton active={form.vomiting} label={t('Vomiting')} onClick={() => setForm({ ...form, vomiting: !form.vomiting })} />
               <ToggleButton active={form.earRedness} label={t('Ear redness')} onClick={() => setForm({ ...form, earRedness: !form.earRedness })} />
+              <ToggleButton active={form.pawLicking} label={t('Paw licking')} onClick={() => setForm({ ...form, pawLicking: !form.pawLicking })} />
             </div>
           </>
         )}
@@ -1400,7 +1665,9 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
             <p className="muted">
               {cat
                 ? t('Write naturally — a note is often the most useful thing for a cat.')
-                : t('Write naturally — PetPattern can suggest fields, but you stay in control.')}
+                : aiSuggestEnabled
+                  ? t('Write naturally — PetPattern can suggest fields, but you stay in control.')
+                  : t('Write naturally — a short note is often the most useful thing to bring to your vet.')}
             </p>
             <textarea
               placeholder={cat
@@ -1409,7 +1676,7 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
               value={note}
               onChange={(e) => updateNote(e.target.value)}
             />
-            {!cat && (
+            {!cat && aiSuggestEnabled && (
               <>
                 <div className="action-row">
                   <button className="secondary-button" type="button" onClick={suggestFields} disabled={aiLoading || !note.trim()}>
@@ -1447,13 +1714,13 @@ function CheckInView({ pet, form, setForm, saving, onBack, onSave, onAddFood, on
 
 function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
   const chips = []
-  if (suggestion.itchingScore != null) chips.push(`Itching ${suggestion.itchingScore}/10`)
-  if (suggestion.stoolState && suggestion.stoolState !== 'UNKNOWN') chips.push(`Stool ${titleCase(suggestion.stoolState)}`)
-  if (suggestion.appetiteLevel && suggestion.appetiteLevel !== 'UNKNOWN') chips.push(`Appetite ${titleCase(suggestion.appetiteLevel)}`)
-  if (suggestion.waterLevel && suggestion.waterLevel !== 'UNKNOWN') chips.push(`Water ${titleCase(suggestion.waterLevel)}`)
-  if (suggestion.energyLevel && suggestion.energyLevel !== 'UNKNOWN') chips.push(`Energy ${titleCase(suggestion.energyLevel)}`)
-  if (suggestion.vomiting) chips.push('Vomiting')
-  if (suggestion.earRedness) chips.push('Ear redness')
+  if (suggestion.itchingScore != null) chips.push(`${t('Itching')} ${suggestion.itchingScore}/10`)
+  if (suggestion.stoolState && suggestion.stoolState !== 'UNKNOWN') chips.push(`${t('Stool')} ${stoolLabel({ stoolState: suggestion.stoolState })}`)
+  if (suggestion.appetiteLevel && suggestion.appetiteLevel !== 'UNKNOWN') chips.push(`${t('Appetite')} ${levelLabel(suggestion.appetiteLevel)}`)
+  if (suggestion.waterLevel && suggestion.waterLevel !== 'UNKNOWN') chips.push(`${t('Water')} ${levelLabel(suggestion.waterLevel)}`)
+  if (suggestion.energyLevel && suggestion.energyLevel !== 'UNKNOWN') chips.push(`${t('Energy')} ${levelLabel(suggestion.energyLevel)}`)
+  if (suggestion.vomiting) chips.push(t('Vomiting'))
+  if (suggestion.earRedness) chips.push(t('Ear redness'))
 
   const trigger = suggestion.possibleFoodTrigger
 
@@ -1509,8 +1776,8 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
   return (
     <section className="flow-panel">
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
-      <p className="kicker">{t('Food exposure')}</p>
-      <h1>{t("What changed in {name}'s food?", { name: pet.name })}</h1>
+      <p className="kicker">{t('Food & treats')}</p>
+      <h1>{t('{name} · food', { name: pet.name })}</h1>
       <p className="lead">{t('Food changes often matter more than they seem. Track the first day {name} ate it.', { name: pet.name })}</p>
 
       <form className="quick-form" onSubmit={onSave}>
@@ -1538,14 +1805,14 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
         </div>
 
         <QuickChoices
-          label={t('Primary protein')}
+          label={t('Main ingredient')}
           value={form.primaryProtein}
           options={proteinOptions.map((value) => ({ value, label: proteinLabel(value) }))}
           onChange={(primaryProtein) => setForm({ ...form, primaryProtein })}
         />
 
         <div className="choice-block">
-          <span>{t('Secondary proteins')}</span>
+          <span>{t('Other ingredients')}</span>
           <div className="choice-grid">
             {proteinOptions.filter((protein) => protein !== form.primaryProtein).map((protein) => (
               <button key={protein} type="button" aria-pressed={form.secondaryProteins.includes(protein)} className={form.secondaryProteins.includes(protein) ? 'choice-button active' : 'choice-button'} onClick={() => toggleSecondary(protein)}>
@@ -1560,10 +1827,10 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
           <ToggleButton active={form.newFood} label={t('New food')} onClick={() => setForm({ ...form, newFood: !form.newFood })} />
         </div>
 
-        <label className="field-label">
+        <div className="field-label">
           {t('Date started')}
-          <input type="date" value={form.dateStarted} onChange={(e) => setForm({ ...form, dateStarted: e.target.value })} />
-        </label>
+          <DateField value={form.dateStarted} label={t('Date started')} onChange={(d) => setForm({ ...form, dateStarted: d })} />
+        </div>
 
         <label className="field-label">
           {t('Notes')}
@@ -1584,7 +1851,7 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
                 <div className="food-history-main">
                   <strong>{formatDate(food.dateStarted)}</strong>{' '}
                   {[food.brand, food.productName].filter(Boolean).join(' - ') || foodKindLabel(food.foodKind)}
-                  <span className="muted"> · {proteinLabel(food.primaryProtein)}{food.newFood ? ' · new' : ''}</span>
+                  <span className="muted"> · {proteinLabel(food.primaryProtein)}{food.newFood ? ` · ${t('new')}` : ''}</span>
                 </div>
                 <button className="icon-button danger" type="button" aria-label={`Delete food entry from ${formatDate(food.dateStarted)}`} onClick={() => onDeleteFood(food)}>
                   <Trash2 size={15} />
@@ -1596,9 +1863,9 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
       )}
 
       <div className="context-cta">
-        <p className="muted">{t("Wondering if a food doesn't sit well? You can remove one ingredient for a few weeks and watch.")}</p>
+        <p className="muted">{t('Already changing food with your vet? You can note when a change started and keep watching how {name} does.', { name: pet.name })}</p>
         <button className="secondary-button" type="button" onClick={onTrial}>
-          <FlaskConical size={18} /> {t('Track a careful food trial')}
+          <FlaskConical size={18} /> {t('Track a food change')}
         </button>
       </div>
     </section>
@@ -1614,8 +1881,8 @@ function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShow
     <section className="flow-panel">
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
       <p className="kicker">{t('What changed?')}</p>
-      <h1>{t('Possible patterns for {name}', { name: pet.name })}</h1>
-      <p className="lead">{t('These cards are generated from stored check-ins and food logs. They are cautious prompts for better tracking and vet conversations.')}</p>
+      <h1>{t('Changes for {name}', { name: pet.name })}</h1>
+      <p className="lead">{t('Small things PetPattern noticed from your notes. Nothing here is a diagnosis — just a calmer way to see what changed.')}</p>
 
       {recap && recap.daysLogged >= 5 && onRecap && (
         <div className="context-cta">
@@ -1628,8 +1895,8 @@ function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShow
       <div className="pattern-list">
         {patterns.length === 0 && (
           <article className="panel">
-            <h2>{t('Nothing clearly outside normal yet')}</h2>
-            <p className="muted">{t('Keep logging daily signals and food changes. PetPattern gets more useful as the history grows.')}</p>
+            <h2>{t('No changes to show yet. That\'s okay.')}</h2>
+            <p className="muted">{t('Keep logging for a few more days. PetPattern will start showing little changes once there\'s enough history.')}</p>
           </article>
         )}
         {active.map((pattern) => (
@@ -1670,10 +1937,6 @@ function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShow
   )
 }
 
-// How many recent days the evidence strip shows. 14 keeps it compact and legible
-// on a phone, and still spans enough days to see a change line up with a food swap.
-const EVIDENCE_WINDOW = 14
-
 // For a given pattern, the ONE signal we show over time and how to read a single
 // check-in into a calm/watch/changed tone plus a short value for the tooltip.
 // Species is implicit in the pattern type, so we never mix dog/cat signals.
@@ -1692,7 +1955,7 @@ function evidenceSignal(pattern) {
     case 'WATER_CHANGE':
       return { label: t('Water'), read: (c) => lvl(c.waterLevel, [], ['LOWER', 'HIGHER'], []) }
     case 'RECURRING_EAR_REDNESS':
-      return { label: t('Ears'), read: (c) => ({ tone: c.earRedness ? 'watch' : 'calm', value: c.earRedness ? t('Redness') : t('Clear') }) }
+      return { label: t('Ears'), read: (c) => ({ tone: c.earRedness ? 'changed' : 'calm', value: c.earRedness ? t('Redness') : t('Clear') }) }
     case 'APPETITE_LOW':
       return { label: t('Appetite'), read: (c) => lvl(c.appetiteLevel, [], ['LOWER', 'HIGHER'], ['REFUSED']) }
     case 'LITTER_BOX_CHANGE':
@@ -1715,47 +1978,129 @@ function evidenceSignal(pattern) {
   }
 }
 
-// A small "evidence over time" strip: one cell per recent day, tinted by how that
-// day's signal read, with a marker on days a food change was logged. Deliberately
-// not a chart — it's a page in a record, and it never invents data it doesn't have.
-function PatternEvidence({ pattern, checkIns, foodLogs }) {
-  const sig = evidenceSignal(pattern)
-  if (!sig) return null
-  const byDate = new Map((checkIns || []).map((c) => [c.checkInDate, c]))
-  const foodByDate = new Set((foodLogs || []).map((f) => f.dateStarted))
-  const base = new Date(`${today}T00:00:00`)
-  const days = []
-  for (let i = EVIDENCE_WINDOW - 1; i >= 0; i--) {
+// The last `window` calendar days, oldest first, as { iso, date }.
+function lastDays(window) {
+  const base = parseLocalDate(today)
+  const out = []
+  for (let i = window - 1; i >= 0; i--) {
     const d = new Date(base)
     d.setDate(base.getDate() - i)
     const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const entry = byDate.get(iso)
-    const read = entry ? sig.read(entry) : null
-    days.push({ iso, tone: read ? read.tone : 'none', value: read ? read.value : null, food: foodByDate.has(iso) })
+    out.push({ iso, date: d })
   }
-  const logged = days.filter((d) => d.tone !== 'none').length
+  return out
+}
+
+// The word for a signal's notable ("changed") state, for the cell-strip legend.
+function changedLabel(type) {
+  switch (type) {
+    case 'RECURRING_EAR_REDNESS': return t('Redness')
+    case 'STOOL_INSTABILITY': return t('Diarrhea')
+    case 'REPEATED_VOMITING': return t('Vomiting')
+    case 'APPETITE_LOW': return t('Refused')
+    case 'HIDING_INCREASED': return t('Hiding more')
+    default: return t('Change')
+  }
+}
+
+// A quiet visual for the pattern: numeric signals (scratching) read best as a
+// line over 30 days with food markers; everything else as a 2-week tone strip.
+// Both draw only from real logs and never invent data.
+function PatternChart({ pattern, checkIns, foodLogs }) {
+  if (pattern.type === 'ITCHING_ABOVE_BASELINE' || pattern.type === 'POSSIBLE_FOOD_TRIGGER') {
+    return <PatternLineChart pattern={pattern} checkIns={checkIns} foodLogs={foodLogs} />
+  }
+  const sig = evidenceSignal(pattern)
+  if (!sig) return null
+  return <PatternCellStrip pattern={pattern} checkIns={checkIns} sig={sig} foodLogs={foodLogs} />
+}
+
+function PatternLineChart({ pattern, checkIns, foodLogs }) {
+  const WINDOW = 30
+  const days = lastDays(WINDOW)
+  const scoreByDate = new Map((checkIns || []).map((c) => [c.checkInDate, c.itchingScore]))
+  const logged = days.filter((d) => scoreByDate.get(d.iso) != null).length
+  if (logged < 3) {
+    return <p className="chart-empty muted">{t('A few more logs will make this easier to see.')}</p>
+  }
+  const relatedFood = (foodLogs || []).find((f) => f.id === pattern.relatedFoodLogId)
+  const proteinName = relatedFood ? proteinLabel(relatedFood.primaryProtein) : t('Food')
+  const foodDates = new Set((foodLogs || []).map((f) => f.dateStarted))
+
+  const W = 300
+  const H = 84
+  const padT = 12
+  const padB = 6
+  const n = days.length
+  const xAt = (i) => (i / (n - 1)) * W
+  const yAt = (s) => padT + (1 - Math.max(0, Math.min(10, s)) / 10) * (H - padT - padB)
+  const pts = days
+    .map((d, i) => { const s = scoreByDate.get(d.iso); return s == null ? null : { x: xAt(i), y: yAt(s) } })
+    .filter(Boolean)
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  const foodMarks = days.map((d, i) => (foodDates.has(d.iso) ? xAt(i) : null)).filter((x) => x != null)
+  const tickIdx = [0, Math.round(n * 0.2), Math.round(n * 0.4), Math.round(n * 0.6), Math.round(n * 0.8), n - 1]
 
   return (
-    <div className="evidence">
-      <p className="evidence-label">{t('Evidence over time')}{logged >= 3 ? ` · ${sig.label}` : ''}</p>
-      {logged < 3 ? (
-        <p className="evidence-empty muted">{t('A few more logs will make this easier to see.')}</p>
-      ) : (
-        <>
-          <div className="evidence-strip" role="img" aria-label={sig.label}>
-            {days.map((d) => (
-              <span key={d.iso} className={`evidence-cell ${d.tone}${d.food ? ' food' : ''}`}
-                title={`${formatDate(d.iso)} · ${d.value ? `${sig.label}: ${d.value}` : t('No check-in')}${d.food ? ` · ${t('food change')}` : ''}`} />
-            ))}
-          </div>
-          <div className="evidence-legend muted">
-            <span><i className="ev-dot calm" />{t('calm')}</span>
-            <span><i className="ev-dot watch" />{t('watch')}</span>
-            <span><i className="ev-dot changed" />{t('changed')}</span>
-            <span><i className="ev-tick" />{t('food change')}</span>
-          </div>
-        </>
-      )}
+    <div className="pattern-chart">
+      <div className="pattern-chart-head">
+        <span className="pattern-chart-title">{t('Last {n} days', { n: WINDOW })}</span>
+        <span className="pattern-chart-legend">
+          <span><i className="chart-key dot" />{proteinName}</span>
+          <span><i className="chart-key line" />{t('Scratching')}</span>
+        </span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="pattern-chart-svg" role="img" aria-label={t('Scratching')}>
+        {foodMarks.map((x, i) => (
+          <line key={i} x1={x.toFixed(1)} x2={x.toFixed(1)} y1={padT} y2={H - padB} className="chart-food-line" />
+        ))}
+        <path d={linePath} className="chart-line-path" />
+        {foodMarks.map((x, i) => (
+          <circle key={i} cx={x.toFixed(1)} cy={padT} r="3.4" className="chart-food-dot" />
+        ))}
+      </svg>
+      <div className="pattern-chart-axis">
+        {tickIdx.map((i) => <span key={i}>{formatDate(days[i].iso)}</span>)}
+      </div>
+    </div>
+  )
+}
+
+function PatternCellStrip({ pattern, checkIns, sig, foodLogs }) {
+  const WINDOW = 14
+  const days = lastDays(WINDOW)
+  const byDate = new Map((checkIns || []).map((c) => [c.checkInDate, c]))
+  const foodDates = new Set((foodLogs || []).map((f) => f.dateStarted))
+  const cells = days.map((d) => {
+    const entry = byDate.get(d.iso)
+    const read = entry ? sig.read(entry) : null
+    return { iso: d.iso, day: d.date.getDate(), tone: read ? read.tone : 'none', value: read ? read.value : null, food: foodDates.has(d.iso) }
+  })
+  const logged = cells.filter((c) => c.tone !== 'none').length
+  if (logged < 3) {
+    return <p className="chart-empty muted">{t('A few more logs will make this easier to see.')}</p>
+  }
+  return (
+    <div className="pattern-chart">
+      <div className="pattern-chart-head">
+        <span className="pattern-chart-title">{t('Last 2 weeks')}</span>
+      </div>
+      <div className="cell-days" aria-hidden="true">
+        {cells.map((c) => <span key={c.iso}>{c.day}.</span>)}
+      </div>
+      <div className="cell-strip" role="img" aria-label={sig.label}>
+        {cells.map((c) => (
+          <span key={c.iso} className={`cell-bar ${c.tone}`}
+            title={`${formatDate(c.iso)} · ${c.value ? `${sig.label}: ${c.value}` : t('No check-in')}${c.food ? ` · ${t('food change')}` : ''}`}>
+            {c.food ? <Leaf size={11} /> : null}
+          </span>
+        ))}
+      </div>
+      <div className="cell-legend muted">
+        <span><i className="cell-key calm" />{t('calm')}</span>
+        <span><i className="cell-key watch" />{t('mild')}</span>
+        <span><i className="cell-key changed" />{changedLabel(pattern.type)}</span>
+      </div>
     </div>
   )
 }
@@ -1767,9 +2112,11 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
   return (
     <article className={muted ? 'panel pattern-card dismissed' : 'panel pattern-card'}>
       <div className="pattern-top">
-        <span className={`confidence ${String(pattern.confidence ?? 'low').toLowerCase()}`}>{confidenceLabel(pattern.confidence ?? 'low')}</span>
-        {variant === 'settled' && <span className="status-chip calm">{t('Settled')}</span>}
-        {variant !== 'settled' && meta.label && <span className={`status-chip ${meta.tone}`}>{meta.label}</span>}
+        {variant === 'settled'
+          ? <span className="status-chip calm">{t('Settled')}</span>
+          : meta.label
+            ? <span className={`status-chip ${meta.tone}`}>{meta.label}</span>
+            : <span className="pattern-flag">{t('Something to notice')}</span>}
       </div>
       <h2>{pattern.title}</h2>
       {variant === 'settled' ? (
@@ -1784,7 +2131,10 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
         </ul>
       )}
       {variant === 'active' && (
-        <PatternEvidence pattern={pattern} checkIns={checkIns} foodLogs={foodLogs} />
+        <PatternChart pattern={pattern} checkIns={checkIns} foodLogs={foodLogs} />
+      )}
+      {variant === 'active' && (
+        <p className="pattern-disclaimer muted">{t('Not a diagnosis — just something from your notes that may be worth mentioning to your vet.')}</p>
       )}
       {variant === 'active' && (
         <button className="text-button" type="button" onClick={() => onShowTimeline(pattern)}>
@@ -1797,19 +2147,12 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
           <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'ACKNOWLEDGED')}>{t('Bring back')}</button>
         )}
         {variant === 'settled' && (
-          <>
-            <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'RESOLVED')}>{t('Mark resolved')}</button>
-            <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Not relevant')}</button>
-          </>
+          <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Hide')}</button>
         )}
         {variant === 'active' && (
           <>
-            {pattern.status === 'NEW' && (
-              <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'ACKNOWLEDGED')}>{t("I'm watching this")}</button>
-            )}
-            <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'SHARED_WITH_VET')}>{t('Told my vet')}</button>
-            <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'RESOLVED')}>{t('Resolved')}</button>
-            <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Not relevant')}</button>
+            <button className="chip-button primary-chip" type="button" onClick={() => onSetStatus(pattern, 'SHARED_WITH_VET')}>{t('Add to vet summary')}</button>
+            <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Hide')}</button>
           </>
         )}
       </div>
@@ -1830,7 +2173,6 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
   }
 
   const headline = pattern?.title ?? timeline?.patternTitle
-  const confidence = pattern?.confidence ?? timeline?.confidence
   const events = timeline?.events ?? []
   const photosByDate = {}
   ;(photos ?? []).forEach((photo) => {
@@ -1849,18 +2191,18 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
     <section className="flow-panel">
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
       <p className="kicker">{t('What changed?')}</p>
-      <h1>{timeline?.title ?? t('What changed before this?')}</h1>
+      <h1>{timeline?.title ?? t('What happened before it?')}</h1>
       <p className="lead">{timeline?.subtitle ?? t("PetPattern looks at the days before {name}'s signals changed.", { name: pet.name })}</p>
 
       {headline && (
         <article className="panel pattern-card">
           <div className="pattern-top">
-            {confidence && <span className={`confidence ${String(confidence).toLowerCase()}`}>{confidenceLabel(confidence)}</span>}
+            <span className="pattern-flag">{t('Something to notice')}</span>
             <Activity size={17} />
           </div>
           <h2>{headline}</h2>
           {pattern?.seenBefore && pattern.detectionCount > 1 && (
-            <p className="memory-line">{t("You've seen this {n} times since {date}.", { n: pattern.detectionCount, date: formatDate(pattern.firstDetectedAt) })}</p>
+            <p className="memory-line">{t("You've seen this a few times since {date}.", { date: formatDate(pattern.firstDetectedAt) })}</p>
           )}
           {timeline?.summary && <p>{timeline.summary}</p>}
           {timeline?.ownerExplanation && <p className="owner-explanation">{timeline.ownerExplanation}</p>}
@@ -1869,8 +2211,8 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
 
       {timeline?.empty || events.length === 0 ? (
         <article className="panel">
-          <h2>{t('Not enough of a story yet')}</h2>
-          <p className="muted">{timeline?.emptyMessage ?? t('There is not enough history yet. Keep logging for a few more days.')}</p>
+          <h2>{t('Not much of a story yet — that\'s fine.')}</h2>
+          <p className="muted">{timeline?.emptyMessage ?? t('A few more quiet days help too — they teach the app what normal looks like.')}</p>
         </article>
       ) : (
         <div className="story">
@@ -1903,7 +2245,7 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
         </button>
         {(pattern?.type ?? timeline?.type) === 'POSSIBLE_FOOD_TRIGGER' && onTrial && (
           <button className="secondary-button" type="button" onClick={onTrial}>
-            <FlaskConical size={18} /> {t('Track a careful food trial')}
+            <FlaskConical size={18} /> {t('Track a food change')}
           </button>
         )}
       </div>
@@ -1915,6 +2257,9 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
 
 function VetSummaryView({ pet, summary, loading, days, onBack, onChangeDays, onMedications }) {
   const [copied, setCopied] = useState(false)
+  // Native share is mostly a phone/tablet capability; on a desktop without it the
+  // "Copy summary" button below is the fallback, so we simply hide Share there.
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   async function copySummary() {
     if (!summary?.plainText) return
@@ -1924,6 +2269,20 @@ function VetSummaryView({ pet, summary, loading, days, onBack, onChangeDays, onM
       setTimeout(() => setCopied(false), 2200)
     } catch (err) {
       setCopied(false)
+    }
+  }
+
+  async function shareSummary() {
+    if (!summary?.plainText) return
+    const title = t('PetPattern summary — {name}', { name: summary.pet?.name || pet.name })
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text: summary.plainText })
+      } catch (err) {
+        // Share sheet dismissed or failed — cancelling is normal, so do nothing.
+      }
+    } else {
+      copySummary()
     }
   }
 
@@ -1940,7 +2299,9 @@ function VetSummaryView({ pet, summary, loading, days, onBack, onChangeDays, onM
     return (
       <section className="flow-panel">
         <button className="back-button no-print" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
-        <p className="muted">{t('No summary yet.')}</p>
+        <p className="kicker">{t('Bring this to your vet')}</p>
+        <h1>{t('Vet visit summary')}</h1>
+        <p className="muted">{t('Nothing to summarise yet. Log a few days and this becomes a clear, shareable note for your vet.')}</p>
       </section>
     )
   }
@@ -1968,7 +2329,12 @@ function VetSummaryView({ pet, summary, loading, days, onBack, onChangeDays, onM
           ))}
         </div>
         <div className="vet-actions">
-          <button className="secondary-button" type="button" onClick={copySummary}>
+          {canShare && (
+            <button className="secondary-button" type="button" onClick={shareSummary}>
+              <Share2 size={16} /> {t('Share summary')}
+            </button>
+          )}
+          <button className={canShare ? 'ghost-button' : 'secondary-button'} type="button" onClick={copySummary}>
             <Copy size={16} /> {copied ? t('Copied') : t('Copy summary')}
           </button>
           <button className="ghost-button" type="button" onClick={() => window.print()}>
@@ -2007,13 +2373,13 @@ function VetSheet({ summary, onMedications }) {
         <p>{summary.checkInSummary?.narrative}</p>
       </VetBlock>
 
-      <VetBlock title={t('Food exposure history')}>
+      <VetBlock title={t('Food & treats')}>
         {summary.foodChanges?.length ? (
           <ul className="vet-list">
             {summary.foodChanges.map((food, index) => (
               <li key={`${food.dateStarted}-${index}`}>
                 <strong>{formatDate(food.dateStarted)}</strong> — {food.label}
-                <span className="muted"> ({[titleCase(food.foodKind), food.primaryProtein ? titleCase(food.primaryProtein) : null, food.newFood ? 'new food' : null].filter(Boolean).join(', ')})</span>
+                <span className="muted"> ({[foodKindLabel(food.foodKind), food.primaryProtein ? proteinLabel(food.primaryProtein) : null, food.newFood ? t('new food') : null].filter(Boolean).join(', ')})</span>
               </li>
             ))}
           </ul>
@@ -2067,7 +2433,7 @@ function VetSheet({ summary, onMedications }) {
           <ul className="vet-list">
             {summary.patterns.map((p, index) => (
               <li key={`${p.type}-${index}`}>
-                <span className={`confidence ${String(p.confidence).toLowerCase()}`}>{titleCase(p.confidence)}</span>
+                <span className="pattern-flag">{t('Worth mentioning')}</span>
                 <strong> {p.title}</strong>
                 <p>{p.summary}</p>
               </li>
@@ -2268,7 +2634,7 @@ function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickL
             <CalendarDays size={18} />
             <div className="baseline-copy">
               <strong>{t("Build {name}'s 7-day baseline", { name: pet.name })}</strong>
-              <span className="muted">{t('Log only what you noticed. A quick check-in is enough.')}</span>
+              <span className="muted">{t('A week of quick notes gives PetPattern enough to start spotting what changed.')}</span>
             </div>
           </div>
           <div className="baseline-track">
@@ -2286,19 +2652,7 @@ function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickL
         {loggedToday ? (
           <span><Check size={16} /> {checkInCount > 1 ? t('Logged today — {n} days on record.', { n: checkInCount }) : t("Logged today — that's a start.")}</span>
         ) : (
-          <>
-            <span>{nudgeText(pet, daysSinceLastCheckIn)}</span>
-            <div className="nudge-actions">
-              <button className="primary-button" type="button" onClick={onLogToday}>
-                <ClipboardList size={16} /> {t('Log today')}
-              </button>
-              {onQuickLog && (
-                <button className="ghost-button" type="button" onClick={onQuickLog}>
-                  {t('No change noticed')}
-                </button>
-              )}
-            </div>
-          </>
+          <span>{nudgeText(pet, daysSinceLastCheckIn)}</span>
         )}
       </div>
 
@@ -2310,7 +2664,7 @@ function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickL
 function nudgeText(pet, daysSince) {
   if (daysSince == null) return t("Start {name}'s memory with a quick check-in.", { name: pet.name })
   if (daysSince <= 1) return t("Add today's check-in so {name}'s record stays complete.", { name: pet.name })
-  return t("It's been {n} days since {name}'s last check-in — a quick log keeps patterns accurate.", { n: daysSince, name: pet.name })
+  return t("It's been {n} days since {name}'s last note — a quick one keeps the picture clear.", { n: daysSince, name: pet.name })
 }
 
 function ReminderControl({ pet, loggedToday }) {
@@ -2415,7 +2769,15 @@ function maybeNotify(pet, pref, loggedToday, key) {
 function RecentTimeline({ pet, checkIns, onEdit, onDelete, onLogDay }) {
   const cat = isCat(pet)
   const [findDate, setFindDate] = useState('')
+  const [query, setQuery] = useState('')
   if (!checkIns.length) return null
+  // Search the recent record by the same words the owner sees on each row —
+  // signal labels ("Scratching", "Diarrhea"…) and their own note — so typing
+  // "scra" surfaces the scratching days. Localised text, so it works in HR too.
+  const q = query.trim().toLowerCase()
+  const searchable = (c) => `${formatDate(c.checkInDate)} ${timelineSummary(c, cat)} ${timelineFlags(c, cat)} ${c.freeTextNote || ''}`.toLowerCase()
+  const matches = q ? checkIns.filter((c) => searchable(c).includes(q)) : []
+  const visible = q ? matches : checkIns.slice(0, 8)
   const found = findDate ? checkIns.find((c) => c.checkInDate === findDate) : null
   return (
     <section className="panel timeline-panel">
@@ -2428,12 +2790,17 @@ function RecentTimeline({ pet, checkIns, onEdit, onDelete, onLogDay }) {
         <div className="find-day no-print">
           <div className="find-day-head">
             <Search size={15} />
-            <span>{t('Find a day')}</span>
+            <input type="search" className="find-day-search" value={query}
+              placeholder={t('Search a signal or note (e.g. scratching)')}
+              onChange={(e) => setQuery(e.target.value)} aria-label={t('Search your notes')} />
             <input type="date" className="find-day-input" max={today} value={findDate}
-              onChange={(e) => setFindDate(e.target.value)} aria-label={t('Pick a date to see what you logged.')} />
+              onChange={(e) => setFindDate(e.target.value)} aria-label={t('Pick a date')} />
           </div>
-          {!findDate && <p className="find-day-hint muted">{t('Pick a date to see what you logged.')}</p>}
-          {findDate && found && (
+          {q ? (
+            <p className="find-day-hint muted">{matches.length ? t('Days found: {n}', { n: matches.length }) : t('No days match your search.')}</p>
+          ) : !findDate ? (
+            <p className="find-day-hint muted">{t('Type to search, or pick a date.')}</p>
+          ) : found ? (
             <div className="find-day-result">
               <div className="timeline-main">
                 <span>{formatDate(found.checkInDate)}</span>
@@ -2442,8 +2809,7 @@ function RecentTimeline({ pet, checkIns, onEdit, onDelete, onLogDay }) {
               </div>
               <button className="chip-button" type="button" onClick={() => onEdit(found)}>{t('Edit')}</button>
             </div>
-          )}
-          {findDate && !found && (
+          ) : (
             <div className="find-day-result empty">
               <span className="muted">{t('No check-in logged for this day.')}</span>
               <button className="chip-button" type="button" onClick={() => onLogDay(findDate)}>{t('Log this day')}</button>
@@ -2453,7 +2819,7 @@ function RecentTimeline({ pet, checkIns, onEdit, onDelete, onLogDay }) {
       )}
 
       <div className="timeline">
-        {checkIns.slice(0, 8).map((item) => (
+        {visible.map((item) => (
           <div className="timeline-row editable" key={item.id}>
             <div className="timeline-main">
               <span>{formatDate(item.checkInDate)}</span>
@@ -2626,14 +2992,15 @@ function TrialsView({ pet, trials, onBack, onCreate, onAction, onDelete }) {
   return (
     <section className="flow-panel">
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
-      <p className="kicker">{t('Food trial')}</p>
-      <h1>{t('Food trials')}</h1>
-      <p className="lead">{t('Take one ingredient out for a few weeks, keep logging, then bring it back — a calm way to see whether things change without it, and a clear story for your vet.')}</p>
+      <p className="kicker">{t('Food & treats')}</p>
+      <h1>{t('Careful food tracking')}</h1>
+      <p className="lead">{t("If you're already changing {name}'s food with your vet, you can note when the change started and keep watching how they do.", { name: pet.name })}</p>
+      <p className="reassure">{t('Do not change your pet’s diet because of the app. This record only helps track changes you are already making or discussing with your vet.')}</p>
 
       {formOpen ? (
         <form className="quick-form" onSubmit={submit}>
           <QuickChoices
-            label={t('Which ingredient to take out')}
+            label={t('Which ingredient are you leaving out?')}
             value={protein}
             options={proteinOptions.map((value) => ({ value, label: proteinLabel(value) }))}
             onChange={setProtein}
@@ -2644,20 +3011,20 @@ function TrialsView({ pet, trials, onBack, onCreate, onAction, onDelete }) {
             options={[2, 3, 4, 6].map((value) => ({ value, label: t('{n} weeks', { n: value }) }))}
             onChange={setWeeks}
           />
-          <label className="field-label">
+          <div className="field-label">
             {t('Start date')}
-            <input type="date" value={startDate} max={today} onChange={(e) => setStartDate(e.target.value)} />
-          </label>
+            <DateField value={startDate} label={t('Start date')} onChange={setStartDate} />
+          </div>
           <label className="field-label">
             {t('Notes')}
-            <textarea value={notes} maxLength={500} placeholder={t('What to avoid, why you are trying this…')} onChange={(e) => setNotes(e.target.value)} />
+            <textarea value={notes} maxLength={500} placeholder={t('What changed, and anything your vet said…')} onChange={(e) => setNotes(e.target.value)} />
           </label>
-          <button className="primary-button wide" type="submit"><FlaskConical size={18} /> {t('Start the trial')}</button>
+          <button className="primary-button wide" type="submit"><FlaskConical size={18} /> {t('Start tracking')}</button>
         </form>
       ) : (
         <div className="action-row">
           <button className="secondary-button" type="button" onClick={() => setShowForm(true)}>
-            <FlaskConical size={18} /> {t('Start a new trial')}
+            <FlaskConical size={18} /> {t('Track a food change')}
           </button>
         </div>
       )}
@@ -2686,7 +3053,7 @@ function TrialCard({ trial, onAction, onDelete }) {
       <div className="pattern-top">
         <span className={`status-chip ${trialTone(trial.status)}`}>{trialStatusLabel(trial.status)}</span>
       </div>
-      <h2>{t('Removing: {protein}', { protein: trial.proteinLabel })}</h2>
+      <h2>{t('Leaving out: {protein}', { protein: trial.proteinLabel })}</h2>
       <p className="memory-line">{trial.phase}</p>
 
       {trial.status === 'ACTIVE' && trial.totalDays > 0 && (
@@ -3077,6 +3444,54 @@ function MedicationsView({ pet, medications, onBack, onCreate, onAction }) {
   )
 }
 
+// Compact pet picker for the wrapping mobile/tablet bar, where a row of pet tabs
+// would overflow once an owner has more than a few. On the desktop spine the
+// vertical pet list is used instead (this is hidden by CSS there).
+function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, canAdd }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
+  }, [open])
+
+  const current = pets.find((p) => p.id === selectedPetId) || pets[0]
+
+  return (
+    <div className="pet-switcher" ref={ref}>
+      <button type="button" className="pet-switcher-trigger" aria-haspopup="listbox" aria-expanded={open}
+              aria-label={t('My pets')} onClick={() => setOpen((o) => !o)}>
+        {current ? <PetAvatar pet={current} size={22} /> : <PawPrint size={16} />}
+        <span className="pet-switcher-name">{current?.name}</span>
+        <ChevronDown className="chev" size={15} />
+      </button>
+      {open && (
+        <div className="pet-switcher-list" role="listbox" aria-label={t('My pets')}>
+          {pets.map((pet) => (
+            <button key={pet.id} type="button" role="option" aria-selected={pet.id === selectedPetId}
+                    className={pet.id === selectedPetId ? 'pet-switcher-item active' : 'pet-switcher-item'}
+                    onClick={() => { onSelect(pet.id); setOpen(false) }}>
+              <PetAvatar pet={pet} size={20} />
+              <span>{pet.name}</span>
+              {pet.id === selectedPetId && <Check className="check" size={15} />}
+            </button>
+          ))}
+          {canAdd && (
+            <button type="button" className="pet-switcher-item add" onClick={() => { onAdd(); setOpen(false) }}>
+              <Plus size={15} /> {t('Add pet')}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function LangToggle({ lang, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -3172,11 +3587,24 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [createdPet, setCreatedPet] = useState(null)
+  const [weightUnit, setWeightUnit] = useState('kg')
 
   function choose(next) {
     setSpecies(next)
     setError('')
     setStep('profile')
+  }
+
+  // Switch the weight unit and convert what's already typed, so the same real
+  // weight is shown. Always stored as kg (see submit()).
+  function switchUnit(unit) {
+    if (unit === weightUnit) return
+    const value = parseFloat(form.currentWeightKg)
+    if (!Number.isNaN(value)) {
+      const converted = unit === 'lbs' ? value * 2.2046226 : value / 2.2046226
+      setForm({ ...form, currentWeightKg: String(Math.round(converted * 10) / 10) })
+    }
+    setWeightUnit(unit)
   }
 
   async function submit(event) {
@@ -3194,7 +3622,9 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
         breed: form.breed.trim() || null,
         birthDate: form.birthDate || null,
         sex: form.sex || 'UNKNOWN',
-        currentWeightKg: form.currentWeightKg ? Number(form.currentWeightKg) : null
+        currentWeightKg: form.currentWeightKg
+          ? Math.round(Number(form.currentWeightKg) * (weightUnit === 'lbs' ? 0.45359237 : 1) * 100) / 100
+          : null
       })
       setCreatedPet(pet)
       setStep('done')
@@ -3209,7 +3639,7 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
     return (
       <section className="onboarding onboarding-done">
         <span className="brand-mark big">{isCat(createdPet) ? <Cat size={26} /> : <Dog size={26} />}</span>
-        <h1>{t('{name}’s memory is ready.', { name: createdPet.name })}</h1>
+        <h1>{t('{name} is all set.', { name: createdPet.name })}</h1>
         <p className="lead">{t('Log your first check-in and PetPattern starts learning what’s normal for {name}.', { name: createdPet.name })}</p>
         <div className="action-row">
           <button className="primary-button" type="button" onClick={() => onFinish(createdPet, 'check-in')}>
@@ -3237,17 +3667,32 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
           <label className="field-label">{t('Name')}
             <input autoFocus value={form.name} placeholder={species === 'CAT' ? t("Your cat's name") : t("Your dog's name")} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </label>
-          <label className="field-label">{t('Breed, optional')}
-            <input value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
+
+          <div className="optional-fields">
+            <p className="optional-fields-hint">{t('You can add these now or later.')}</p>
+          <label className="field-label">{t('Breed (optional)')}
+            <input value={form.breed} list="breed-options" autoComplete="off"
+              onChange={(e) => setForm({ ...form, breed: e.target.value })} />
+            <datalist id="breed-options">
+              {(species === 'CAT' ? CAT_BREEDS : DOG_BREEDS).map((b) => <option key={b} value={b} />)}
+            </datalist>
           </label>
-          <label className="field-label">{t('Birth date, optional')}
+          <label className="field-label">{t('Birth date (optional)')}
             <input type="date" max={today} value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} />
           </label>
-          <label className="field-label">{t('Weight kg, optional')}
-            <input inputMode="decimal" value={form.currentWeightKg} onChange={(e) => setForm({ ...form, currentWeightKg: e.target.value })} />
-          </label>
+          <div className="field-label">
+            <span className="weight-label-row">
+              {t('Weight (optional)')}
+              <span className="unit-toggle" role="group" aria-label={t('Weight unit')}>
+                <button type="button" className={weightUnit === 'kg' ? 'unit-btn active' : 'unit-btn'} onClick={() => switchUnit('kg')}>kg</button>
+                <button type="button" className={weightUnit === 'lbs' ? 'unit-btn active' : 'unit-btn'} onClick={() => switchUnit('lbs')}>lbs</button>
+              </span>
+            </span>
+            <input inputMode="decimal" value={form.currentWeightKg} placeholder={weightUnit}
+              onChange={(e) => setForm({ ...form, currentWeightKg: e.target.value })} />
+          </div>
           <QuickChoices
-            label={t('Sex, optional')}
+            label={t('Sex (optional)')}
             value={form.sex}
             options={[
               { value: 'UNKNOWN', label: t('Not sure') },
@@ -3256,6 +3701,7 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
             ]}
             onChange={(sex) => setForm({ ...form, sex })}
           />
+          </div>
           {error && <div className="error-box" role="alert">{error}</div>}
           <button className="primary-button wide" type="submit" disabled={busy}>
             <Check size={18} /> {t(meta.cta)}
@@ -3620,10 +4066,26 @@ function ResetPasswordView({ token, lang, onLangChange, onDone }) {
   )
 }
 
-function AccountView({ owner, onBack, onDeleted }) {
+function AccountView({ owner, pets = [], onDeletePet, onBack, onDeleted }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const ownedPets = pets.filter((pet) => pet.owned)
+
+  async function deletePet(pet) {
+    if (!window.confirm(t("Delete {name}? This permanently removes all of {name}'s logs and photos, and cannot be undone.", { name: pet.name }))) return
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      await onDeletePet(pet.id)
+      setMessage(t('{name} was deleted.', { name: pet.name }))
+    } catch (err) {
+      setError(err.message || t('Something went wrong. Try again.'))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function exportData() {
     setBusy(true)
@@ -3684,6 +4146,23 @@ function AccountView({ owner, onBack, onDeleted }) {
             <Download size={16} /> {t('Export my data')}
           </button>
         </div>
+
+        {ownedPets.length > 0 && (
+          <div className="account-section">
+            <h2>{t('Your pets')}</h2>
+            <p className="muted">{t('Remove a pet and all of its logs. This cannot be undone.')}</p>
+            <ul className="account-pet-list">
+              {ownedPets.map((pet) => (
+                <li key={pet.id}>
+                  <span>{pet.name}</span>
+                  <button className="chip-button subtle danger" type="button" onClick={() => deletePet(pet)} disabled={busy}>
+                    <Trash2 size={15} /> {t('Delete')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="account-section">
           <h2>{t('Legal')}</h2>
@@ -3842,7 +4321,7 @@ function statusMeta(status) {
     case 'ACKNOWLEDGED':
       return { label: t('Watching'), tone: 'watch' }
     case 'SHARED_WITH_VET':
-      return { label: t('Told your vet'), tone: 'vet' }
+      return { label: t('In vet summary'), tone: 'vet' }
     case 'RESOLVED':
       return { label: t('Resolved'), tone: 'calm' }
     case 'NOT_RELEVANT':
@@ -3855,7 +4334,7 @@ function statusMeta(status) {
 function memoryLine(pattern) {
   if (!pattern?.firstDetectedAt) return ''
   if (pattern.seenBefore && pattern.detectionCount > 1) {
-    return t('Seen {n}× since {date}', { n: pattern.detectionCount, date: formatDate(pattern.firstDetectedAt) })
+    return t('Seen a few times since {date}', { date: formatDate(pattern.firstDetectedAt) })
   }
   return t('First noticed {date}', { date: formatDate(pattern.firstDetectedAt) })
 }
@@ -3880,11 +4359,53 @@ function parseLocalDate(value) {
   return new Date(value)
 }
 
+// Shift a bare 'YYYY-MM-DD' by n days and return the same string form (local).
+function addDays(isoDate, n) {
+  const d = parseLocalDate(isoDate)
+  d.setDate(d.getDate() + n)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function formatDate(value) {
   if (!value) return ''
   const date = parseLocalDate(value)
   if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric' }).format(date)
+}
+
+// Friendly date entry: Today / Yesterday one-tap chips (the 95% case for a daily
+// log) plus an "Other day" chip that still opens the OS calendar for any date and
+// shows the chosen day in words. No date-picker dependency.
+function DateField({ value, max = today, onChange, label }) {
+  const yesterday = addDays(max, -1)
+  const isToday = value === max
+  const isYesterday = value === yesterday
+  const isOther = !isToday && !isYesterday
+  return (
+    <div className="date-field">
+      <button type="button" className={isToday ? 'date-chip active' : 'date-chip'} aria-pressed={isToday} onClick={() => onChange(max)}>
+        {t('Today')}
+      </button>
+      <button type="button" className={isYesterday ? 'date-chip active' : 'date-chip'} aria-pressed={isYesterday} onClick={() => onChange(yesterday)}>
+        {t('Yesterday')}
+      </button>
+      <label className={isOther ? 'date-chip date-chip-cal active' : 'date-chip date-chip-cal'}>
+        <CalendarDays size={15} />
+        <span>{isOther ? formatDate(value) : t('Choose a date')}</span>
+        <input
+          type="date"
+          value={value || max}
+          max={max}
+          aria-label={label || t('Date')}
+          onClick={(e) => { try { e.currentTarget.showPicker && e.currentTarget.showPicker() } catch { /* falls back to native click */ } }}
+          onChange={(e) => { if (e.target.value) onChange(e.target.value) }}
+        />
+      </label>
+    </div>
+  )
 }
 
 function formatLongDate(value) {
@@ -3937,6 +4458,7 @@ function timelineFlags(item, cat) {
   } else {
     if (item.stoolState === 'DIARRHEA' || item.diarrhea) flags.push(t('Diarrhea'))
     if (item.earRedness) flags.push(t('Ear redness'))
+    if (item.pawLicking) flags.push(t('Paw licking'))
   }
   if (item.freeTextNote) flags.push(item.freeTextNote)
   return flags.length ? flags.join(' · ') : t('Nothing unusual noted')

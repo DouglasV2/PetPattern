@@ -66,6 +66,7 @@ public class DailyCheckIn {
     private boolean vomiting;
     private boolean diarrhea;
     private boolean earRedness;
+    private boolean pawLicking;
 
     // --- Cat-specific signals (null/UNKNOWN for dogs) ---
     @Enumerated(EnumType.STRING)
@@ -211,6 +212,14 @@ public class DailyCheckIn {
 
     public void setEarRedness(boolean earRedness) {
         this.earRedness = earRedness;
+    }
+
+    public boolean isPawLicking() {
+        return pawLicking;
+    }
+
+    public void setPawLicking(boolean pawLicking) {
+        this.pawLicking = pawLicking;
     }
 
     public LitterBoxUse getLitterBoxUse() {

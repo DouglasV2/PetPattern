@@ -154,6 +154,7 @@ public class VetSummaryService {
                 .max(Integer::compareTo)
                 .orElse(null);
         int earDays = (int) checkIns.stream().filter(DailyCheckIn::isEarRedness).count();
+        int pawDays = (int) checkIns.stream().filter(DailyCheckIn::isPawLicking).count();
         int vomitDays = (int) checkIns.stream().filter(DailyCheckIn::isVomiting).count();
 
         StringBuilder narrative = new StringBuilder();
@@ -169,6 +170,9 @@ public class VetSummaryService {
         }
         if (earDays > 0) {
             narrative.append(Copy.t(" Ear redness was noted on {0}.", Copy.days(earDays)));
+        }
+        if (pawDays > 0) {
+            narrative.append(Copy.t(" Paw licking was noted on {0}.", Copy.days(pawDays)));
         }
         if (vomitDays > 0) {
             narrative.append(Copy.t(" Vomiting was noted on {0}.", Copy.days(vomitDays)));
@@ -436,7 +440,7 @@ public class VetSummaryService {
             out.append("- ").append(Copy.t("No single clear pattern stood out in this period.")).append('\n');
         } else {
             for (VetSummaryDto.PatternSummary pattern : patterns) {
-                out.append("- [").append(Copy.t(titleCase(pattern.confidence()))).append("] ")
+                out.append("- [").append(Copy.t("Worth mentioning")).append("] ")
                         .append(pattern.title()).append(": ").append(pattern.summary()).append("\n");
             }
         }

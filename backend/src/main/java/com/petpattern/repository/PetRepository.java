@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface PetRepository extends JpaRepository<Pet, UUID> {
     List<Pet> findByOwnerOrderByCreatedAtAsc(Owner owner);
 
+    long countByOwner(Owner owner);
+
     Optional<Pet> findByIdAndOwner(UUID id, Owner owner);
 
     Optional<Pet> findFirstByOwnerAndNameIgnoreCase(Owner owner, String name);

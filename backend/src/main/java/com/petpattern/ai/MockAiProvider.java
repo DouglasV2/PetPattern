@@ -11,6 +11,7 @@ import com.petpattern.domain.WaterLevel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Deterministic, dependency-free extractor used when no AI backend is configured.
@@ -20,8 +21,25 @@ import java.util.Locale;
  * demo and local dev, never enough to be mistaken for a medical reader. It never
  * throws, and it leaves a field {@code UNKNOWN}/{@code null} when it is unsure
  * rather than guessing.
+ *
+ * <p>Two things keep it from being actively wrong:
+ * <ul>
+ *   <li><b>Negation</b> — a keyword is only counted when it is <em>asserted</em>.
+ *       "no vomiting" / "nije povraćala" no longer set vomiting=true.</li>
+ *   <li><b>Croatian</b> — the note is diacritic-folded (č→c, š→s, ž→z…) so an
+ *       ASCII keyword set matches Croatian written with or without diacritics.</li>
+ * </ul>
+ * This is still a keyword heuristic, not a language model — the UI keeps the
+ * whole helper hidden unless a real provider is configured ({@link #configured()}
+ * is false here, surfaced as {@code aiSuggestEnabled}).
  */
 public class MockAiProvider implements AiProvider {
+
+    /** Whole-word negation cues (English + Croatian), matched inside the clause
+     * just before a keyword. "n't" contractions are handled separately. */
+    private static final Set<String> NEGATIONS = Set.of(
+            "no", "not", "without", "never", "cannot",
+            "nije", "nisu", "ne", "nema", "bez", "nikad", "niti");
 
     @Override
     public String name() {
@@ -35,86 +53,103 @@ public class MockAiProvider implements AiProvider {
 
     @Override
     public DailyNoteExtractionResult extract(String note) {
-        String text = note == null ? "" : note.toLowerCase(Locale.ROOT);
+        String text = fold(note);
         List<String> warnings = new ArrayList<>();
         int signals = 0;
 
         Integer itchingScore = null;
-        if (containsAny(text, "scratch", "itch", "itchy", "licking", "chewing paw", "biting paw", "rubbing")) {
+        if (mentions(text, "scratch", "itch", "itchy", "licking", "chewing paw", "biting paw", "rubbing",
+                "cesa", "cese", "cesk", "grebe", "lizanje", "grize sap", "zvace sap")) {
             boolean intense = containsAny(text, "a lot", "lots", "constantly", "all day", "non-stop",
-                    "nonstop", "really", "badly", "lot of", "raw");
-            boolean mild = containsAny(text, "a little", "a bit", "slightly", "mild", "occasional", "now and then");
+                    "nonstop", "really", "badly", "lot of", "raw",
+                    "dosta", "jako", "puno", "stalno", "cijeli dan");
+            boolean mild = containsAny(text, "a little", "a bit", "slightly", "mild", "occasional",
+                    "now and then", "malo", "blago", "povremeno");
             itchingScore = intense ? 8 : (mild ? 4 : 6);
             signals++;
         }
 
         StoolState stoolState = StoolState.UNKNOWN;
-        if (containsAny(text, "diarrhea", "diarrhoea", "runny", "watery", "very loose")) {
+        if (mentions(text, "diarrhea", "diarrhoea", "runny", "watery", "very loose", "proljev", "vodenast")) {
             stoolState = StoolState.DIARRHEA;
             signals++;
-        } else if (containsAny(text, "soft", "softer", "loose", "mushy", "sloppy")) {
+        } else if (mentions(text, "soft", "softer", "loose", "mushy", "sloppy", "mek", "rjed")) {
             stoolState = StoolState.SOFT;
             signals++;
-        } else if (containsAny(text, "no stool", "no poop", "didn't poop", "did not poop", "no bowel")) {
+        } else if (mentions(text, "no stool", "no poop", "didn't poop", "did not poop", "no bowel",
+                "bez stolice", "nema stolice")) {
             stoolState = StoolState.NO_STOOL;
             signals++;
-        } else if (containsAny(text, "normal stool", "firm", "solid stool", "stool was normal", "poop was normal")) {
+        } else if (mentions(text, "normal stool", "firm", "solid stool", "stool was normal", "poop was normal",
+                "stolica je normalna", "normalna stolica", "stolica normalna", "cvrsta stolica")) {
             stoolState = StoolState.NORMAL;
             signals++;
         }
 
         AppetiteLevel appetiteLevel = AppetiteLevel.UNKNOWN;
-        if (containsAny(text, "refused", "won't eat", "wouldn't eat", "didn't eat", "did not eat", "no appetite")) {
+        if (mentions(text, "refused", "won't eat", "wouldn't eat", "didn't eat", "did not eat", "no appetite",
+                "odbija", "ne jede", "nije jela", "nije jeo", "bez apetita")) {
             appetiteLevel = AppetiteLevel.REFUSED;
             signals++;
-        } else if (containsAny(text, "ate less", "less hungry", "picky", "barely ate", "low appetite",
-                "off her food", "off his food", "not interested in food")) {
+        } else if (mentions(text, "ate less", "less hungry", "picky", "barely ate", "low appetite",
+                "off her food", "off his food", "not interested in food",
+                "jela manje", "jeo manje", "manje jede", "slab apetit")) {
             appetiteLevel = AppetiteLevel.LOWER;
             signals++;
-        } else if (containsAny(text, "extra hungry", "very hungry", "ate more", "more hungry", "ravenous")) {
+        } else if (mentions(text, "extra hungry", "very hungry", "ate more", "more hungry", "ravenous",
+                "jela vise", "jeo vise", "gladn")) {
             appetiteLevel = AppetiteLevel.HIGHER;
             signals++;
-        } else if (containsAny(text, "ate normally", "ate fine", "ate well", "normal appetite",
-                "ate as usual", "good appetite")) {
+        } else if (mentions(text, "ate normally", "ate fine", "ate well", "normal appetite",
+                "ate as usual", "good appetite",
+                "pojela je normalno", "pojeo je normalno", "pojela normalno", "pojeo normalno",
+                "jela normalno", "jeo normalno", "jede normalno", "normalan apetit")) {
             appetiteLevel = AppetiteLevel.NORMAL;
             signals++;
         }
 
         WaterLevel waterLevel = WaterLevel.UNKNOWN;
-        if (containsAny(text, "drank less", "less water", "drinking less", "not drinking", "barely drank")) {
+        if (mentions(text, "drank less", "less water", "drinking less", "not drinking", "barely drank",
+                "pije manje", "manje pije", "pila manje", "pio manje")) {
             waterLevel = WaterLevel.LOWER;
             signals++;
-        } else if (containsAny(text, "drank more", "more water", "drinking more", "very thirsty",
-                "extra thirsty", "thirsty")) {
+        } else if (mentions(text, "drank more", "more water", "drinking more", "very thirsty",
+                "extra thirsty", "thirsty", "pije vise", "vise pije", "zedn")) {
             waterLevel = WaterLevel.HIGHER;
             signals++;
-        } else if (containsAny(text, "normal water", "drank normally", "drank as usual")) {
+        } else if (mentions(text, "normal water", "drank normally", "drank as usual", "pije normalno")) {
             waterLevel = WaterLevel.NORMAL;
             signals++;
         }
 
         EnergyLevel energyLevel = EnergyLevel.UNKNOWN;
-        if (containsAny(text, "lethargic", "tired", "low energy", "sluggish", "no energy", "slept all day", "lazy")) {
+        if (mentions(text, "lethargic", "tired", "low energy", "sluggish", "no energy", "slept all day", "lazy",
+                "umoran", "tromo", "bez energije", "spava cijeli dan")) {
             energyLevel = EnergyLevel.LOW;
             signals++;
-        } else if (containsAny(text, "restless", "couldn't settle", "could not settle", "agitated", "pacing")) {
+        } else if (mentions(text, "restless", "couldn't settle", "could not settle", "agitated", "pacing",
+                "nemiran", "ne miruje", "uznemiren")) {
             energyLevel = EnergyLevel.RESTLESS;
             signals++;
-        } else if (containsAny(text, "hyper", "energetic", "lots of energy", "very active", "bouncy")) {
+        } else if (mentions(text, "hyper", "energetic", "lots of energy", "very active", "bouncy",
+                "puno energije", "vrlo aktivan")) {
             energyLevel = EnergyLevel.HIGH;
             signals++;
-        } else if (containsAny(text, "normal energy", "playful", "active as usual")) {
+        } else if (mentions(text, "normal energy", "playful", "active as usual", "razigran", "normalna energija")) {
             energyLevel = EnergyLevel.NORMAL;
             signals++;
         }
 
-        boolean vomiting = containsAny(text, "vomit", "threw up", "throwing up", "puke", "puked");
+        boolean vomiting = mentions(text, "vomit", "threw up", "throwing up", "puke", "puked",
+                "povraca", "povracanje", "bljuj", "bljuv");
         if (vomiting) {
             signals++;
         }
 
         Boolean earRedness = null;
-        if (text.contains("ear") && containsAny(text, "red", "redness", "inflamed", "infection", "irritat", "smell")) {
+        if (mentions(text, "ear", "uho", "usi", "uske", "uho")
+                && containsAny(text, "red", "redness", "inflamed", "infection", "irritat", "smell",
+                        "crven", "upal")) {
             earRedness = true;
             signals++;
         }
@@ -152,15 +187,17 @@ public class MockAiProvider implements AiProvider {
         Protein protein = firstProtein(text);
 
         FoodKind kind = null;
-        if (containsAny(text, "treat", "treats", "bite", "bites", "chew", "biscuit", "jerky")) {
+        if (mentions(text, "treat", "treats", "bite", "bites", "chew", "biscuit", "jerky", "poslastic")) {
             kind = FoodKind.TREAT;
-        } else if (containsAny(text, "supplement", "vitamin", "fish oil", "probiotic")) {
+        } else if (mentions(text, "supplement", "vitamin", "fish oil", "probiotic", "dodatak prehrani")) {
             kind = FoodKind.SUPPLEMENT;
-        } else if (containsAny(text, "kibble", "new food", "food", "diet", "meal", "dinner", "breakfast")) {
+        } else if (mentions(text, "kibble", "new food", "food", "diet", "meal", "dinner", "breakfast",
+                "hrana", "obrok", "granule")) {
             kind = FoodKind.MAIN_FOOD;
         }
 
-        boolean mentionsChange = containsAny(text, "new", "started", "gave", "tried", "switch", "changed");
+        boolean mentionsChange = containsAny(text, "new", "started", "gave", "tried", "switch", "changed",
+                "nova", "novu", "novo", "dala", "dao", "dobila", "dobio", "probala", "probao", "pocela", "poceo");
         if (protein == null && kind == null) {
             return null;
         }
@@ -172,40 +209,40 @@ public class MockAiProvider implements AiProvider {
     }
 
     private Protein firstProtein(String text) {
-        if (text.contains("chicken")) {
+        if (mentions(text, "chicken", "piletin", "pilec", "pilet")) {
             return Protein.CHICKEN;
         }
-        if (text.contains("beef")) {
+        if (mentions(text, "beef", "govedin")) {
             return Protein.BEEF;
         }
-        if (text.contains("lamb")) {
+        if (mentions(text, "lamb", "janjet", "janjec")) {
             return Protein.LAMB;
         }
-        if (text.contains("salmon") || text.contains("fish")) {
+        if (mentions(text, "salmon", "fish", "losos", "riba")) {
             return Protein.SALMON;
         }
-        if (text.contains("turkey")) {
+        if (mentions(text, "turkey", "puretin", "puret")) {
             return Protein.TURKEY;
         }
-        if (text.contains("duck")) {
+        if (mentions(text, "duck", "patk", "pacet")) {
             return Protein.DUCK;
         }
-        if (text.contains("pork")) {
+        if (mentions(text, "pork", "svinjet", "svinjsk")) {
             return Protein.PORK;
         }
-        if (text.contains("egg")) {
+        if (mentions(text, "egg", "jaje", "jaja")) {
             return Protein.EGG;
         }
-        if (containsAny(text, "dairy", "milk", "cheese", "yogurt", "yoghurt")) {
+        if (mentions(text, "dairy", "milk", "cheese", "yogurt", "yoghurt", "mlijek", "sir", "jogurt")) {
             return Protein.DAIRY;
         }
         return null;
     }
 
     private String foodDescription(String original, Protein protein, FoodKind kind) {
-        String lower = original == null ? "" : original.toLowerCase(Locale.ROOT);
+        String lower = fold(original);
         List<String> parts = new ArrayList<>();
-        if (lower.contains("new")) {
+        if (lower.contains("new") || lower.contains("nov")) {
             parts.add("new");
         }
         if (protein != null) {
@@ -222,6 +259,26 @@ public class MockAiProvider implements AiProvider {
         return description.isBlank() ? "possible food change" : description;
     }
 
+    /**
+     * True when at least one needle appears in the text and is not negated by a
+     * cue ("no", "not", "nije", "bez"…) inside the same clause just before it.
+     */
+    private boolean mentions(String text, String... needles) {
+        for (String needle : needles) {
+            int from = 0;
+            int idx;
+            while ((idx = text.indexOf(needle, from)) >= 0) {
+                if (!negatedBefore(text, idx)) {
+                    return true;
+                }
+                from = idx + needle.length();
+            }
+        }
+        return false;
+    }
+
+    /** Plain substring check — used for modifiers (intensity, "new") where a
+     * preceding negation is not meaningful. */
     private boolean containsAny(String text, String... needles) {
         for (String needle : needles) {
             if (text.contains(needle)) {
@@ -229,5 +286,68 @@ public class MockAiProvider implements AiProvider {
             }
         }
         return false;
+    }
+
+    private boolean negatedBefore(String text, int idx) {
+        int start = Math.max(0, idx - 30);
+        String window = text.substring(start, idx);
+        int brk = lastClauseBreak(window);
+        if (brk >= 0) {
+            window = window.substring(brk + 1);
+        }
+        if (window.contains("n't")) {
+            return true;
+        }
+        for (String token : window.split("[^a-z]+")) {
+            if (NEGATIONS.contains(token)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Negation does not carry across a clause boundary (punctuation or "but"). */
+    private int lastClauseBreak(String window) {
+        int p = -1;
+        for (int i = 0; i < window.length(); i++) {
+            char c = window.charAt(i);
+            if (c == ',' || c == '.' || c == ';' || c == ':' || c == '!' || c == '?') {
+                p = i;
+            }
+        }
+        int but = window.lastIndexOf(" but ");
+        if (but > p) {
+            p = but + 4;
+        }
+        int ali = window.lastIndexOf(" ali ");
+        if (ali > p) {
+            p = ali + 4;
+        }
+        return p;
+    }
+
+    /**
+     * Lower-case and strip Croatian diacritics so one keyword set matches
+     * Croatian written with or without them (the accented and plain spellings of
+     * "cesala"/"meksa" both fold to the same ASCII). Source compiles as UTF-8
+     * (set by the Spring Boot parent), so the literal letters below are safe.
+     */
+    private static String fold(String note) {
+        if (note == null) {
+            return "";
+        }
+        String lower = note.toLowerCase(Locale.ROOT);
+        StringBuilder sb = new StringBuilder(lower.length());
+        for (int i = 0; i < lower.length(); i++) {
+            char c = lower.charAt(i);
+            switch (c) {
+                case 'č', 'ć' -> sb.append('c'); // c-caron, c-acute
+                case 'š' -> sb.append('s');           // s-caron
+                case 'ž' -> sb.append('z');           // z-caron
+                case 'đ' -> sb.append('d');           // d-stroke
+                default -> sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 }

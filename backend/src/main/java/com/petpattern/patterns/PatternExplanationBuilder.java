@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -26,7 +25,6 @@ public class PatternExplanationBuilder {
                                                  double recentAverage,
                                                  double baselineAverage,
                                                  List<DailyCheckIn> relatedCheckIns) {
-        double lift = recentAverage - baselineAverage;
         return new PatternCandidate(
                 stableId(pet.getId(), PatternType.ITCHING_ABOVE_BASELINE.name()),
                 pet.getId(),
@@ -35,9 +33,9 @@ public class PatternExplanationBuilder {
                 Copy.t("Scratching is higher than usual"),
                 Copy.t("{0} has been scratching more than usual the last few days.", pet.getName()),
                 List.of(
-                        Copy.t("Last 3 days: about {0}/10 for scratching", oneDecimal(recentAverage)),
-                        Copy.t("Usual lately: about {0}/10", oneDecimal(baselineAverage)),
-                        Copy.t("That's roughly +{0} higher than usual", oneDecimal(lift))
+                        Copy.t("Scratching was logged higher the last few days"),
+                        Copy.t("Higher than what was usual for {0} lately", pet.getName()),
+                        Copy.t("PetPattern reviewed the recent notes")
                 ),
                 Instant.now(),
                 null,
@@ -120,10 +118,9 @@ public class PatternExplanationBuilder {
                 Copy.t("More scratching or stool changes were logged after {0}-based food or treats "
                         + "more than once. Not a diagnosis — could be worth raising with your vet.", proteinName),
                 List.of(
-                        Copy.t("Food looked at: {0}", Copy.proteinLabel(protein)),
-                        Copy.t("Times it lined up after that food: {0}", repeatedWindows),
-                        Copy.t("Average rise in scratching afterwards: +{0}/10", oneDecimal(averageLift)),
-                        Copy.t("We looked at days 3–10 after each change")
+                        Copy.t("{0} was logged more than once", Copy.proteinLabel(protein)),
+                        Copy.t("A related change appeared {0} times afterwards", repeatedWindows),
+                        Copy.t("PetPattern reviewed the recent notes")
                 ),
                 Instant.now(),
                 relatedFoodLog == null ? null : relatedFoodLog.getId(),
@@ -243,9 +240,5 @@ public class PatternExplanationBuilder {
 
     private String stableId(UUID petId, String suffix) {
         return petId + ":" + suffix;
-    }
-
-    private String oneDecimal(double value) {
-        return String.format(Locale.US, "%.1f", value);
     }
 }

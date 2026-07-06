@@ -319,6 +319,21 @@ public final class Copy {
                 "Prosječan porast češanja nakon toga: +{0}/10");
         put("We looked at days 3–10 after each change",
                 "Gledali smo dane 3–10 nakon svake promjene");
+        // Clarity pass — plain-language pattern bullets (no analytics)
+        put("{0} was logged more than once",
+                "Zabilježeno više puta: {0}");
+        put("A related change appeared {0} times afterwards",
+                "Povezana promjena pojavila se {0} puta nakon toga");
+        put("PetPattern reviewed the recent notes",
+                "PetPattern je pregledao nedavne zapise");
+        put("Scratching was logged higher the last few days",
+                "Češanje je zadnjih dana zabilježeno jače");
+        put("Higher than what was usual for {0} lately",
+                "Više nego što je u zadnje vrijeme uobičajeno za {0}");
+        put("Worth mentioning",
+                "Vrijedi spomenuti");
+        put("You've reached the maximum of {0} pets on one account.",
+                "Dosegnuo si najveći broj ljubimaca na jednom računu ({0}).");
 
         // --- Pattern cards: cat ------------------------------------------------
         put("This is not a diagnosis, but it may be worth discussing with your vet.",
@@ -375,6 +390,10 @@ public final class Copy {
                 "Još nema dovoljno povijesti. Nastavi bilježiti još nekoliko dana.");
         put("What changed before this?",
                 "Što se promijenilo prije ovoga?");
+        put("What happened before it?",
+                "Što se dogodilo prije toga?");
+        put("That is why PetPattern shows this as a possible pattern. Not a diagnosis.",
+                "Zato PetPattern ovo prikazuje kao mogući obrazac. Nije dijagnoza.");
         put("PetPattern looks at the days before {0}'s signals changed.",
                 "PetPattern gleda dane prije nego što su se znakovi promijenili.");
         put("Started {0}", "Početak: {0}");
@@ -447,6 +466,8 @@ public final class Copy {
                 ", a zadnji tjedan oko {0}/10");
         put(" Ear redness was noted on {0}.",
                 " Crvenilo ušiju zabilježeno je {0}.");
+        put(" Paw licking was noted on {0}.",
+                " Lizanje šapa zabilježeno je {0}.");
         put(" Vomiting was noted on {0}.",
                 " Povraćanje je zabilježeno {0}.");
         put("Stool stayed mostly normal across the logged days.",
@@ -620,6 +641,10 @@ public final class Copy {
                 "Dan {0} od {1} — bez ove hrane ({2})");
         put("Elimination window done — bring {0} back, or wrap up",
                 "Razdoblje izbacivanja je gotovo — vrati hranu ({0}) ili završi");
+        put("Day {0} of {1} — {2} left out",
+                "Dan {0} od {1} — bez ove hrane ({2})");
+        put("Tracking window done — bring {0} back, or wrap up",
+                "Razdoblje praćenja je gotovo — vrati hranu ({0}) ili završi");
 
         // --- Insights (secondary surface) -----------------------------------------
         put("This is not a medical conclusion. It is a pattern from stored history that may be useful to discuss with a veterinarian.",

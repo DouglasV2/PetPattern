@@ -39,8 +39,7 @@ import java.util.UUID;
 public class PatternTimelineService {
 
     private static String medicalDisclaimer() {
-        return Copy.t("PetPattern does not diagnose or replace veterinary care. This is a possible pattern "
-                + "from owner-reported logs, not a medical conclusion.");
+        return Copy.t("That is why PetPattern shows this as a possible pattern. Not a diagnosis.");
     }
 
     private static String emptyMessage() {
@@ -119,7 +118,7 @@ public class PatternTimelineService {
         return new PatternTimelineDto(
                 candidate.id(),
                 candidate.type().name(),
-                Copy.t("What changed before this?"),
+                Copy.t("What happened before it?"),
                 Copy.t("PetPattern looks at the days before {0}'s signals changed.", pet.getName()),
                 candidate.title(),
                 candidate.confidence().name(),
@@ -327,7 +326,7 @@ public class PatternTimelineService {
         return new PatternTimelineDto(
                 null,
                 type.name(),
-                Copy.t("What changed before this?"),
+                Copy.t("What happened before it?"),
                 Copy.t("PetPattern looks at the days before {0}'s signals changed.", pet.getName()),
                 null,
                 null,

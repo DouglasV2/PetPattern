@@ -24,6 +24,7 @@ public record CheckInRequest(
         EnergyLevel energyLevel,
         boolean vomiting,
         boolean earRedness,
+        boolean pawLicking,
         // Matches the 1200-char DB column; without this an oversized note reached
         // the database and surfaced as a 500 that leaked the SQL statement.
         @Size(max = 1200, message = "The note is too long (max 1200 characters)") String freeTextNote,

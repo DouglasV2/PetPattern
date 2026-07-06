@@ -38,7 +38,10 @@ services:
       # Public https origin — used for the session cookie + CORS. MUST be https.
       PETPATTERN_CORS_ALLOWED_ORIGINS: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in .env}
       PETPATTERN_COOKIE_SECURE: "true"
-      PETPATTERN_DEMO_ENABLED: ${PETPATTERN_DEMO_ENABLED:-true}
+      # OFF by default for a public launch — the "Load Bella demo" seed is a single
+      # shared account (all visitors collide on it). Turn on ONLY in an isolated
+      # demo environment. See DEPLOY.md / .env.example.
+      PETPATTERN_DEMO_ENABLED: ${PETPATTERN_DEMO_ENABLED:-false}
       # Used to build the password-reset link in emails (defaults to PUBLIC_ORIGIN).
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set PUBLIC_ORIGIN in .env}
       TZ: UTC
@@ -46,6 +49,8 @@ services:
       # sent. Set PETPATTERN_MAIL_ENABLED=true + SPRING_MAIL_* to send real email.
       PETPATTERN_MAIL_ENABLED: ${PETPATTERN_MAIL_ENABLED:-false}
       PETPATTERN_MAIL_FROM: ${PETPATTERN_MAIL_FROM:-PetPattern <no-reply@petpattern.app>}
+      # How long a reset link stays valid (minutes).
+      PETPATTERN_RESET_TTL_MINUTES: ${PETPATTERN_RESET_TTL_MINUTES:-60}
       SPRING_MAIL_HOST: ${SMTP_HOST:-}
       SPRING_MAIL_PORT: ${SMTP_PORT:-587}
       SPRING_MAIL_USERNAME: ${SMTP_USERNAME:-}
@@ -56,6 +61,13 @@ services:
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_CONNECTIONTIMEOUT: "5000"
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_TIMEOUT: "5000"
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_WRITETIMEOUT: "5000"
+      # Google Sign-In (optional). All three must be set or "Continue with Google"
+      # stays off (endpoints 404, no button). The secret is server-side only and is
+      # never passed to the frontend. Redirect URI MUST be your https callback and
+      # match the Authorized redirect URI on the Google OAuth client.
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
       # Error tracking (optional). Empty SENTRY_DSN = disabled.
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}

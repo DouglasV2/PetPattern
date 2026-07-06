@@ -1,5 +1,6 @@
 package com.petpattern.api;
 
+import com.petpattern.account.AccountService;
 import com.petpattern.api.dto.*;
 import com.petpattern.auth.PetAccess;
 import com.petpattern.domain.AppetiteLevel;
@@ -19,8 +20,11 @@ import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.PetCaregiverRepository;
+import com.petpattern.repository.PetPhotoRepository;
 import com.petpattern.repository.PetRepository;
+import com.petpattern.repository.PhotoView;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -46,20 +50,33 @@ public class PetController {
     private final FoodLogRepository foodLogRepository;
     private final PatternMemoryService patternMemoryService;
     private final PetCaregiverRepository caregiverRepository;
+    private final PetPhotoRepository photoRepository;
     private final PetAccess petAccess;
+    private final AccountService accountService;
+
+    // Generous cap so one account can't be used to spam/troll thousands of pets.
+    // A real multi-pet household or foster is well under this; override with
+    // PETPATTERN_MAX_PETS. Enforced server-side; the UI also hides "Add pet" at
+    // the limit and reads the number from /config so the two never drift.
+    @Value("${petpattern.pets.max:20}")
+    private int maxPets;
 
     public PetController(PetRepository petRepository,
                          DailyCheckInRepository checkInRepository,
                          FoodLogRepository foodLogRepository,
                          PatternMemoryService patternMemoryService,
                          PetCaregiverRepository caregiverRepository,
-                         PetAccess petAccess) {
+                         PetPhotoRepository photoRepository,
+                         PetAccess petAccess,
+                         AccountService accountService) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.patternMemoryService = patternMemoryService;
         this.caregiverRepository = caregiverRepository;
+        this.photoRepository = photoRepository;
         this.petAccess = petAccess;
+        this.accountService = accountService;
     }
 
     @GetMapping
@@ -68,8 +85,26 @@ public class PetController {
         // Pets I own, then pets shared with me — deduped by id, own ones first.
         Map<UUID, Pet> byId = new LinkedHashMap<>();
         petRepository.findByOwnerOrderByCreatedAtAsc(owner).forEach(pet -> byId.put(pet.getId(), pet));
+        Set<UUID> ownedIds = new HashSet<>(byId.keySet());
         caregiverRepository.findPetsSharedWith(owner).forEach(pet -> byId.putIfAbsent(pet.getId(), pet));
-        return byId.values().stream().map(PetResponse::from).toList();
+        return byId.values().stream()
+                .map(pet -> {
+                    boolean owned = ownedIds.contains(pet.getId());
+                    // Photos are owner-only, so only offer an avatar URL for pets I own;
+                    // shared pets fall back to the initials placeholder in the UI.
+                    return PetResponse.from(pet, owned, owned ? avatarUrl(pet) : null);
+                })
+                .toList();
+    }
+
+    // The URL of a small thumbnail of the pet's most-recent photo, or null if it has
+    // none. Points at the existing image endpoint with a width hint so the sidebar
+    // never downloads a full-size original.
+    private String avatarUrl(Pet pet) {
+        return photoRepository.findFirstPhotoViewByPetOrderByCapturedDateDescCreatedAtDesc(pet)
+                .map(PhotoView::getId)
+                .map(photoId -> "/api/pets/" + pet.getId() + "/photos/" + photoId + "/image?w=160")
+                .orElse(null);
     }
 
     @GetMapping("/{petId}")
@@ -241,8 +276,13 @@ public class PetController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PetResponse createPet(@Valid @RequestBody PetCreateRequest request) {
+        Owner owner = petAccess.currentOwner();
+        if (petRepository.countByOwner(owner) >= maxPets) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    Copy.t("You've reached the maximum of {0} pets on one account.", maxPets));
+        }
         Pet pet = new Pet();
-        pet.setOwner(petAccess.currentOwner());
+        pet.setOwner(owner);
         pet.setName(request.name().trim());
         pet.setSpecies(request.species());
         pet.setBreed(clean(request.breed()));
@@ -250,6 +290,19 @@ public class PetController {
         pet.setSex(request.sex() == null ? Sex.UNKNOWN : request.sex());
         pet.setCurrentWeightKg(request.currentWeightKg());
         return PetResponse.from(petRepository.save(pet));
+    }
+
+    /**
+     * Permanently delete one of MY pets and all of its data. Owner-only: a pet
+     * shared with me as a caregiver is not found here (I'd "leave" it instead),
+     * so this can never delete someone else's pet.
+     */
+    @DeleteMapping("/{petId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePet(@PathVariable UUID petId) {
+        Pet pet = petRepository.findByIdAndOwner(petId, petAccess.currentOwner())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pet not found"));
+        accountService.deletePet(pet);
     }
 
     private String todayStatus(DailyCheckIn latestCheckIn, List<PatternResponse> patterns) {

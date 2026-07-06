@@ -90,24 +90,42 @@ public class AccountService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
     }
 
+    /**
+     * Permanently delete a single owned pet and everything hanging off it. The
+     * caller must have already confirmed the pet belongs to this owner.
+     */
+    @Transactional
+    public void deletePet(Pet pet) {
+        wipePetChildren(pet);
+        entityManager.flush();
+        petRepository.delete(pet);
+        entityManager.flush();
+    }
+
+    // Delete a pet's children in FK order (children before the pet). Shared with
+    // full-account deletion so both paths erase exactly the same data.
+    private void wipePetChildren(Pet pet) {
+        observationRepository.deleteByPet(pet);
+        checkInRepository.deleteByPet(pet);
+        foodLogRepository.deleteByPet(pet);
+        photoRepository.deleteByPet(pet);
+        trialRepository.deleteByPet(pet);
+        medicationRepository.deleteByPet(pet);
+        vetShareRepository.deleteByPet(pet);
+        inviteRepository.deleteByPet(pet);
+        caregiverRepository.deleteByPet(pet);
+        // AI note-parse audit rows hold the owner's raw notes (petId is a plain
+        // column, no FK), so erase them explicitly for a complete GDPR delete.
+        aiParseAttemptRepository.deleteByPetId(pet.getId());
+    }
+
     @Transactional
     public void deleteAccount(Owner owner) {
         List<Pet> ownedPets = petRepository.findByOwnerOrderByCreatedAtAsc(owner);
 
         // 1. Wipe every owned pet's children first (FK order: children before pet).
         for (Pet pet : ownedPets) {
-            observationRepository.deleteByPet(pet);
-            checkInRepository.deleteByPet(pet);
-            foodLogRepository.deleteByPet(pet);
-            photoRepository.deleteByPet(pet);
-            trialRepository.deleteByPet(pet);
-            medicationRepository.deleteByPet(pet);
-            vetShareRepository.deleteByPet(pet);
-            inviteRepository.deleteByPet(pet);
-            caregiverRepository.deleteByPet(pet);
-            // AI note-parse audit rows hold the owner's raw notes (petId is a plain
-            // column, no FK), so erase them explicitly for a complete GDPR delete.
-            aiParseAttemptRepository.deleteByPetId(pet.getId());
+            wipePetChildren(pet);
         }
         // Force the child deletes to hit the DB before removing the pets they reference.
         entityManager.flush();

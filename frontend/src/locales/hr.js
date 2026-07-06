@@ -64,7 +64,7 @@ export default {
   'My account': 'Moj račun',
   'A private health notebook for your pets': 'Bilježnica zdravlja za tvoje ljubimce',
   'Normal for {name}': 'Normalno za {name}',
-  'Worth watching': 'Vrijedi pripaziti',
+  'Worth watching': 'Danas pripazi',
   'Changed': 'Promjena',
   '{name} needs a first baseline day.': '{name} čeka svoj prvi zabilježeni dan.',
   '{name} is worth watching today.': 'Danas vrijedi malo pripaziti.',
@@ -140,6 +140,9 @@ export default {
   // Common
   'Back': 'Natrag',
   'Date': 'Datum',
+  'Today': 'Danas',
+  'Yesterday': 'Jučer',
+  'Other day': 'Drugi dan',
   'Note': 'Bilješka',
   'Normal': 'Normalno',
   'Soft': 'Mekana',
@@ -176,6 +179,7 @@ export default {
   'Scratching / itching': 'Svrbež / grebanje',
   'Vomiting': 'Povraćanje',
   'Ear redness': 'Crvenilo ušiju',
+  'Paw licking': 'Lizanje šapa',
   'Save today': 'Spremi danas',
   'Suggested fields': 'Predložena polja',
   "Nothing's saved until you tap Save today.":
@@ -213,7 +217,7 @@ export default {
 
   // Patterns
   'What changed?': 'Što se promijenilo?',
-  'Possible patterns for {name}': 'Mogući obrasci za {name}',
+  'Possible patterns for {name}': '{name} · mogući obrasci',
   'These cards are generated from stored check-ins and food logs. They are cautious prompts for better tracking and vet conversations.':
     'Ove kartice nastaju iz spremljenih pregleda i zapisa hrane. To su oprezni poticaji za bolje praćenje i razgovor s veterinarom.',
   'Nothing clearly outside normal yet': 'Još ništa jasno izvan normale',
@@ -231,6 +235,69 @@ export default {
   'Watching': 'Pratim',
   'Told your vet': 'Spomenuto vetu',
   'Set aside': 'Odloženo',
+  // Clarity pass — no confidence labels; calm card actions
+  'Worth mentioning': 'Vrijedi spomenuti',
+  'Add to vet summary': 'Dodaj u sažetak za veterinara',
+  'Added to vet summary': 'Dodano u sažetak za veterinara',
+  'Dismiss': 'Zatvori',
+  // Warm UX pass — Changes rename, Today's note, quiet-day logging, softer copy
+  'Changes': 'Promjene',
+  'Changes for {name}': 'Promjene za {name}',
+  'Small things PetPattern noticed from your notes. Nothing here is a diagnosis — just a calmer way to see what changed.':
+    'Male stvari koje je PetPattern zamijetio iz tvojih bilježaka. Ništa ovdje nije dijagnoza — samo smireniji način da vidiš što se promijenilo.',
+  "No changes to show yet. That's okay.": 'Još nema promjena za prikazati. I to je u redu.',
+  "Keep logging for a few more days. PetPattern will start showing little changes once there's enough history.":
+    'Bilježi još nekoliko dana. PetPattern će početi pokazivati male promjene čim bude dovoljno povijesti.',
+  'Something to notice': 'Nešto za primijetiti',
+  'Not a diagnosis — just something from your notes that may be worth mentioning to your vet.':
+    'Nije dijagnoza — samo nešto iz tvojih bilježaka što možda vrijedi spomenuti veterinaru.',
+  'Seen a few times since {date}': 'Zamijećeno nekoliko puta od {date}',
+  "You've seen this a few times since {date}.": 'Ovo se ponovilo nekoliko puta od {date}.',
+  "Not much of a story yet — that's fine.": 'Još nema baš priče — i to je u redu.',
+  'A few more quiet days help too — they teach the app what normal looks like.':
+    'I još nekoliko mirnih dana pomaže — uči aplikaciju kako izgleda normalno.',
+  'Choose a date': 'Odaberi datum',
+  // Today's note card
+  'Nice little win': 'Lijepa sitnica',
+  'Worth keeping an eye on': 'Vrijedi malo pripaziti',
+  'Something changed': 'Nešto se promijenilo',
+  'Start with one easy note': 'Počni s jednom lakom bilješkom',
+  'A few quick logs help PetPattern learn what normal looks like for {name}.':
+    'Nekoliko brzih bilježaka pomaže PetPatternu da nauči kako izgleda normalno za {name}.',
+  'A quick note keeps the picture clear': 'Kratka bilješka održava sliku jasnom',
+  'No need to write much — just save how {name} seems today.':
+    'Ne moraš puno pisati — samo spremi kako {name} djeluje danas.',
+  'Everything looks pretty steady': 'Sve djeluje prilično mirno',
+  'Nothing unusual stands out from the latest note.': 'Ništa neobično ne ističe se iz zadnje bilješke.',
+  // Quiet-day quick log
+  'Everything looked normal today': 'Danas je sve izgledalo normalno',
+  'Saved — quiet days matter too.': 'Spremljeno — i mirni dani su važni.',
+  // Softer daily reminder
+  "It's been {n} days since {name}'s last note — a quick one keeps the picture clear.":
+    'Prošlo je {n} dana od zadnje bilješke za {name} — kratka bilješka održava sliku jasnom.',
+  'Hide': 'Sakrij',
+  'In vet summary': 'U sažetku za veterinara',
+  'Not a diagnosis — just a possible pattern from your notes that may be worth discussing with your vet.':
+    'Ovo nije dijagnoza — samo mogući obrazac iz tvojih zapisa koji možeš spomenuti veterinaru.',
+  // Food screen + careful food tracking
+  'Food & treats': 'Hrana i poslastice',
+  '{name} · food': '{name} · hrana',
+  'Main ingredient': 'Glavni sastojak',
+  'Other ingredients': 'Dodatni sastojci',
+  'new': 'novo',
+  'new food': 'nova hrana',
+  'Already changing food with your vet? You can note when a change started and keep watching how {name} does.':
+    'Već mijenjaš hranu uz veterinara? Možeš zapisati kad je promjena počela i pratiti kako je {name}.',
+  'Track a food change': 'Prati promjenu hrane',
+  'Careful food tracking': 'Pažljivo praćenje hrane',
+  "If you're already changing {name}'s food with your vet, you can note when the change started and keep watching how they do.":
+    'Ako već mijenjaš hranu uz savjet veterinara, ovdje možeš zapisati kada je promjena počela i pratiti kako je {name}.',
+  'Do not change your pet’s diet because of the app. This record only helps track changes you are already making or discussing with your vet.':
+    'Ne mijenjaj prehranu ljubimca zbog aplikacije. Ovaj zapis samo pomaže pratiti promjene koje već radiš ili o kojima razgovaraš s veterinarom.',
+  'Which ingredient are you leaving out?': 'Koji sastojak izostavljaš?',
+  'What changed, and anything your vet said…': 'Što se promijenilo i što je veterinar rekao…',
+  'Start tracking': 'Počni praćenje',
+  'Leaving out: {protein}': 'Bez sastojka: {protein}',
   'Seen {n}× since {date}': 'Viđeno {n}× od {date}',
   'First noticed {date}': 'Prvi put uočeno {date}',
   'Settled — last seen today': 'Smireno — zadnji put viđeno danas',
@@ -238,6 +305,7 @@ export default {
   'Not seen in {n} days': 'Nije viđeno {n} d.',
 
   // Timeline
+  'What happened before it?': 'Što se dogodilo prije toga?',
   'What changed before this?': 'Što se promijenilo prije ovoga?',
   "PetPattern looks at the days before {name}'s signals changed.":
     'PetPattern gleda dane prije nego što su se znakovi promijenili.',
@@ -251,10 +319,14 @@ export default {
   'Photos': 'Fotografije',
   'See all': 'Prikaži sve',
   'Add a photo': 'Dodaj fotografiju',
+  'Add a photo of {name}': 'Dodaj fotografiju za {name}',
+  'Add another photo of {name}': 'Dodaj još jednu fotografiju za {name}',
+  'Add another': 'Dodaj još',
+  "Photo added — that's {name} now.": 'Fotografija dodana — to je {name}.',
   'Start a visual record of {name} — an ear, paw, skin or stool, side by side over time.':
     'Počni vizualni zapis za {name} — uho, šapu, kožu ili stolicu, jedno do drugog kroz vrijeme.',
   'Photo record': 'Foto zapis',
-  "{name}'s photos": 'Fotografije za {name}',
+  "{name}'s photos": '{name} · fotografije',
   'Add a photo of an ear, paw, skin or stool to see how it changes over time — handy to show your vet.':
     'Dodaj fotografiju uha, šape, kože ili stolice da vidiš kako se mijenja kroz vrijeme — zgodno za pokazati veterinaru.',
   'What is this a photo of?': 'Što je na fotografiji?',
@@ -318,7 +390,7 @@ export default {
 
   // Medications (treatment tracking)
   'Medications': 'Lijekovi',
-  "{name}'s medications": 'Lijekovi za {name}',
+  "{name}'s medications": '{name} · lijekovi',
   'A simple record of medicines and care notes — handy to show your vet, and to line up against how {name} has been.':
     'Jednostavan zapis lijekova i bilježaka o njezi — zgodno za pokazati veterinaru i usporediti s time kako se {name} osjeća.',
   'e.g. Otiderm ear drops': 'npr. Otiderm kapi za uši',
@@ -342,8 +414,8 @@ export default {
   '{logged} of {days} days logged · calmest stretch {streak} days':
     'Zabilježeno {logged} od {days} dana · najmirniji niz: {streak} d.',
   "{name}'s last {days} days": 'Zadnjih {days} dana — {name}',
-  'calmest stretch': 'najmirniji niz',
-  'avg scratching': 'prosj. grebanje',
+  'calmest stretch': 'mirniji dani',
+  'avg scratching': 'prosječno češanje',
   'Scratching averaged {recent}/10 — {label} than the month before ({prior}/10).':
     'Grebanje je u prosjeku {recent}/10 — {label} nego mjesec prije ({prior}/10).',
   'Scratching averaged {recent}/10 — about the same as the month before ({prior}/10).':
@@ -431,10 +503,15 @@ export default {
   'Start my cat’s memory': 'Pokreni memoriju za svoju mačku',
   'Add a name to start.': 'Dodaj ime za početak.',
   'Could not create the profile. Try again.': 'Stvaranje profila nije uspjelo. Pokušaj ponovno.',
-  '{name}’s memory is ready.': 'Memorija za {name} je spremna.',
+  '{name} is all set.': '{name} — profil je spreman.',
   'Log your first check-in and PetPattern starts learning what’s normal for {name}.':
-    'Zabilježi prvi dnevni unos i PetPattern počinje učiti što je normalno za {name}.',
-  'Go to {name} today': 'Idi na {name} danas',
+    'Zabilježi prvi dnevni unos i PetPattern počinje pamtiti kako se {name} obično osjeća.',
+  'Go to {name} today': '{name} · danas',
+  'Breed (optional)': 'Pasmina (opcionalno)',
+  'Birth date (optional)': 'Datum rođenja (opcionalno)',
+  'Weight (optional)': 'Težina (opcionalno)',
+  'Sex (optional)': 'Spol (opcionalno)',
+  'Weight unit': 'Jedinica težine',
   'Add pet': 'Dodaj ljubimca',
 
   // Cat check-in + signals
@@ -471,6 +548,13 @@ export default {
   'Download everything PetPattern stores for you as a JSON file.':
     'Preuzmi sve što PetPattern čuva o tebi kao JSON datoteku.',
   'Export my data': 'Izvezi moje podatke',
+  'Your pets': 'Tvoji ljubimci',
+  'Remove a pet and all of its logs. This cannot be undone.':
+    'Ukloni ljubimca i sve njegove zapise. Ovo se ne može poništiti.',
+  'Delete': 'Obriši',
+  "Delete {name}? This permanently removes all of {name}'s logs and photos, and cannot be undone.":
+    'Obrisati {name}? Ovo trajno uklanja sve zapise i fotografije za {name} i ne može se poništiti.',
+  '{name} was deleted.': 'Obrisano: {name}',
   'Your data has been downloaded.': 'Tvoji podaci su preuzeti.',
   'Legal': 'Pravno',
   'Delete account': 'Brisanje računa',
@@ -489,6 +573,8 @@ export default {
   'Copy summary': 'Kopiraj sažetak',
   'Copied': 'Kopirano',
   'Save as PDF': 'Spremi kao PDF',
+  'Share summary': 'Podijeli sažetak',
+  'PetPattern summary — {name}': 'PetPattern sažetak — {name}',
   'days': 'dana',
   'Owner-observed concern': 'Zabrinutost koju je vlasnik primijetio',
   'Recent check-in summary': 'Sažetak nedavnih pregleda',
@@ -501,7 +587,7 @@ export default {
     'Ništa se nije jasno isticalo u ovom razdoblju.',
   'Notes worth discussing': 'Bilješke vrijedne razgovora',
   'No free-text notes in this period.': 'U ovom razdoblju nema slobodnih bilješki.',
-  'Preparing {name}\'s summary…': 'Pripremam sažetak za {name}…',
+  'Preparing {name}\'s summary…': '{name} · sažetak za veterinara…',
   'No summary yet.': 'Još nema sažetka.',
 
   // --- Human-launch polish: first screen ------------------------------------
@@ -512,11 +598,22 @@ export default {
   'Pick a date to see what you logged.': 'Odaberi datum i vidi što si zabilježio.',
   'No check-in logged for this day.': 'Za ovaj dan nema check-ina.',
   'Log this day': 'Zabilježi ovaj dan',
+  'Search a signal or note (e.g. scratching)': 'Pretraži znak ili bilješku (npr. svrbež)',
+  'Search your notes': 'Pretraži zapise',
+  'Pick a date': 'Odaberi datum',
+  'Type to search, or pick a date.': 'Upiši za pretragu ili odaberi datum.',
+  'Days found: {n}': 'Pronađeno dana: {n}',
+  'No days match your search.': 'Nema dana koji odgovaraju pretrazi.',
   'Evidence over time': 'Kroz vrijeme',
   'A few more logs will make this easier to see.': 'Još nekoliko unosa pomoći će da se ovo jasnije vidi.',
   'calm': 'mirno',
   'watch': 'pratiti',
+  'mild': 'blago',
   'changed': 'promjena',
+  'Change': 'promjena',
+  'We noticed': 'Primijetili smo',
+  'Last {n} days': 'Zadnjih {n} dana',
+  'Last 2 weeks': 'Zadnja 2 tjedna',
   'food change': 'promjena hrane',
   'No check-in': 'Nema check-ina',
   'Clear': 'Uredno',
@@ -532,10 +629,25 @@ export default {
 
   // No-change quick log (Item 8)
   'No change noticed': 'Nisam primijetio promjenu',
+  'Saves a calm day — nothing to fill in.': 'Sprema miran dan — ništa za ispuniti.',
+
+  // Vet summary empty state (launch polish)
+  'Nothing to summarise yet. Log a few days and this becomes a clear, shareable note for your vet.':
+    'Još nema što sažeti. Zabilježi nekoliko dana i ovo postaje jasna bilješka koju možeš podijeliti s veterinarom.',
 
   // 7-day baseline hook (Item 6)
   "Build {name}'s 7-day baseline": 'Izgradi 7-dnevnu osnovu za {name}',
   '{done} / 7 baseline days': '{done} / 7 dana zabilježeno',
+  'A week of quick notes gives PetPattern enough to start spotting what changed.':
+    'Tjedan dana kratkih zapisa dovoljno je da PetPattern počne uočavati što se promijenilo.',
+
+  // Onboarding: optional fields feel secondary
+  'You can add these now or later.': 'Možeš dodati sada ili kasnije.',
+
+  // Daily note (helper hidden unless a real AI provider is configured)
+  'Write naturally — a short note is often the most useful thing to bring to your vet.':
+    'Piši prirodno — kratka bilješka često je najkorisnija stvar koju možeš donijeti veterinaru.',
+  'Itching': 'Svrbež',
 
   // No-pattern teaser, species-specific (Item 7 / launch polish)
   'After a few logs, this is where PetPattern shows what changed before a possible pattern — food, treats, vomiting, scratching, stool or energy.':

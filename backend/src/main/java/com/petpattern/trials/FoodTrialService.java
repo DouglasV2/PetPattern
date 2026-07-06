@@ -185,9 +185,9 @@ public class FoodTrialService {
             return Copy.t("Starts {0}", startDate.format(dayMonth()));
         }
         if (!today.isAfter(targetEnd)) {
-            return Copy.t("Day {0} of {1} — {2} out of the bowl", dayOfTrial, totalDays, food);
+            return Copy.t("Day {0} of {1} — {2} left out", dayOfTrial, totalDays, food);
         }
-        return Copy.t("Elimination window done — bring {0} back, or wrap up", food);
+        return Copy.t("Tracking window done — bring {0} back, or wrap up", food);
     }
 
     private boolean isUnstableStool(DailyCheckIn checkIn) {

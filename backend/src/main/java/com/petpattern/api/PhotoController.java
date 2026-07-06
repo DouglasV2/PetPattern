@@ -118,7 +118,8 @@ public class PhotoController {
     }
 
     @GetMapping("/{photoId}/image")
-    public ResponseEntity<byte[]> image(@PathVariable UUID petId, @PathVariable UUID photoId) {
+    public ResponseEntity<byte[]> image(@PathVariable UUID petId, @PathVariable UUID photoId,
+                                        @RequestParam(name = "w", required = false) Integer w) {
         Pet pet = findPet(petId);
         PetPhoto photo = photoRepository.findById(photoId)
                 .filter(existing -> existing.getPet().getId().equals(pet.getId()))
@@ -128,6 +129,19 @@ public class PhotoController {
         String contentType = ALLOWED_TYPES.contains(photo.getContentType())
                 ? photo.getContentType()
                 : "application/octet-stream";
+        byte[] body = photo.getData();
+
+        // Optional width hint for the sidebar avatar / photo stack, so the browser
+        // never downloads a full-size original for a tiny thumbnail. Best-effort:
+        // anything the JDK can't decode (e.g. WebP) or any failure serves the
+        // original untouched, so image serving can never break because of this.
+        if (w != null && w > 0) {
+            byte[] thumb = downscaleToJpeg(body, Math.min(w, MAX_THUMB_WIDTH));
+            if (thumb != null) {
+                body = thumb;
+                contentType = "image/jpeg";
+            }
+        }
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, contentType)
@@ -138,7 +152,52 @@ public class PhotoController {
                 // `sandbox` here — on an image response it blocks <img> rendering.)
                 .header("X-Content-Type-Options", "nosniff")
                 .header("Content-Security-Policy", "default-src 'none'")
-                .body(photo.getData());
+                .body(body);
+    }
+
+    /** Upper bound on the thumbnail width — the sidebar never needs more than this. */
+    private static final int MAX_THUMB_WIDTH = 320;
+
+    /**
+     * Downscale JPEG/PNG bytes to at most {@code maxWidth} and re-encode as JPEG.
+     * Returns null (→ serve the original) when the source is already small enough,
+     * can't be decoded (e.g. WebP has no built-in reader), or anything goes wrong —
+     * thumbnailing is a convenience and must never break serving the real image.
+     */
+    private static byte[] downscaleToJpeg(byte[] source, int maxWidth) {
+        try {
+            java.awt.image.BufferedImage src =
+                    javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(source));
+            if (src == null) {
+                return null;
+            }
+            int sw = src.getWidth();
+            int sh = src.getHeight();
+            if (sw <= 0 || sh <= 0 || sw <= maxWidth) {
+                return null; // already at/under the target — don't upscale or re-encode
+            }
+            int tw = maxWidth;
+            int th = Math.max(1, Math.round(sh * (maxWidth / (float) sw)));
+            java.awt.image.BufferedImage dst =
+                    new java.awt.image.BufferedImage(tw, th, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g = dst.createGraphics();
+            g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                    java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                    java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+            // White backdrop so any transparency (PNG) flattens cleanly into JPEG.
+            g.setColor(java.awt.Color.WHITE);
+            g.fillRect(0, 0, tw, th);
+            g.drawImage(src, 0, 0, tw, th, null);
+            g.dispose();
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            if (!javax.imageio.ImageIO.write(dst, "jpeg", out)) {
+                return null;
+            }
+            return out.toByteArray();
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     @DeleteMapping("/{photoId}")

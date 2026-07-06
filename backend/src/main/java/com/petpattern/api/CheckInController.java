@@ -96,6 +96,7 @@ public class CheckInController {
         checkIn.setVomiting(request.vomiting());
         checkIn.setDiarrhea(request.diarrhea() || stoolState == StoolState.DIARRHEA);
         checkIn.setEarRedness(request.earRedness());
+        checkIn.setPawLicking(request.pawLicking());
         checkIn.setLitterBoxUse(request.resolvedLitterBoxUse());
         checkIn.setUrinationChange(request.resolvedUrinationChange());
         checkIn.setStraining(request.straining());

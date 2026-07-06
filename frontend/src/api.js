@@ -52,6 +52,7 @@ export const api = {
   logout: () => request('/auth/logout', { method: 'POST' }),
   listPets: () => request('/pets'),
   createPet: (payload) => request('/pets', { method: 'POST', body: JSON.stringify(payload) }),
+  deletePet: (petId) => request(`/pets/${petId}`, { method: 'DELETE' }),
   getOverview: (petId) => request(`/pets/${petId}/overview`),
   listCheckIns: (petId) => request(`/pets/${petId}/check-ins`),
   latestCheckIn: (petId) => request(`/pets/${petId}/check-ins/latest`),

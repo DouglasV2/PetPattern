@@ -49,7 +49,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
             "/api/ai/parse-daily-note", 30,
             // Unauthenticated + heavy (wipes + reseeds the demo pet) — cap it so it
             // can't be used to hammer the DB in production.
-            "/api/dev/seed", 5
+            "/api/dev/seed", 5,
+            // Burst guard on pet creation (the hard per-account cap lives in
+            // PetController; this just blunts rapid-fire spam).
+            "/api/pets", 10
     );
 
     private final Map<String, Window> windows = new ConcurrentHashMap<>();

@@ -298,6 +298,63 @@ textarea {
   font-weight: 800;
 }
 
+/* Friendly date entry: Today / Yesterday one-tap chips + an "Other day" chip that
+   still opens the OS calendar. Matches the check-in choice chips. */
+.date-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-weight: 700;
+}
+
+.date-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.date-chip:hover {
+  border-color: var(--line-strong);
+}
+
+.date-chip.active {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.date-chip-cal svg {
+  opacity: 0.7;
+}
+
+.date-chip-cal.active svg {
+  opacity: 1;
+  color: var(--teal);
+}
+
+/* The native date input sits transparently over the "Other day" chip, so a tap
+   anywhere on it opens the OS date picker; the chip label shows the chosen day. */
+.date-chip-cal input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .error-box {
   border-radius: 8px;
   padding: 0.9rem 1rem;
@@ -352,11 +409,101 @@ textarea {
   display: contents;
 }
 
+/* Mobile/tablet: pets live in a compact dropdown (a row of tabs overflows once
+   an owner has more than a few). Shown as a vertical list on the desktop spine,
+   where .pet-switcher is hidden instead (see the 900px block). */
 .pet-tabs {
-  display: flex;
+  display: none;
   gap: 0.5rem;
   overflow-x: auto;
   scrollbar-width: none;
+}
+
+.pet-switcher {
+  position: relative;
+  display: inline-flex;
+}
+
+.pet-switcher-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 58vw;
+  min-height: 34px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pet-switcher-trigger .chev {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.pet-switcher-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-switcher-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  min-width: 190px;
+  max-width: min(280px, 86vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: var(--shadow-pop);
+  display: grid;
+  gap: 0.1rem;
+}
+
+.pet-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 38px;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pet-switcher-item:hover {
+  background: var(--surface);
+}
+
+.pet-switcher-item.active {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.pet-switcher-item .check {
+  margin-left: auto;
+  color: var(--teal);
+}
+
+.pet-switcher-item.add {
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 7px 7px;
+  color: var(--teal);
+  font-weight: 700;
 }
 
 /* Pet selector: quiet text tabs, not bordered white pills. */
@@ -481,7 +628,10 @@ textarea {
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
-    align-items: stretch;
+    /* Left-align the pet + account groups to the spine's content edge. Without
+       this they shrink-wrap and center, so the narrower account block reads as
+       indented from the pets block above it. */
+    align-items: flex-start;
     gap: 1.3rem;
     padding: 1.5rem 1.2rem;
     background: var(--sidebar-bg);
@@ -500,13 +650,17 @@ textarea {
   .top-bar .rail-account { margin-top: auto; }
   .top-bar .rail-owner { display: block; color: var(--sidebar-ink); font-weight: 600; font-size: 0.9rem; }
 
-  .top-bar .pet-tabs { flex-direction: column; gap: 0.3rem; overflow: visible; }
+  .top-bar .pet-switcher { display: none; }
+  .top-bar .pet-tabs { display: flex; flex-direction: column; gap: 0.3rem; overflow: visible; }
   .top-bar .pet-tab { width: 100%; justify-content: flex-start; padding: 0.4rem 0.55rem; color: var(--sidebar-muted); border-radius: var(--radius-sm); }
   .top-bar .pet-tab.active { background: rgba(242, 237, 224, 0.11); color: var(--sidebar-ink); box-shadow: inset 2px 0 0 var(--gold); }
   .top-bar .add-pet-tab { color: var(--sidebar-muted); border: 1px dashed var(--sidebar-line); }
 
   .top-bar .lang-trigger { color: var(--sidebar-ink); background: rgba(242, 237, 224, 0.07); border-color: var(--sidebar-line); }
   .top-bar .lang-trigger .chev { color: var(--sidebar-muted); }
+  /* The trigger now sits at the spine's left edge, so open the menu rightward —
+     a right-anchored menu would spill off the screen's left edge. */
+  .top-bar .lang-list { left: 0; right: auto; }
   .top-bar .text-button { color: var(--sidebar-ink); justify-content: flex-start; padding: 0.25rem 0; min-height: 0; }
   .top-bar .text-button:hover { color: #fff; }
   .top-bar .btn-label { display: inline; }
@@ -617,6 +771,73 @@ textarea {
 .state-panel.changed {
   background: var(--coral-soft);
   border-left: 3px solid var(--coral);
+}
+
+/* Today's note — one calm, human line near the top of Today. Reads like a sticky
+   note left in the record: a small original glyph, a soft tone stripe, one
+   sentence. Never a metric, never a score. */
+.today-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  border-radius: var(--radius);
+  background: var(--paper);
+  animation: note-settle 0.3s ease-out both;
+}
+
+.today-note-mark {
+  display: inline-flex;
+  flex: none;
+  margin-top: 0.05rem;
+  color: var(--teal);
+}
+
+.today-note-body {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.today-note-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.today-note-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.today-note.tone-good { border-left-color: var(--sage); }
+.today-note.tone-good .today-note-mark { color: var(--sage); }
+.today-note.tone-watch { border-left-color: var(--gold); }
+.today-note.tone-watch .today-note-mark { color: var(--gold); }
+
+@keyframes note-settle {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* "Everything looked normal today" — a calm one-tap quiet-day log. Tinted a soft
+   sage so it reads as reassuring and low-effort, not a warning or a streak. */
+.secondary-button.quiet-day {
+  background: var(--sage-soft);
+  color: var(--teal);
+  border-color: var(--sage);
+}
+
+.secondary-button.quiet-day:hover {
+  border-color: var(--teal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-note { animation: none; }
 }
 
 .home-grid {
@@ -855,17 +1076,8 @@ textarea {
     padding: 1.25rem;
   }
 
-  .top-bar {
-    grid-template-columns: auto 1fr;
-    align-items: center;
-  }
-
   .pet-tabs {
     justify-content: flex-end;
-  }
-
-  .record-nav {
-    top: 62px;
   }
 
   .today-spine {
@@ -888,6 +1100,15 @@ textarea {
 
   .two-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tablet only: the record strip is horizontal and sticks just under the
+   single-row top bar. Bounded below 900px so it never overrides the desktop
+   spine's top:0 (that leak used to push the whole notebook column down ~62px). */
+@media (min-width: 700px) and (max-width: 899.98px) {
+  .record-nav {
+    top: 62px;
   }
 }
 
@@ -1253,6 +1474,105 @@ textarea {
   color: var(--muted);
 }
 
+/* Primary card action ("Add to vet summary") — a calm filled green, one per card. */
+.chip-button.primary-chip {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.chip-button.primary-chip:hover {
+  background: var(--sage);
+  border-color: var(--sage);
+  color: #fff;
+}
+
+/* Confirmation toast — a small pressed note that rises from the bottom, in the
+   same calm green as the primary card action. A quiet acknowledgement, not a
+   SaaS pop-up. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(92vw, 30rem);
+  padding: 0.6rem 0.5rem 0.6rem 0.75rem;
+  background: var(--teal);
+  color: #fff;
+  border-radius: 9px;
+  box-shadow: 0 6px 18px rgba(61, 99, 73, 0.26);
+  font-size: 0.9rem;
+  line-height: 1.3;
+  animation: toast-rise 0.24s ease-out;
+  /* Purely a confirmation — let taps fall through to controls beneath it, so it
+     never swallows a click on a button it happens to float over. The close
+     button re-enables its own pointer events below. */
+  pointer-events: none;
+}
+
+.toast-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.toast-text {
+  flex: 1 1 auto;
+}
+
+.toast-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  /* Re-enable events on the one interactive child (container is pointer-events:none). */
+  pointer-events: auto;
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+@keyframes toast-rise {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+/* A calm "worth watching" tag that replaces the old High/Medium/Low confidence
+   metric — a reassurance, not a score. */
+.pattern-flag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  background: var(--sage-soft);
+  color: var(--sage);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.pattern-disclaimer {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+}
+
 .pattern-card.dismissed {
   opacity: 0.72;
 }
@@ -1361,6 +1681,23 @@ textarea {
 .lang-item .check {
   margin-left: auto;
   color: var(--teal);
+}
+
+/* Mobile shell: the top bar wraps, so the language trigger can land anywhere on
+   a row. Anchoring the menu to the trigger (right:0) makes it spill off the
+   screen's left edge when the trigger sits on the left. Instead let the sticky
+   top-bar be the positioning context and pin the menu to its right edge, so it
+   always drops just below the bar and stays fully on screen. Scoped to .top-bar
+   so the auth/onboarding language pickers keep their own anchoring. */
+@media (max-width: 899.98px) {
+  .top-bar .lang-menu {
+    position: static;
+  }
+
+  .top-bar .lang-list {
+    left: auto;
+    right: 1rem;
+  }
 }
 
 /* Today moments (Sprint 14) */
@@ -2046,6 +2383,47 @@ textarea {
   font-weight: 700;
 }
 
+/* Quiet-day shortcut at the top of the Daily Log: a calm way out for owners who
+   feel they must fill every field. Clearly secondary to the green "Save today". */
+.quiet-day {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.quiet-day-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 38px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--teal);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--teal);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quiet-day-button:hover {
+  background: var(--teal-soft);
+}
+
+.quiet-day-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.quiet-day-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .optional-details {
   display: grid;
   gap: 0.85rem;
@@ -2291,6 +2669,62 @@ textarea {
   margin-top: 0.3rem;
 }
 
+/* Only name + species are required. The rest is grouped and gently de-emphasised
+   so a new owner feels no pressure to fill it in now. */
+.optional-fields {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.2rem;
+  padding: 0.9rem 0 0.2rem 0.9rem;
+  border-top: 1px solid var(--line);
+  border-left: 2px solid var(--line);
+}
+
+.optional-fields .field-label,
+.optional-fields .choice-block > span {
+  color: var(--muted);
+}
+
+.optional-fields-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Weight field: label on the left, a small kg/lbs switch on the right. */
+.weight-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.unit-toggle {
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.12rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.unit-btn {
+  min-height: 26px;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.unit-btn.active {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
 .onboarding-done {
   text-align: center;
   justify-items: center;
@@ -2434,6 +2868,154 @@ textarea {
   display: inline-block;
 }
 
+/* Pattern chart: a quiet scratching line with food-change dots, or a 2-week tone
+   strip — framed like a small figure inside the card. Built with plain SVG. */
+.pattern-chart {
+  margin: 0.65rem 0 0.2rem;
+  padding: 0.75rem 0.85rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.pattern-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.pattern-chart-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.pattern-chart-legend {
+  display: inline-flex;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pattern-chart-legend span,
+.cell-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.chart-key.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage);
+  display: inline-block;
+}
+
+.chart-key.line {
+  width: 15px;
+  border-top: 2px solid var(--muted);
+  display: inline-block;
+}
+
+.pattern-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-line-path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.68;
+}
+
+.chart-food-line {
+  stroke: var(--sage);
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
+.chart-food-dot {
+  fill: var(--sage);
+}
+
+.pattern-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.cell-days {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 0.3rem;
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+
+.cell-days span {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.cell-strip {
+  display: flex;
+  gap: 3px;
+}
+
+.cell-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  display: grid;
+  place-items: center;
+}
+
+.cell-bar.none {
+  background: repeating-linear-gradient(-45deg, transparent, transparent 3px, var(--line) 3px, var(--line) 4px);
+  opacity: 0.6;
+}
+
+.cell-bar.calm { background: var(--sage-soft); border-color: var(--sage); color: var(--sage); }
+.cell-bar.watch { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
+.cell-bar.changed { background: var(--coral-soft); border-color: var(--coral); color: var(--coral); }
+
+.cell-legend {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+}
+
+.cell-key {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.cell-key.calm { background: var(--sage-soft); border: 1px solid var(--sage); }
+.cell-key.watch { background: var(--gold-soft); border: 1px solid var(--gold); }
+.cell-key.changed { background: var(--coral-soft); border: 1px solid var(--coral); }
+
+.chart-empty {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
 /* Find a day — a small date lookup tucked into Recent memory. */
 .find-day {
   display: grid;
@@ -2467,6 +3049,20 @@ textarea {
   border-radius: var(--radius-sm);
   background: var(--paper);
   color: var(--ink);
+}
+
+/* Keyword search over the recent record — grows to fill the row; the date
+   picker stays compact beside it (wraps under on narrow phones). */
+.find-day-search {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .find-day-hint {
@@ -2575,4 +3171,171 @@ textarea {
 
 .ghost-button.danger:hover {
   background: var(--coral-soft);
+}
+
+.chip-button.danger {
+  color: var(--coral);
+  border-color: var(--coral-soft);
+}
+
+.chip-button.danger:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+/* Per-pet delete list in the account screen. */
+.account-pet-list {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.account-pet-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  font-weight: 700;
+}
+
+/* ── Pet avatars & the selected-pet photo stack ──────────────────────────────
+   Kept at the end of the file, after every tablet/desktop media block, so the
+   ≥900px rules below always win (see the media-order note higher up). */
+
+/* Small round avatar: the pet's latest photo thumbnail, or an initials disc
+   tinted by species when there's no photo. Original placeholder, no stock art. */
+.pet-avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--sage-soft);
+  color: var(--teal);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pet-avatar.is-cat {
+  background: var(--gold-soft);
+  color: #7a5a12;
+}
+
+.pet-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pet-avatar-initial {
+  font-size: 1em;
+}
+
+/* The stacked snapshots are a desktop-sidebar flourish; hidden on mobile so they
+   never push the header actions down. */
+.pet-photo-stack {
+  display: none;
+}
+
+@keyframes snap-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (min-width: 900px) {
+  /* Soft light ring so avatars read as little snapshots on the dark sidebar. */
+  .top-bar .pet-avatar {
+    border-color: rgba(242, 237, 224, 0.35);
+  }
+
+  .pet-photo-stack {
+    display: block;
+    margin: 0.1rem 0 0.2rem;
+  }
+
+  .pet-photo-stack-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .pet-photo-stack-btn:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  .pet-photo-stack .snap-set {
+    position: relative;
+    height: 92px;
+  }
+
+  .pet-photo-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding-left: 2px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--sidebar-muted);
+    opacity: 0.85;
+  }
+
+  .pet-photo-stack-btn:hover .pet-photo-hint,
+  .pet-photo-stack-btn:focus-visible .pet-photo-hint {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  .pet-photo-stack-btn:hover .snap-placeholder {
+    border-color: rgba(242, 237, 224, 0.6);
+  }
+
+  .pet-photo-stack .snap {
+    position: absolute;
+    top: 8px;
+    width: 70px;
+    height: 70px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--paper);
+    border: 3px solid #fbf7ee;
+    box-shadow: 0 3px 9px rgba(20, 26, 20, 0.32);
+    animation: snap-in 0.34s ease-out both;
+  }
+
+  .pet-photo-stack .snap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .pet-photo-stack .snap-placeholder {
+    display: grid;
+    place-items: center;
+    border-style: dashed;
+  }
+
+  .pet-photo-stack .snap-0 { left: 4px; transform: rotate(-5deg); z-index: 1; }
+  .pet-photo-stack .snap-1 { left: 46px; transform: rotate(3deg); z-index: 2; animation-delay: 0.05s; }
+  .pet-photo-stack .snap-2 { left: 88px; transform: rotate(-2deg); z-index: 3; animation-delay: 0.1s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-photo-stack .snap { animation: none; }
 }
