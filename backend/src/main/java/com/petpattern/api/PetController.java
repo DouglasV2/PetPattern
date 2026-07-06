@@ -11,6 +11,7 @@ import com.petpattern.domain.HidingBehavior;
 import com.petpattern.domain.LitterBoxUse;
 import com.petpattern.domain.Owner;
 import com.petpattern.domain.Pet;
+import com.petpattern.domain.PhotoArea;
 import com.petpattern.domain.Protein;
 import com.petpattern.domain.Sex;
 import com.petpattern.domain.Species;
@@ -97,11 +98,11 @@ public class PetController {
                 .toList();
     }
 
-    // The URL of a small thumbnail of the pet's most-recent photo, or null if it has
-    // none. Points at the existing image endpoint with a width hint so the sidebar
-    // never downloads a full-size original.
+    // The URL of a small thumbnail of the pet's most-recent PROFILE photo, or null
+    // if it has none. Health/progression photos intentionally do not become avatars
+    // anymore, so a paw/ear/stool photo never turns into the pet's profile picture.
     private String avatarUrl(Pet pet) {
-        return photoRepository.findFirstPhotoViewByPetOrderByCapturedDateDescCreatedAtDesc(pet)
+        return photoRepository.findFirstPhotoViewByPetAndAreaOrderByCapturedDateDescCreatedAtDesc(pet, PhotoArea.PROFILE)
                 .map(PhotoView::getId)
                 .map(photoId -> "/api/pets/" + pet.getId() + "/photos/" + photoId + "/image?w=160")
                 .orElse(null);

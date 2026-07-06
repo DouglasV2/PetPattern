@@ -13,7 +13,8 @@ public enum PhotoArea {
     COAT,
     EYE,
     STOOL,
-    OTHER;
+    OTHER,
+    PROFILE;
 
     public static PhotoArea from(String value) {
         if (value == null || value.isBlank()) {

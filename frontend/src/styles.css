@@ -498,6 +498,54 @@ textarea {
   color: var(--teal);
 }
 
+.pet-switcher-photo-action {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 50px;
+  padding: 0.55rem 0.6rem 0.65rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 7px 7px 0 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pet-switcher-photo-action:hover {
+  background: var(--surface);
+}
+
+.pet-switcher-photo-action:disabled {
+  cursor: progress;
+}
+
+.pet-switcher-photo-action svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--teal);
+}
+
+.pet-switcher-photo-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.pet-switcher-photo-copy strong {
+  color: var(--ink);
+  font-size: 0.88rem;
+  line-height: 1.15;
+}
+
+.pet-switcher-photo-copy span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
 .pet-switcher-item.add {
   margin-top: 0.15rem;
   border-top: 1px solid var(--line);

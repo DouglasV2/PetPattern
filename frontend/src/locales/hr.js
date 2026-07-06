@@ -322,6 +322,11 @@ export default {
   'Add a photo of {name}': 'Dodaj fotografiju za {name}',
   'Add another photo of {name}': 'Dodaj još jednu fotografiju za {name}',
   'Add another': 'Dodaj još',
+  'Add photo for {name}': 'Dodaj fotografiju za {name}',
+  'Change photo for {name}': 'Promijeni fotografiju za {name}',
+  'This becomes the little picture for this pet.': 'Ovo postaje mala slika za ovog ljubimca.',
+  "Profile photo added — that's {name} now.": 'Profilna fotografija dodana — to je {name}.',
+  'Profile photo': 'Profilna fotografija',
   "Photo added — that's {name} now.": 'Fotografija dodana — to je {name}.',
   'Start a visual record of {name} — an ear, paw, skin or stool, side by side over time.':
     'Počni vizualni zapis za {name} — uho, šapu, kožu ili stolicu, jedno do drugog kroz vrijeme.',

@@ -8,6 +8,7 @@ import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.FoodLog;
 import com.petpattern.domain.FoodTrial;
 import com.petpattern.domain.Pet;
+import com.petpattern.domain.PhotoArea;
 import com.petpattern.i18n.Copy;
 import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.repository.DailyCheckInRepository;
@@ -85,7 +86,7 @@ public class RecapService {
                 .findByPetAndDateStartedGreaterThanEqualOrderByDateStartedAsc(pet, rangeStart).stream()
                 .filter(food -> food.getDateStarted() != null && !food.getDateStarted().isAfter(today))
                 .count();
-        int photosAdded = (int) photoRepository.countByPetAndCapturedDateGreaterThanEqual(pet, rangeStart);
+        int photosAdded = (int) photoRepository.countByPetAndAreaNotAndCapturedDateGreaterThanEqual(pet, PhotoArea.PROFILE, rangeStart);
         int trialsRun = (int) trialRepository.findByPetOrderByStartDateDesc(pet).stream()
                 .filter(trial -> overlapsWindow(trial, rangeStart, today))
                 .count();

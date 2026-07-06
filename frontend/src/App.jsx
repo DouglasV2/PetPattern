@@ -87,7 +87,7 @@ function PetAvatar({ pet, size = 26 }) {
 function PetPhotoStack({ pet, photos, onAddPhoto }) {
   const [busy, setBusy] = useState(false)
   const fileRef = useRef(null)
-  const shots = (photos || []).slice(0, 3)
+  const shots = (photos || []).filter(isProfilePhoto).slice(0, 3)
   const hasPhotos = shots.length > 0
 
   async function onFile(event) {
@@ -627,10 +627,10 @@ function App() {
     }
   }
 
-  // Add a photo straight from the sidebar. It goes into the same photo store as
-  // the gallery (as a general "other" photo, not a symptom shot); the newest photo
-  // becomes the pet's avatar and the top of the snapshot stack. Refreshes both the
-  // selected pet's photos (for the stack) and the pet list (for the list avatars).
+  // Add a profile photo from the desktop sidebar or the mobile pet switcher.
+  // Profile photos live in the same lightweight photo store, but are marked as
+  // PROFILE so they stay out of the health-photo gallery and timeline. The newest
+  // PROFILE photo becomes the avatar and top snapshot for this pet.
   async function addPetPhoto(file) {
     if (!selectedPet || !file) return
     setError('')
@@ -638,12 +638,12 @@ function App() {
       const blob = await resizeImage(file, 1400, 0.82)
       const formData = new FormData()
       formData.append('file', blob, 'photo.jpg')
-      formData.append('area', 'OTHER')
+      formData.append('area', 'PROFILE')
       formData.append('capturedDate', today)
       await api.uploadPhoto(selectedPet.id, formData)
       setPhotos(await api.listPhotos(selectedPet.id))
       setPets(await api.listPets())
-      showToast(t("Photo added — that's {name} now.", { name: selectedPet.name }))
+      showToast(t("Profile photo added — that's {name} now.", { name: selectedPet.name }))
     } catch (err) {
       setError('That photo could not be added. Try a JPEG or PNG.')
     }
@@ -1057,7 +1057,7 @@ function App() {
           </span>
         </div>
 
-        {selectedPet && <PetPhotoStack pet={selectedPet} photos={photos} onAddPhoto={addPetPhoto} />}
+        {selectedPet?.owned !== false && <PetPhotoStack pet={selectedPet} photos={photos} onAddPhoto={addPetPhoto} />}
 
         <div className="rail-group">
           <p className="rail-label">{t('My pets')}</p>
@@ -1066,6 +1066,7 @@ function App() {
             selectedPetId={selectedPetId}
             onSelect={setSelectedPetId}
             onAdd={() => go('add-pet')}
+            onAddPhoto={addPetPhoto}
             canAdd={pets.length < maxPets}
           />
           <div className="pet-tabs">
@@ -2175,7 +2176,7 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
   const headline = pattern?.title ?? timeline?.patternTitle
   const events = timeline?.events ?? []
   const photosByDate = {}
-  ;(photos ?? []).forEach((photo) => {
+  ;(photos ?? []).filter((photo) => !isProfilePhoto(photo)).forEach((photo) => {
     const key = (photo.capturedDate ?? '').slice(0, 10)
     if (!key) return
     ;(photosByDate[key] = photosByDate[key] || []).push(photo)
@@ -2886,8 +2887,9 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
     }
   }
 
+  const healthPhotos = (photos ?? []).filter((photo) => !isProfilePhoto(photo))
   const groups = PHOTO_AREAS
-    .map((code) => ({ code, items: (photos ?? []).filter((photo) => photo.area === code) }))
+    .map((code) => ({ code, items: healthPhotos.filter((photo) => photo.area === code) }))
     .filter((group) => group.items.length > 0)
 
   return (
@@ -3447,9 +3449,11 @@ function MedicationsView({ pet, medications, onBack, onCreate, onAction }) {
 // Compact pet picker for the wrapping mobile/tablet bar, where a row of pet tabs
 // would overflow once an owner has more than a few. On the desktop spine the
 // vertical pet list is used instead (this is hidden by CSS there).
-function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, canAdd }) {
+function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, onAddPhoto, canAdd }) {
   const [open, setOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const ref = useRef(null)
+  const fileRef = useRef(null)
 
   useEffect(() => {
     if (!open) return undefined
@@ -3461,6 +3465,20 @@ function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, canAdd }) {
   }, [open])
 
   const current = pets.find((p) => p.id === selectedPetId) || pets[0]
+  const canAddPhoto = Boolean(current && current.owned !== false && onAddPhoto)
+
+  async function onFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !canAddPhoto) return
+    setUploading(true)
+    try {
+      await onAddPhoto(file)
+      setOpen(false)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <div className="pet-switcher" ref={ref}>
@@ -3472,6 +3490,20 @@ function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, canAdd }) {
       </button>
       {open && (
         <div className="pet-switcher-list" role="listbox" aria-label={t('My pets')}>
+          {canAddPhoto && current && (
+            <>
+              <button type="button" className="pet-switcher-photo-action"
+                      onClick={() => fileRef.current?.click()} disabled={uploading}>
+                <PetAvatar pet={current} size={34} />
+                <span className="pet-switcher-photo-copy">
+                  <strong>{current.avatarImageUrl ? t('Change photo for {name}', { name: current.name }) : t('Add photo for {name}', { name: current.name })}</strong>
+                  <span>{t('This becomes the little picture for this pet.')}</span>
+                </span>
+                <ImagePlus size={16} aria-hidden="true" />
+              </button>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={onFile} />
+            </>
+          )}
           {pets.map((pet) => (
             <button key={pet.id} type="button" role="option" aria-selected={pet.id === selectedPetId}
                     className={pet.id === selectedPetId ? 'pet-switcher-item active' : 'pet-switcher-item'}
@@ -4192,8 +4224,13 @@ function hashView() {
   return ['today', 'check-in', 'food', 'patterns', 'timeline', 'photos', 'trial', 'recap', 'medications', 'vet', 'caregivers', 'add-pet', 'account'].includes(value) ? value : 'today'
 }
 
+function isProfilePhoto(photo) {
+  return String(photo?.area || '').toUpperCase() === 'PROFILE'
+}
+
 function photoAreaLabel(area) {
   switch (String(area || 'OTHER').toUpperCase()) {
+    case 'PROFILE': return t('Profile photo')
     case 'EAR': return t('Ears')
     case 'PAW': return t('Paw')
     case 'SKIN': return t('Skin')
