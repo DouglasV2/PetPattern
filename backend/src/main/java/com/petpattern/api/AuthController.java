@@ -32,21 +32,29 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<OwnerResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<OwnerResponse> register(@Valid @RequestBody RegisterRequest request,
+                                                  @RequestHeader(value = "X-PetPattern-Client", required = false) String client) {
         Owner owner = authService.register(request.email(), request.password(), request.displayName(), request.acceptedTerms());
         String token = authService.issueSession(owner);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .header(HttpHeaders.SET_COOKIE, authService.sessionCookie(token).toString())
-                .body(OwnerResponse.from(owner));
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.CREATED)
+                .header(HttpHeaders.SET_COOKIE, authService.sessionCookie(token).toString());
+        if (isMobileClient(client)) {
+            response.header("X-Session-Token", token);
+        }
+        return response.body(OwnerResponse.from(owner));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<OwnerResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<OwnerResponse> login(@RequestBody LoginRequest request,
+                                               @RequestHeader(value = "X-PetPattern-Client", required = false) String client) {
         Owner owner = authService.authenticate(request.email(), request.password());
         String token = authService.issueSession(owner);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, authService.sessionCookie(token).toString())
-                .body(OwnerResponse.from(owner));
+        ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, authService.sessionCookie(token).toString());
+        if (isMobileClient(client)) {
+            response.header("X-Session-Token", token);
+        }
+        return response.body(OwnerResponse.from(owner));
     }
 
     /**
@@ -69,11 +77,28 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@CookieValue(value = AuthService.COOKIE, required = false) String token) {
-        authService.revoke(token);
+    public ResponseEntity<Void> logout(@CookieValue(value = AuthService.COOKIE, required = false) String token,
+                                       @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
+        authService.revoke(token != null ? token : bearerToken(authorization));
         return ResponseEntity.noContent()
                 .header(HttpHeaders.SET_COOKIE, authService.clearCookie().toString())
                 .build();
+    }
+
+    private boolean isMobileClient(String client) {
+        return client != null && client.equalsIgnoreCase("mobile");
+    }
+
+    private String bearerToken(String authorization) {
+        if (authorization == null) {
+            return null;
+        }
+        String prefix = "Bearer ";
+        if (!authorization.regionMatches(true, 0, prefix, 0, prefix.length())) {
+            return null;
+        }
+        String token = authorization.substring(prefix.length()).trim();
+        return token.isBlank() ? null : token;
     }
 
     @GetMapping("/me")

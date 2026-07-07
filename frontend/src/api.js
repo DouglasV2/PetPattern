@@ -1,6 +1,46 @@
 import { getLang } from './i18n'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+const MOBILE_SESSION_KEY = 'petpattern.mobileSessionToken'
+
+function isNativeApp() {
+  return Boolean(globalThis.Capacitor?.isNativePlatform?.())
+}
+
+function getMobileSessionToken() {
+  if (!isNativeApp()) return null
+  try {
+    return globalThis.localStorage?.getItem(MOBILE_SESSION_KEY) || null
+  } catch (err) {
+    return null
+  }
+}
+
+function saveMobileSessionToken(token) {
+  if (!isNativeApp() || !token) return
+  try {
+    globalThis.localStorage?.setItem(MOBILE_SESSION_KEY, token)
+  } catch (err) {
+    // If storage is unavailable, the next authenticated request will simply 401.
+  }
+}
+
+function clearMobileSessionToken() {
+  try {
+    globalThis.localStorage?.removeItem(MOBILE_SESSION_KEY)
+  } catch (err) {
+    // ignore
+  }
+}
+
+function mobileHeaders() {
+  if (!isNativeApp()) return {}
+  const token = getMobileSessionToken()
+  return {
+    'X-PetPattern-Client': 'mobile',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  }
+}
 
 // Called whenever the API returns 401, so the app can drop back to the login
 // screen if a session expires mid-use.
@@ -10,8 +50,11 @@ export function setUnauthorizedHandler(handler) {
 }
 
 async function request(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase()
   const response = await fetch(`${API_BASE}${path}`, {
-    credentials: 'same-origin',
+    // Use include rather than same-origin so the web app keeps its HttpOnly
+    // cookie behavior, while Capacitor can still call a remote production API.
+    credentials: 'include',
     // Spread options FIRST so a caller's headers can never clobber the merged
     // headers object below (sharedVetSummary passes X-Share-Token and must still
     // send Accept-Language).
@@ -20,12 +63,16 @@ async function request(path, options = {}) {
       'Content-Type': 'application/json',
       // Backend-generated text (patterns, vet summary, recap…) follows the UI language.
       'Accept-Language': getLang(),
+      ...mobileHeaders(),
       ...(options.headers ?? {})
     }
   })
 
   if (!response.ok) {
-    if (response.status === 401 && onUnauthorized) onUnauthorized()
+    if (response.status === 401) {
+      clearMobileSessionToken()
+      if (onUnauthorized) onUnauthorized()
+    }
     const raw = await response.text()
     let message = raw
     try {
@@ -36,6 +83,10 @@ async function request(path, options = {}) {
     }
     throw new Error(message || `Request failed: ${response.status}`)
   }
+
+  const sessionToken = response.headers.get('X-Session-Token')
+  if (sessionToken) saveMobileSessionToken(sessionToken)
+  if (path === '/auth/logout' || (path === '/account' && method === 'DELETE')) clearMobileSessionToken()
 
   if (response.status === 204) return null
   return response.json()
@@ -82,12 +133,15 @@ export const api = {
   uploadPhoto: async (petId, formData) => {
     const response = await fetch(`${API_BASE}/pets/${petId}/photos`, {
       method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Accept-Language': getLang() },
+      credentials: 'include',
+      headers: { 'Accept-Language': getLang(), ...mobileHeaders() },
       body: formData
     })
     if (!response.ok) {
-      if (response.status === 401 && onUnauthorized) onUnauthorized()
+      if (response.status === 401) {
+        clearMobileSessionToken()
+        if (onUnauthorized) onUnauthorized()
+      }
       const text = await response.text()
       throw new Error(text || `Upload failed: ${response.status}`)
     }

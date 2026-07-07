@@ -32,6 +32,9 @@ public class SessionAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String token = readCookie(request);
+            if (token == null) {
+                token = readBearerToken(request);
+            }
             if (token != null) {
                 Owner owner = authService.resolve(token);
                 if (owner != null) {
@@ -42,6 +45,19 @@ public class SessionAuthFilter extends OncePerRequestFilter {
         } finally {
             OwnerContext.clear();
         }
+    }
+
+    private String readBearerToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null) {
+            return null;
+        }
+        String prefix = "Bearer ";
+        if (!header.regionMatches(true, 0, prefix, 0, prefix.length())) {
+            return null;
+        }
+        String token = header.substring(prefix.length()).trim();
+        return token.isBlank() ? null : token;
     }
 
     private String readCookie(HttpServletRequest request) {

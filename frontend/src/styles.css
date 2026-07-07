@@ -3387,3 +3387,51 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .pet-photo-stack .snap { animation: none; }
 }
+
+/* Capacitor/mobile shell hardening: respect notches/home indicators and avoid
+   iOS form zoom. These rules are safe on the web because env() resolves to 0. */
+body {
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+.center-shell,
+.start-shell {
+  min-height: 100dvh;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.top-bar {
+  padding-top: calc(0.55rem + env(safe-area-inset-top));
+}
+
+.screen {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 899.98px) {
+  .record-nav {
+    top: calc(96px + env(safe-area-inset-top));
+  }
+
+  button,
+  .text-button,
+  .chip-button,
+  .ghost-button {
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 900px) {
+  .top-bar,
+  .record-nav {
+    padding-top: 1.5rem;
+  }
+}
