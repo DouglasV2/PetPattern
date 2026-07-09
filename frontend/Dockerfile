@@ -18,6 +18,11 @@ ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN \
 RUN npm run build
 
 FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Where the SPA proxies /api. Default matches docker-compose (service "backend");
+# override on Railway/other hosts, e.g. BACKEND_UPSTREAM=petpattern.railway.internal:8080.
+ENV BACKEND_UPSTREAM=backend:8080
+# Placed in templates/ so nginx's entrypoint runs envsubst on it at startup,
+# substituting ${BACKEND_UPSTREAM} into the final /etc/nginx/conf.d/default.conf.
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80
