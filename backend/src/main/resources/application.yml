@@ -107,8 +107,10 @@ petpattern:
     # Localhost is only the dev default; prod sets PETPATTERN_CORS_ALLOWED_ORIGINS.
     allowed-origins: ${PETPATTERN_CORS_ALLOWED_ORIGINS:http://localhost:7317,http://127.0.0.1:7317}
   ai:
-    # "mock" (deterministic local reader, default) or "anthropic" (hosted model).
+    # "mock" (deterministic local reader, default), "anthropic" or "gemini" (hosted).
     provider: ${PETPATTERN_AI_PROVIDER:mock}
-    # Empty by default; set ANTHROPIC_API_KEY to enable the hosted provider.
-    api-key: ${ANTHROPIC_API_KEY:}
-    model: ${PETPATTERN_AI_MODEL:claude-haiku-4-5}
+    # Empty by default. Prefer the generic PETPATTERN_AI_API_KEY; otherwise fall back
+    # to the provider-specific ANTHROPIC_API_KEY / GEMINI_API_KEY. A hosted provider
+    # only turns on when its key is present (see AiConfig).
+    api-key: ${PETPATTERN_AI_API_KEY:${ANTHROPIC_API_KEY:${GEMINI_API_KEY:}}}
+    model: ${PETPATTERN_AI_MODEL:gemini-2.5-flash-lite}

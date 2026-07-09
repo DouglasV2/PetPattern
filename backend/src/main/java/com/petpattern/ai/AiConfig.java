@@ -19,15 +19,30 @@ public class AiConfig {
 
     @Bean
     public AiProvider aiProvider(AiProperties properties, ObjectMapper objectMapper) {
-        boolean wantsAnthropic = "anthropic".equalsIgnoreCase(properties.getProvider());
+        String provider = properties.getProvider() == null ? "" : properties.getProvider().trim();
         boolean hasKey = properties.getApiKey() != null && !properties.getApiKey().isBlank();
 
-        if (wantsAnthropic && hasKey) {
-            log.info("AI provider: Anthropic (model {})", properties.getModel());
-            return new AnthropicAiProvider(properties.getApiKey(), properties.getModel(), objectMapper);
-        }
-        if (wantsAnthropic) {
+        // Never log the API key — only the provider name and model.
+        if ("anthropic".equalsIgnoreCase(provider)) {
+            if (hasKey) {
+                log.info("AI provider: Anthropic (model {})", properties.getModel());
+                return new AnthropicAiProvider(properties.getApiKey(), properties.getModel(), objectMapper);
+            }
             log.warn("AI provider 'anthropic' requested but no API key configured; using the local mock reader.");
+            return new MockAiProvider();
+        }
+
+        if ("gemini".equalsIgnoreCase(provider)) {
+            if (hasKey) {
+                log.info("AI provider: Gemini (model {})", properties.getModel());
+                return new GeminiAiProvider(properties.getApiKey(), properties.getModel(), objectMapper);
+            }
+            log.warn("AI provider 'gemini' requested but no API key configured; using the local mock reader.");
+            return new MockAiProvider();
+        }
+
+        if (!"mock".equalsIgnoreCase(provider)) {
+            log.warn("Unknown AI provider '{}'; using the local mock reader.", provider);
         } else {
             log.info("AI provider: local mock reader (deterministic).");
         }

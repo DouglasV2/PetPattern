@@ -72,9 +72,13 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.0}
+      # AI note extraction (optional). provider = mock | anthropic | gemini. The key
+      # resolves generic-first, then provider-specific (see application.yml / AiConfig).
       PETPATTERN_AI_PROVIDER: ${PETPATTERN_AI_PROVIDER:-mock}
+      PETPATTERN_AI_API_KEY: ${PETPATTERN_AI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      PETPATTERN_AI_MODEL: ${PETPATTERN_AI_MODEL:-claude-haiku-4-5}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      PETPATTERN_AI_MODEL: ${PETPATTERN_AI_MODEL:-gemini-2.5-flash-lite}
     depends_on:
       postgres:
         condition: service_healthy
