@@ -3435,3 +3435,284 @@ select {
     padding-top: 1.5rem;
   }
 }
+
+/* ============================================================
+   Pattern-first daily UX
+   Today decision loop · guided "what changed" · one-sentence
+   note · seen-before · pattern case file · gentle backfill.
+   Appended last so these rules win by source order over the
+   earlier tablet/desktop blocks (see the media-order note
+   above). Mobile-first; the min-width block only widens grids.
+   ============================================================ */
+
+/* Today's primary question: one calm ask, three big choices. */
+.today-decision {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem 1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+}
+
+.today-decision-head h2 {
+  margin: 0 0 0.2rem;
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+
+.today-decision-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.decision-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: 1fr;
+}
+
+.decision-card {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+  text-align: left;
+  padding: 0.95rem 1rem;
+  min-height: 92px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+  color: var(--ink);
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.decision-card:hover:not(:disabled) {
+  border-color: var(--teal);
+  transform: translateY(-1px);
+}
+
+.decision-card:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.decision-card .decision-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.decision-card strong {
+  font-size: 1.02rem;
+}
+
+.decision-card span:last-child {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.decision-card.quiet .decision-icon { color: var(--sage); background: var(--sage-soft); }
+.decision-card.changed .decision-icon { color: var(--gold); background: var(--gold-soft); }
+.decision-card.note .decision-icon { color: var(--coral); background: var(--coral-soft); }
+
+.decision-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* "This looks familiar" — a quiet recurrence nudge, only when real. */
+.seen-before-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--coral);
+  border-radius: var(--radius);
+  background: var(--coral-soft);
+}
+
+.seen-before-kicker {
+  margin: 0 0 0.15rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.seen-before-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* Gentle backfill — no guilt, no streaks, always skippable. */
+.backfill-card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.95rem 1rem;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.backfill-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.backfill-rows {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.backfill-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+
+.backfill-day {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.backfill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Guided "what changed" flow */
+.guided-flow {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.guided-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.guided-chip {
+  padding: 0.7rem 0.6rem;
+  min-height: 46px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.guided-chip:hover { border-color: var(--teal); }
+
+.guided-chip.active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.guided-fields {
+  margin-top: 0.2rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.guided-flow-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  padding-top: 0.2rem;
+}
+
+/* One-sentence note mode */
+.note-first-panel {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.note-first-input {
+  min-height: 96px;
+}
+
+/* Pattern "case file" — a structured record, not a diagnosis. */
+.case-file-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.case-file-section {
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.case-file-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0.4rem;
+}
+
+.case-file-label {
+  margin: 0 0 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.case-file-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.case-file-food {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.2rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.case-file-cta {
+  margin-top: 0.9rem;
+}
+
+@media (min-width: 700px) {
+  .decision-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .guided-chip-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

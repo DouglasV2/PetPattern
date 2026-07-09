@@ -674,5 +674,68 @@ export default {
   'Continue with Google': 'Nastavi s Googleom',
   'or': 'ili',
   'Could not sign in with Google. Please try again.':
-    'Prijava putem Googlea nije uspjela. Pokušaj ponovno.'
+    'Prijava putem Googlea nije uspjela. Pokušaj ponovno.',
+
+  // Pattern-first daily UX (Today decision loop, guided flow, note mode, case file)
+  'How is {name} today?': 'Kako je {name} danas?',
+  'Normal days are useful too. PetPattern learns what is normal for {name}.':
+    'I obični dani su korisni. PetPattern uči što je normalno za {name}.',
+  'Same as usual': 'Kao i inače',
+  'Save a quiet day in one tap.': 'Spremi miran dan jednim dodirom.',
+  'Today is logged': 'Danas je zabilježeno',
+  'Pick just what changed — not the whole form.':
+    'Odaberi samo ono što se promijenilo — ne cijeli obrazac.',
+  'Add note or photo': 'Dodaj bilješku ili fotografiju',
+  'Write one sentence or add a photo.': 'Napiši jednu rečenicu ili dodaj fotografiju.',
+
+  // Something changed — guided flow
+  'Tell PetPattern what changed for {name} — just the parts that did.':
+    'Reci PetPatternu što se promijenilo za {name} — samo ono što jest.',
+  'Describe instead': 'Radije opiši',
+  'Show full form': 'Prikaži cijeli obrazac',
+  'Add a note (optional)': 'Dodaj bilješku (neobavezno)',
+  'Anything else worth remembering about today?':
+    'Još nešto vrijedno pamćenja o današnjem danu?',
+  'Add a food or treat change': 'Dodaj promjenu hrane ili poslastice',
+  'Scratching / skin': 'Češanje / koža',
+  'Ear / paws': 'Uši / šape',
+  'Food or treats': 'Hrana ili poslastice',
+  'Medication': 'Lijek',
+  'Urination': 'Mokrenje',
+
+  // One-sentence note mode
+  'Describe what happened': 'Opiši što se dogodilo',
+  'Write one sentence. PetPattern will suggest fields before saving.':
+    'Napiši jednu rečenicu. PetPattern će predložiti polja prije spremanja.',
+  'Save note only': 'Spremi samo bilješku',
+  'e.g. {name} scratched more today, stool was softer, and we gave a new chicken treat yesterday.':
+    'npr. {name} se danas više češao/la, stolica je bila mekša, a jučer smo dali novu piletinu kao poslasticu.',
+
+  // Seen before + backfill
+  'This looks familiar': 'Ovo djeluje poznato',
+  'This looks similar to something you logged before for {name}.':
+    'Ovo sliči nečemu što si već ranije zabilježio/la za {name}.',
+  'Open case file': 'Otvori dosje',
+  'Want to quickly fill the last few days?': 'Želiš brzo popuniti zadnjih nekoliko dana?',
+  'No pressure — a couple of quiet days help PetPattern learn what is normal for {name}.':
+    'Bez pritiska — nekoliko mirnih dana pomaže PetPatternu da nauči što je normalno za {name}.',
+  'Skip': 'Preskoči',
+  '{n} days ago': 'prije {n} dana',
+
+  // Pattern case file
+  'Pattern case file': 'Dosje o obrascu',
+  'What PetPattern noticed': 'Što je PetPattern primijetio',
+  'Seen before': 'Viđeno prije',
+  'Related signals': 'Povezani signali',
+  'Food or treat changes nearby': 'Promjene hrane ili poslastica u blizini',
+  'Status': 'Status',
+  'This is a case file, not a diagnosis.': 'Ovo je dosje, ne dijagnoza.',
+  'PetPattern found similar changes across a few logs.':
+    'PetPattern je pronašao slične promjene kroz nekoliko unosa.',
+  'This is not an allergy diagnosis. It is a timeline you can discuss with your vet.':
+    'Ovo nije dijagnoza alergije. To je vremenska crta o kojoj možeš razgovarati s veterinarom.',
+  'Going to the vet? Bring the timeline, not your memory.':
+    'Ideš veterinaru? Ponesi vremensku crtu, ne pamćenje.',
+  'Food changes often matter more than they seem. PetPattern lines them up with stool, scratching, appetite, vomiting and energy changes.':
+    'Promjene hrane često znače više nego što se čini. PetPattern ih poravnava s promjenama stolice, češanja, apetita, povraćanja i energije.'
 }

@@ -271,6 +271,13 @@ function App() {
   const [error, setError] = useState('')
   const [view, setView] = useState(hashView())
   const [checkInForm, setCheckInForm] = useState(emptyCheckIn)
+  // How the check-in opens: 'full' (the full form), 'changed' (guided chips) or
+  // 'note' (one sentence first). Set by openCheckIn()/editCheckIn().
+  const [checkInStartMode, setCheckInStartMode] = useState('full')
+  // Bumped on every explicit open so CheckInView remounts fresh (mode, chips and
+  // note all reset) — even when the start mode is unchanged, e.g. tapping nav "Log"
+  // after switching to note/guided mode with the in-panel foot links.
+  const [checkInOpenSeq, setCheckInOpenSeq] = useState(0)
   const [foodForm, setFoodForm] = useState(emptyFood)
   const [selectedPattern, setSelectedPattern] = useState(null)
   const [timeline, setTimeline] = useState(null)
@@ -780,6 +787,9 @@ function App() {
         pawLicking: !!item.pawLicking
       })
     }
+    // Editing an existing check-in always opens the full form, never a guided flow.
+    setCheckInStartMode('full')
+    setCheckInOpenSeq((n) => n + 1)
     go('check-in')
   }
 
@@ -838,17 +848,25 @@ function App() {
     return pet
   }
 
-  // Open a fresh daily check-in seeded for the selected pet's species.
-  function openCheckIn() {
+  // Open a fresh daily check-in seeded for the selected pet's species. Mode picks
+  // the entry point: 'full' (nav Log), 'changed' or 'note' (Today decision cards).
+  // Guard the arg — onClick handlers pass a DOM event, not a mode string.
+  function openCheckIn(mode = 'full') {
+    const startMode = typeof mode === 'string' ? mode : 'full'
+    setCheckInStartMode(startMode)
     setCheckInForm(emptyCheckInFor(selectedPet?.species))
+    setCheckInOpenSeq((n) => n + 1)
     go('check-in')
   }
 
   // Open a fresh check-in seeded to a specific past day (from "Find a day" → "Log
-  // this day"). The form's date field stays visible and is capped at today.
+  // this day", or the Today backfill rows). Opens the guided "changed" flow; the
+  // date field stays visible and is capped at today.
   function openCheckInForDate(date) {
     const day = date && date > today ? today : date
+    setCheckInStartMode('changed')
     setCheckInForm({ ...emptyCheckInFor(selectedPet?.species), checkInDate: day })
+    setCheckInOpenSeq((n) => n + 1)
     go('check-in')
   }
 
@@ -881,8 +899,12 @@ function App() {
     }
   }
 
-  async function quickLog() {
+  async function quickLog(date = today) {
     if (!selectedPet) return
+    // Guard: onClick passes a DOM event, and a future date is never valid — so a
+    // non-string or out-of-range value falls back to today. A past date lets the
+    // Today "fill the last few days" rows save a quiet day for that day.
+    const day = typeof date === 'string' && date <= today ? date : today
     setError('')
     setSaving(true)
     try {
@@ -890,10 +912,10 @@ function App() {
       const cat = isCat(selectedPet)
       let payload
       if (!base) {
-        payload = emptyCheckInFor(selectedPet.species)
+        payload = { ...emptyCheckInFor(selectedPet.species), checkInDate: day }
       } else if (cat) {
         payload = {
-          checkInDate: today,
+          checkInDate: day,
           appetiteLevel: keep(base.appetiteLevel),
           waterLevel: keep(base.waterLevel),
           energyLevel: keep(base.energyLevel),
@@ -908,7 +930,7 @@ function App() {
         }
       } else {
         payload = {
-          checkInDate: today,
+          checkInDate: day,
           itchingScore: base.itchingScore ?? 2,
           stoolState: keep(base.stoolState),
           appetiteLevel: keep(base.appetiteLevel),
@@ -1103,7 +1125,7 @@ function App() {
       <nav className="record-nav" aria-label="PetPattern sections">
         <p className="rail-label record-nav-head">{t('Notebook')}</p>
         <Tab active={view === 'today'} onClick={() => go('today')} icon={<PawPrint size={16} />} label={t('{name} today', { name: selectedPet.name })} />
-        <Tab active={view === 'check-in' || view === 'photos'} onClick={openCheckIn} icon={<ClipboardList size={16} />} label={t('Log')} />
+        <Tab active={view === 'check-in' || view === 'photos'} onClick={() => openCheckIn('full')} icon={<ClipboardList size={16} />} label={t('Log')} />
         <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} icon={<Utensils size={16} />} label={t('Food')} />
         <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={16} />} label={t('Changes')} />
         <Tab active={view === 'vet'} onClick={() => openVetSummary()} icon={<Stethoscope size={16} />} label={t('Vet')} />
@@ -1114,11 +1136,13 @@ function App() {
 
         {view === 'check-in' && (
           <CheckInView
+            key={checkInOpenSeq}
             pet={selectedPet}
             form={checkInForm}
             setForm={setCheckInForm}
             saving={saving}
             aiSuggestEnabled={aiSuggestEnabled}
+            startMode={checkInStartMode}
             onBack={() => go('today')}
             onSave={saveCheckIn}
             onQuickLog={quickLog}
@@ -1237,7 +1261,9 @@ function App() {
             currentFood={currentFood}
             topPattern={topPattern}
             checkIns={checkIns}
-            onLogToday={openCheckIn}
+            onLogToday={() => openCheckIn('full')}
+            onSomethingChanged={() => openCheckIn('changed')}
+            onAddNoteOrPhoto={() => openCheckIn('note')}
             onFoodChange={() => go('food')}
             onPatterns={() => go('patterns')}
             onShowTimeline={openTimeline}
@@ -1332,7 +1358,107 @@ function TodayNoteCard({ pet, overview, topPattern, checkIns, loggedToday }) {
   )
 }
 
-function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay }) {
+// The heart of Today: one calm question, three large choices. "Same as usual" is
+// a single tap (and disables once today is logged); "Something changed" opens the
+// guided chips; "Add note or photo" opens the one-sentence note. Food + vet stay
+// secondary.
+function TodayDecisionActions({ pet, loggedToday, onSameAsUsual, onSomethingChanged, onAddNoteOrPhoto, onFoodChange, onVetSummary }) {
+  return (
+    <section className="today-decision" aria-label={t('How is {name} today?', { name: pet.name })}>
+      <div className="today-decision-head">
+        <h2>{t('How is {name} today?', { name: pet.name })}</h2>
+        <p>{t('Normal days are useful too. PetPattern learns what is normal for {name}.', { name: pet.name })}</p>
+      </div>
+      <div className="decision-grid">
+        <button className="decision-card primary quiet" type="button" onClick={onSameAsUsual} disabled={loggedToday}>
+          <span className="decision-icon"><Check size={22} /></span>
+          <strong>{t('Same as usual')}</strong>
+          <span>{loggedToday ? t('Today is logged') : t('Save a quiet day in one tap.')}</span>
+        </button>
+        <button className="decision-card changed" type="button" onClick={onSomethingChanged}>
+          <span className="decision-icon"><Activity size={22} /></span>
+          <strong>{t('Something changed')}</strong>
+          <span>{t('Pick just what changed — not the whole form.')}</span>
+        </button>
+        <button className="decision-card note" type="button" onClick={onAddNoteOrPhoto}>
+          <span className="decision-icon"><NoteGlyph size={22} /></span>
+          <strong>{t('Add note or photo')}</strong>
+          <span>{t('Write one sentence or add a photo.')}</span>
+        </button>
+      </div>
+      <div className="decision-secondary">
+        <button className="ghost-button" type="button" onClick={onFoodChange}>
+          <Utensils size={18} /> {t('Add food change')}
+        </button>
+        <button className="ghost-button" type="button" onClick={onVetSummary}>
+          <Stethoscope size={18} /> {t('Bring this to your vet')}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+// A quiet "this looks familiar" nudge — shown ONLY when a real pattern has been
+// seen more than once and isn't set aside. Never overclaims similarity.
+function SeenBeforeCard({ pet, pattern, onShowTimeline }) {
+  if (!pattern) return null
+  const qualifies = (pattern.seenBefore === true || pattern.detectionCount > 1) && !isDismissedStatus(pattern.status)
+  if (!qualifies) return null
+  return (
+    <section className="seen-before-card" aria-label={t('This looks familiar')}>
+      <div className="seen-before-body">
+        <p className="seen-before-kicker">{t('This looks familiar')}</p>
+        <p className="seen-before-text">
+          {t('This looks similar to something you logged before for {name}.', { name: pet.name })}
+          {pattern.firstDetectedAt ? ` ${t("You've seen this a few times since {date}.", { date: formatDate(pattern.firstDetectedAt) })}` : ''}
+        </p>
+      </div>
+      <button className="text-button" type="button" onClick={() => onShowTimeline(pattern)}>
+        {t('Open case file')} <ChevronRight size={16} />
+      </button>
+    </section>
+  )
+}
+
+// Gentle backfill: if the last log is 2+ days ago and today isn't logged, offer to
+// fill up to the last 3 missed days. No guilt, no streaks — every row is skippable.
+function BackfillCard({ pet, checkIns, loggedToday, onQuickLog, onLogDay }) {
+  const [skipped, setSkipped] = useState([])
+  if (!checkIns?.length || loggedToday) return null
+  const lastDate = checkIns[0]?.checkInDate
+  if (!lastDate) return null
+  const daysSince = Math.round((parseLocalDate(today) - parseLocalDate(lastDate)) / 86400000)
+  if (daysSince < 2) return null
+  const loggedDates = new Set(checkIns.map((c) => c.checkInDate))
+  const candidates = [1, 2, 3]
+    .map((n) => addDays(today, -n))
+    .filter((d) => d > lastDate && !loggedDates.has(d) && !skipped.includes(d))
+  if (candidates.length === 0) return null
+  const label = (d) => {
+    const n = Math.round((parseLocalDate(today) - parseLocalDate(d)) / 86400000)
+    return n === 1 ? t('Yesterday') : t('{n} days ago', { n })
+  }
+  return (
+    <section className="backfill-card" aria-label={t('Want to quickly fill the last few days?')}>
+      <p className="backfill-title">{t('Want to quickly fill the last few days?')}</p>
+      <p className="muted">{t('No pressure — a couple of quiet days help PetPattern learn what is normal for {name}.', { name: pet.name })}</p>
+      <div className="backfill-rows">
+        {candidates.map((d) => (
+          <div className="backfill-row" key={d}>
+            <span className="backfill-day">{label(d)}</span>
+            <div className="backfill-actions">
+              <button className="chip-button" type="button" onClick={() => onQuickLog(d)}>{t('Same as usual')}</button>
+              <button className="chip-button" type="button" onClick={() => onLogDay(d)}>{t('Something changed')}</button>
+              <button className="chip-button subtle" type="button" onClick={() => setSkipped((s) => [...s, d])}>{t('Skip')}</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto }) {
   const loggedToday = overview?.retention?.loggedToday ?? checkIns.some((c) => c.checkInDate === today)
   return (
     <>
@@ -1341,22 +1467,6 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
           <p className="kicker">{t('{name} today', { name: pet.name })}</p>
           <h1>{todayHeadline(pet, overview, topPattern, latestCheckIn)}</h1>
           <p>{overview?.todayExplanation ?? `${pet.name} is ready for a first check-in.`}</p>
-          <div className="action-row">
-            <button className="primary-button" type="button" onClick={onLogToday}>
-              <ClipboardList size={18} /> {t('Log today')}
-            </button>
-            {!loggedToday && (
-              <button className="secondary-button quiet-day" type="button" onClick={onQuickLog}>
-                <Check size={18} /> {t('Everything looked normal today')}
-              </button>
-            )}
-            <button className="ghost-button" type="button" onClick={onFoodChange}>
-              <Utensils size={18} /> {t('Add food change')}
-            </button>
-            <button className="ghost-button" type="button" onClick={onVetSummary}>
-              <Stethoscope size={18} /> {t('Bring this to your vet')}
-            </button>
-          </div>
         </div>
 
         <div className={`state-panel ${overview?.todayStatus ?? 'changed'}`}>
@@ -1365,7 +1475,21 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
         </div>
       </section>
 
+      <TodayDecisionActions
+        pet={pet}
+        loggedToday={loggedToday}
+        onSameAsUsual={onQuickLog}
+        onSomethingChanged={onSomethingChanged}
+        onAddNoteOrPhoto={onAddNoteOrPhoto}
+        onFoodChange={onFoodChange}
+        onVetSummary={onVetSummary}
+      />
+
       <TodayNoteCard pet={pet} overview={overview} topPattern={topPattern} checkIns={checkIns} loggedToday={loggedToday} />
+
+      <SeenBeforeCard pet={pet} pattern={topPattern} onShowTimeline={onShowTimeline} />
+
+      <BackfillCard pet={pet} checkIns={checkIns} loggedToday={loggedToday} onQuickLog={onQuickLog} onLogDay={onLogDay} />
 
       <RetentionStrip pet={pet} retention={overview?.retention} checkInCount={checkIns.length} onLogToday={onLogToday} onQuickLog={onQuickLog} />
 
@@ -1414,6 +1538,7 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
           ) : (
             <p className="muted">{t('Add the first food change and we can line it up against how things have been going.')}</p>
           )}
+          <p className="muted food-note">{t('Food changes often matter more than they seem. PetPattern lines them up with stool, scratching, appetite, vomiting and energy changes.')}</p>
         </article>
 
         <article className="panel pattern-teaser">
@@ -1453,12 +1578,173 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
   )
 }
 
-function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddMedication }) {
+// "Something changed" guided flow — species-specific categories. Selecting a chip
+// reveals only the fields that category maps to (see guidedTokens), so a changed
+// day never means the whole form. Labels are English keys for t(). Keep the field
+// controls below in sync with the full form (which stays the canonical copy).
+const CHANGED_CATEGORIES = {
+  DOG: [
+    { key: 'skin', label: 'Scratching / skin' },
+    { key: 'stool', label: 'Stool' },
+    { key: 'appetite', label: 'Appetite' },
+    { key: 'water', label: 'Water' },
+    { key: 'energy', label: 'Energy' },
+    { key: 'vomiting', label: 'Vomiting' },
+    { key: 'ear_paws', label: 'Ear / paws' },
+    { key: 'food', label: 'Food or treats' },
+    { key: 'medication', label: 'Medication' },
+    { key: 'other', label: 'Other' }
+  ],
+  CAT: [
+    { key: 'litter', label: 'Litter box' },
+    { key: 'urination', label: 'Urination' },
+    { key: 'appetite', label: 'Appetite' },
+    { key: 'water', label: 'Water' },
+    { key: 'energy', label: 'Energy' },
+    { key: 'hiding', label: 'Hiding' },
+    { key: 'vomiting', label: 'Vomiting' },
+    { key: 'weight', label: 'Weight concern' },
+    { key: 'food', label: 'Food' },
+    { key: 'medication', label: 'Medication' },
+    { key: 'other', label: 'Other' }
+  ]
+}
+
+// Which fields each "what changed?" category reveals, unioned across the selected
+// categories and de-duplicated, so two categories that both touch appetite show
+// it once. food/medication/other add CTAs (handled in GuidedFieldsForCategory).
+function guidedTokens(categories, cat) {
+  const set = new Set()
+  const add = (...tokens) => tokens.forEach((tk) => set.add(tk))
+  categories.forEach((key) => {
+    if (cat) {
+      if (key === 'litter') add('litter', 'urination', 'straining')
+      else if (key === 'urination') add('urination', 'straining', 'water')
+      else if (key === 'hiding') add('hiding', 'appetite', 'energy')
+      else if (key === 'appetite') add('appetite', 'water', 'energy')
+      else if (key === 'water') add('water', 'appetite')
+      else if (key === 'energy') add('energy', 'appetite')
+      else if (key === 'vomiting') add('vomiting', 'appetite', 'water')
+      else if (key === 'weight') add('weight', 'appetite')
+    } else {
+      if (key === 'skin') add('itching', 'earRedness', 'pawLicking')
+      else if (key === 'stool') add('stool', 'appetite')
+      else if (key === 'appetite') add('appetite', 'water', 'energy')
+      else if (key === 'water') add('water', 'appetite')
+      else if (key === 'energy') add('energy', 'appetite')
+      else if (key === 'vomiting') add('vomiting', 'appetite', 'water')
+      else if (key === 'ear_paws') add('earRedness', 'pawLicking', 'itching')
+    }
+  })
+  return set
+}
+
+// One QuickChoices control per guided token. Option lists mirror the full form's
+// (kept here so the guided flow is self-contained); the full form is canonical.
+function GuidedChoice({ token, form, setForm }) {
+  switch (token) {
+    case 'itching':
+      return <QuickChoices label={t('Scratching / itching')} value={form.itchingScore} options={[0, 2, 4, 6, 8, 10].map((v) => ({ value: v, label: String(v) }))} onChange={(itchingScore) => setForm({ ...form, itchingScore })} />
+    case 'stool':
+      return <QuickChoices label={t('Stool')} value={form.stoolState} options={[{ value: 'NORMAL', label: t('Normal') }, { value: 'SOFT', label: t('Soft') }, { value: 'DIARRHEA', label: t('Diarrhea') }, { value: 'NO_STOOL', label: t('No stool') }]} onChange={(stoolState) => setForm({ ...form, stoolState })} />
+    case 'litter':
+      return <QuickChoices label={t('Litter box')} value={form.litterBoxUse} options={[{ value: 'NORMAL', label: t('Normal') }, { value: 'LESS', label: t('Less') }, { value: 'MORE', label: t('More') }, { value: 'NONE', label: t('Not used') }]} onChange={(litterBoxUse) => setForm({ ...form, litterBoxUse })} />
+    case 'urination':
+      return <QuickChoices label={t('Urination change')} value={form.urinationChange} options={[{ value: 'NORMAL', label: t('Normal') }, { value: 'LESS', label: t('Less') }, { value: 'MORE', label: t('More') }]} onChange={(urinationChange) => setForm({ ...form, urinationChange })} />
+    case 'appetite':
+      return <QuickChoices label={t('Appetite')} value={form.appetiteLevel} options={[{ value: 'NORMAL', label: t('Normal') }, { value: 'LOWER', label: t('Lower') }, { value: 'HIGHER', label: t('Higher') }, { value: 'REFUSED', label: t('Refused') }]} onChange={(appetiteLevel) => setForm({ ...form, appetiteLevel })} />
+    case 'water':
+      return <QuickChoices label={t('Water')} value={form.waterLevel} options={[{ value: 'NORMAL', label: t('Normal') }, { value: 'LOWER', label: t('Lower') }, { value: 'HIGHER', label: t('Higher') }]} onChange={(waterLevel) => setForm({ ...form, waterLevel })} />
+    case 'energy':
+      return <QuickChoices label={t('Energy')} value={form.energyLevel} options={[{ value: 'NORMAL', label: t('Normal') }, { value: 'LOW', label: t('Low') }, { value: 'RESTLESS', label: t('Restless') }, { value: 'HIGH', label: t('High') }]} onChange={(energyLevel) => setForm({ ...form, energyLevel })} />
+    default:
+      return null
+  }
+}
+
+// One ToggleButton per guided flag token.
+function GuidedToggle({ token, form, setForm }) {
+  switch (token) {
+    case 'vomiting':
+      return <ToggleButton active={form.vomiting} label={t('Vomiting')} onClick={() => setForm({ ...form, vomiting: !form.vomiting })} />
+    case 'earRedness':
+      return <ToggleButton active={form.earRedness} label={t('Ear redness')} onClick={() => setForm({ ...form, earRedness: !form.earRedness })} />
+    case 'pawLicking':
+      return <ToggleButton active={form.pawLicking} label={t('Paw licking')} onClick={() => setForm({ ...form, pawLicking: !form.pawLicking })} />
+    case 'straining':
+      return <ToggleButton active={form.straining} label={t('Straining')} onClick={() => setForm({ ...form, straining: !form.straining })} />
+    case 'hiding':
+      return <ToggleButton active={form.hidingBehavior === 'MORE'} label={t('Hiding more')} onClick={() => setForm({ ...form, hidingBehavior: form.hidingBehavior === 'MORE' ? 'NORMAL' : 'MORE' })} />
+    case 'weight':
+      return <ToggleButton active={form.weightConcern} label={t('Weight concern')} onClick={() => setForm({ ...form, weightConcern: !form.weightConcern })} />
+    default:
+      return null
+  }
+}
+
+// Renders just the fields the selected "what changed?" categories map to, plus a
+// food / medication CTA when those categories are picked.
+function GuidedFieldsForCategory({ categories, cat, form, setForm, onAddFood, onAddMedication, note }) {
+  const tokens = guidedTokens(categories, cat)
+  const choiceOrder = ['itching', 'stool', 'litter', 'urination', 'appetite', 'water', 'energy']
+  const toggleOrder = ['vomiting', 'earRedness', 'pawLicking', 'straining', 'hiding', 'weight']
+  const toggles = toggleOrder.filter((tk) => tokens.has(tk))
+  return (
+    <>
+      {choiceOrder.filter((tk) => tokens.has(tk)).map((tk) => (
+        <GuidedChoice key={tk} token={tk} form={form} setForm={setForm} />
+      ))}
+      {toggles.length > 0 && (
+        <div className="toggle-grid">
+          {toggles.map((tk) => <GuidedToggle key={tk} token={tk} form={form} setForm={setForm} />)}
+        </div>
+      )}
+      {categories.includes('food') && (
+        <button type="button" className="ghost-button wide" onClick={() => onAddFood(null, note)}>
+          <Utensils size={18} /> {t('Add a food or treat change')}
+        </button>
+      )}
+      {categories.includes('medication') && (
+        <button type="button" className="ghost-button wide" onClick={onAddMedication}>
+          <Pill size={18} /> {t('Add a medication or care note')}
+        </button>
+      )}
+    </>
+  )
+}
+
+// Food/treat changes whose start date sits within (or just before) the pattern's
+// detected window — real logs only, never invented, capped at 3 (newest first).
+function nearbyFoodChanges(pattern, foodLogs) {
+  if (!pattern?.firstDetectedAt || !foodLogs?.length) return []
+  const start = addDays(pattern.firstDetectedAt, -21)
+  const end = pattern.lastDetectedAt || today
+  return foodLogs
+    .filter((f) => f.dateStarted && f.dateStarted >= start && f.dateStarted <= end)
+    .slice()
+    .sort((a, b) => (a.dateStarted < b.dateStarted ? 1 : -1))
+    .slice(0, 3)
+}
+
+function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddMedication }) {
   const [note, setNote] = useState(form.freeTextNote || '')
   const [suggestion, setSuggestion] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
   const [applied, setApplied] = useState(false)
+  // 'full' = the existing full form, 'changed' = guided chips, 'note' = one
+  // sentence first. Seeded by the caller (the Today decision cards) and switchable
+  // in-panel ("Show full form" / "Describe instead").
+  const [mode, setMode] = useState(startMode || 'full')
+  const [changedCats, setChangedCats] = useState([])
+
+  // Re-sync when the caller opens the check-in in a new mode while the view is
+  // already mounted (e.g. tapping a different Today action, or the nav "Log" tab).
+  useEffect(() => { setMode(startMode || 'full') }, [startMode])
+
+  function toggleChangedCat(key) {
+    setChangedCats((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]))
+  }
 
   function updateNote(value) {
     setNote(value)
@@ -1503,19 +1789,131 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, onBack, onS
   }
 
   const cat = isCat(pet)
+  const categories = cat ? CHANGED_CATEGORIES.CAT : CHANGED_CATEGORIES.DOG
 
   return (
     <section className="flow-panel">
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
       <p className="kicker">{t('Daily check-in')}</p>
       <h1>{t('How was {name} today?', { name: pet.name })}</h1>
-      <p className="lead">{t('A few seconds a day builds {name}\'s record, so changes are easy to spot later.', { name: pet.name })}</p>
-      <p className="reassure">
-        {cat
-          ? t('Only log what you noticed. Cats hide changes, so small notes can help.')
-          : t('Only log what you noticed. A quick check-in is enough.')}
-      </p>
 
+      {mode === 'full' && (
+        <>
+          <p className="lead">{t('A few seconds a day builds {name}\'s record, so changes are easy to spot later.', { name: pet.name })}</p>
+          <p className="reassure">
+            {cat
+              ? t('Only log what you noticed. Cats hide changes, so small notes can help.')
+              : t('Only log what you noticed. A quick check-in is enough.')}
+          </p>
+        </>
+      )}
+
+      {mode === 'changed' && (
+        <div className="guided-flow">
+          <p className="lead">{t('Tell PetPattern what changed for {name} — just the parts that did.', { name: pet.name })}</p>
+          <p className="form-section-label">{t('What changed?')}</p>
+          <div className="guided-chip-grid">
+            {categories.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                className={changedCats.includes(c.key) ? 'guided-chip active' : 'guided-chip'}
+                aria-pressed={changedCats.includes(c.key)}
+                onClick={() => toggleChangedCat(c.key)}
+              >
+                {t(c.label)}
+              </button>
+            ))}
+          </div>
+
+          {changedCats.length > 0 && (
+            <form className="quick-form guided-fields" onSubmit={onSave}>
+              <div className="field-label">
+                {t('Date')}
+                <DateField value={form.checkInDate} onChange={(d) => setForm({ ...form, checkInDate: d })} />
+              </div>
+              <GuidedFieldsForCategory
+                categories={changedCats}
+                cat={cat}
+                form={form}
+                setForm={setForm}
+                onAddFood={onAddFood}
+                onAddMedication={onAddMedication}
+                note={note}
+              />
+              <label className="field-label">
+                {t('Add a note (optional)')}
+                <textarea
+                  placeholder={t('Anything else worth remembering about today?')}
+                  value={note}
+                  onChange={(e) => updateNote(e.target.value)}
+                />
+              </label>
+              <button type="button" className="ghost-button wide" onClick={onAddPhoto}>
+                <ImagePlus size={18} /> {t('Add a photo if it helps')}
+              </button>
+              <button className="primary-button wide" type="submit" disabled={saving}>
+                <Check size={18} /> {t('Save today')}
+              </button>
+            </form>
+          )}
+
+          <div className="guided-flow-foot">
+            <button className="text-button" type="button" onClick={() => setMode('note')}>{t('Describe instead')}</button>
+            <button className="text-button" type="button" onClick={() => setMode('full')}>{t('Show full form')}</button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'note' && (
+        <div className="note-first-panel">
+          <p className="form-section-label">{t('Describe what happened')}</p>
+          <p className="muted">{t('Write one sentence. PetPattern will suggest fields before saving.')}</p>
+          <form className="quick-form" onSubmit={onSave}>
+            <div className="field-label">
+              {t('Date')}
+              <DateField value={form.checkInDate} onChange={(d) => setForm({ ...form, checkInDate: d })} />
+            </div>
+            <textarea
+              className="note-first-input"
+              placeholder={cat
+                ? t('e.g. {name} used the litter box less today, hid under the bed, and ate about half a meal.', { name: pet.name })
+                : t('e.g. {name} scratched more today, stool was softer, and we gave a new chicken treat yesterday.', { name: pet.name })}
+              value={note}
+              onChange={(e) => updateNote(e.target.value)}
+            />
+            <div className="action-row">
+              {!cat && aiSuggestEnabled && (
+                <button className="secondary-button" type="button" onClick={suggestFields} disabled={aiLoading || !note.trim()}>
+                  <Pencil size={16} /> {aiLoading ? t('Reading…') : t('Suggest fields')}
+                </button>
+              )}
+              <button className="primary-button" type="submit" disabled={saving}>
+                <Check size={18} /> {t('Save note only')}
+              </button>
+            </div>
+            {aiError && <p className="ai-error">{aiError}</p>}
+            {suggestion && (
+              <SuggestionPreview
+                suggestion={suggestion}
+                applied={applied}
+                onApply={applySuggestion}
+                onAddFood={() => onAddFood(suggestion.possibleFoodTrigger, note)}
+              />
+            )}
+            <button type="button" className="ghost-button wide" onClick={onAddPhoto}>
+              <ImagePlus size={18} /> {t('Add a photo if it helps')}
+            </button>
+          </form>
+          <div className="guided-flow-foot">
+            <button className="text-button" type="button" onClick={() => setMode('changed')}>{t('Something changed')}</button>
+            <button className="text-button" type="button" onClick={() => setMode('full')}>{t('Show full form')}</button>
+          </div>
+        </div>
+      )}
+
+      {mode === 'full' && (
+        <>
       {onQuickLog && (
         <div className="quiet-day">
           <button type="button" className="quiet-day-button" onClick={onQuickLog} disabled={saving}>
@@ -1709,6 +2107,8 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, onBack, onS
           <Check size={18} /> {t('Save today')}
         </button>
       </form>
+        </>
+      )}
     </section>
   )
 }
@@ -1901,7 +2301,7 @@ function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShow
           </article>
         )}
         {active.map((pattern) => (
-          <PatternCard key={pattern.id} pattern={pattern} variant="active" checkIns={checkIns} foodLogs={foodLogs} onShowTimeline={onShowTimeline} onSetStatus={onSetStatus} />
+          <PatternCard key={pattern.id} pattern={pattern} variant="active" checkIns={checkIns} foodLogs={foodLogs} onShowTimeline={onShowTimeline} onSetStatus={onSetStatus} onVetSummary={onVetSummary} />
         ))}
       </div>
 
@@ -2106,55 +2506,108 @@ function PatternCellStrip({ pattern, checkIns, sig, foodLogs }) {
   )
 }
 
-function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onSetStatus }) {
+function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onSetStatus, onVetSummary }) {
   const meta = statusMeta(pattern.status)
-  const muted = variant !== 'active'
 
-  return (
-    <article className={muted ? 'panel pattern-card dismissed' : 'panel pattern-card'}>
-      <div className="pattern-top">
+  // Settled / dismissed cards stay compact and unchanged — the case-file layout is
+  // for the active variant only.
+  if (variant !== 'active') {
+    return (
+      <article className="panel pattern-card dismissed">
+        <div className="pattern-top">
+          {variant === 'settled'
+            ? <span className="status-chip calm">{t('Settled')}</span>
+            : meta.label
+              ? <span className={`status-chip ${meta.tone}`}>{meta.label}</span>
+              : <span className="pattern-flag">{t('Something to notice')}</span>}
+        </div>
+        <h2>{pattern.title}</h2>
         {variant === 'settled'
-          ? <span className="status-chip calm">{t('Settled')}</span>
-          : meta.label
-            ? <span className={`status-chip ${meta.tone}`}>{meta.label}</span>
-            : <span className="pattern-flag">{t('Something to notice')}</span>}
+          ? <p className="memory-line">{settledLine(pattern)}</p>
+          : (memoryLine(pattern) && <p className="memory-line">{memoryLine(pattern)}</p>)}
+        <p>{pattern.summary}</p>
+        <div className="pattern-actions">
+          {variant === 'dismissed' && (
+            <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'ACKNOWLEDGED')}>{t('Bring back')}</button>
+          )}
+          {variant === 'settled' && (
+            <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Hide')}</button>
+          )}
+        </div>
+      </article>
+    )
+  }
+
+  const nearbyFood = nearbyFoodChanges(pattern, foodLogs)
+  const seenBefore = pattern.seenBefore && pattern.detectionCount > 1
+  return (
+    <article className="panel pattern-card case-file-card">
+      <div className="pattern-top">
+        <span className="case-file-kicker">{t('Pattern case file')}</span>
+        {meta.label && <span className={`status-chip ${meta.tone}`}>{meta.label}</span>}
       </div>
       <h2>{pattern.title}</h2>
-      {variant === 'settled' ? (
-        <p className="memory-line">{settledLine(pattern)}</p>
-      ) : (
-        memoryLine(pattern) && <p className="memory-line">{memoryLine(pattern)}</p>
-      )}
-      <p>{pattern.summary}</p>
-      {variant === 'active' && pattern.evidence?.length > 0 && (
-        <ul className="evidence-list">
-          {pattern.evidence.map((line) => <li key={line}>{line}</li>)}
-        </ul>
-      )}
-      {variant === 'active' && (
-        <PatternChart pattern={pattern} checkIns={checkIns} foodLogs={foodLogs} />
-      )}
-      {variant === 'active' && (
-        <p className="pattern-disclaimer muted">{t('Not a diagnosis — just something from your notes that may be worth mentioning to your vet.')}</p>
-      )}
-      {variant === 'active' && (
-        <button className="text-button" type="button" onClick={() => onShowTimeline(pattern)}>
-          {t('Show what changed')} <ChevronRight size={16} />
-        </button>
+
+      <div className="case-file-section">
+        <p className="case-file-label">{t('What PetPattern noticed')}</p>
+        <p>{pattern.summary}</p>
+        {pattern.evidence?.length > 0 && (
+          <ul className="evidence-list">
+            {pattern.evidence.map((line) => <li key={line}>{line}</li>)}
+          </ul>
+        )}
+      </div>
+
+      {pattern.firstDetectedAt && (
+        <div className="case-file-section">
+          <p className="case-file-label">{t('Seen before')}</p>
+          <p className="case-file-meta">
+            {seenBefore
+              ? `${t('PetPattern found similar changes across a few logs.')} ${t('Seen a few times since {date}', { date: formatDate(pattern.firstDetectedAt) })}`
+              : t('First noticed {date}', { date: formatDate(pattern.firstDetectedAt) })}
+          </p>
+        </div>
       )}
 
-      <div className="pattern-actions">
-        {variant === 'dismissed' && (
-          <button className="chip-button" type="button" onClick={() => onSetStatus(pattern, 'ACKNOWLEDGED')}>{t('Bring back')}</button>
-        )}
-        {variant === 'settled' && (
+      <div className="case-file-section">
+        <p className="case-file-label">{t('Related signals')}</p>
+        <PatternChart pattern={pattern} checkIns={checkIns} foodLogs={foodLogs} />
+      </div>
+
+      {nearbyFood.length > 0 && (
+        <div className="case-file-section">
+          <p className="case-file-label">{t('Food or treat changes nearby')}</p>
+          <ul className="case-file-food">
+            {nearbyFood.map((f) => (
+              <li key={f.id}>
+                {formatDate(f.dateStarted)} · {[f.brand, f.productName].filter(Boolean).join(' - ') || foodKindLabel(f.foodKind)}{f.newFood ? ` · ${t('new')}` : ''}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {pattern.type === 'POSSIBLE_FOOD_TRIGGER' && (
+        <p className="pattern-disclaimer muted">{t('This is not an allergy diagnosis. It is a timeline you can discuss with your vet.')}</p>
+      )}
+      <p className="pattern-disclaimer muted">{t('This is a case file, not a diagnosis.')}</p>
+
+      <div className="case-file-section">
+        <p className="case-file-label">{t('Status')}</p>
+        <div className="pattern-actions">
+          <button className="chip-button primary-chip" type="button" onClick={() => onSetStatus(pattern, 'SHARED_WITH_VET')}>{t('Add to vet summary')}</button>
           <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Hide')}</button>
-        )}
-        {variant === 'active' && (
-          <>
-            <button className="chip-button primary-chip" type="button" onClick={() => onSetStatus(pattern, 'SHARED_WITH_VET')}>{t('Add to vet summary')}</button>
-            <button className="chip-button subtle" type="button" onClick={() => onSetStatus(pattern, 'NOT_RELEVANT')}>{t('Hide')}</button>
-          </>
+        </div>
+      </div>
+
+      <div className="action-row case-file-cta">
+        <button className="primary-button" type="button" onClick={() => onShowTimeline(pattern)}>
+          {t('Open case file')} <ChevronRight size={16} />
+        </button>
+        {onVetSummary && (
+          <button className="secondary-button" type="button" onClick={onVetSummary}>
+            <Stethoscope size={18} /> {t('Bring this to your vet')}
+          </button>
         )}
       </div>
     </article>
@@ -2240,6 +2693,10 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
         </div>
       )}
 
+      {(pattern?.type ?? timeline?.type) === 'POSSIBLE_FOOD_TRIGGER' && (
+        <p className="pattern-disclaimer muted">{t('This is not an allergy diagnosis. It is a timeline you can discuss with your vet.')}</p>
+      )}
+      <p className="muted">{t('Going to the vet? Bring the timeline, not your memory.')}</p>
       <div className="action-row">
         <button className="primary-button" type="button" onClick={onVetSummary}>
           <Stethoscope size={18} /> {t('Bring this to your vet')}
