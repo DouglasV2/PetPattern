@@ -26,6 +26,8 @@ public record VetSummaryDto(
         List<MedicationLine> medications,
         List<PatternSummary> patterns,
         List<OwnerNote> ownerNotes,
+        ObservationSummary observations,
+        VisibleChangeSummary visibleChanges,
         String disclaimer,
         String plainText
 ) {
@@ -108,6 +110,47 @@ public record VetSummaryDto(
     public record OwnerNote(
             LocalDate date,
             String note
+    ) {
+    }
+
+    /**
+     * Species-specific owner-observed signals (from the flexible observations
+     * model), for starter species. Null for dog/cat, which use the explicit
+     * sections above. Visible changes are reported separately below.
+     */
+    public record ObservationSummary(
+            List<ObservationLine> signals,
+            String narrative
+    ) {
+    }
+
+    public record ObservationLine(
+            String key,
+            String label,
+            int changedDays,
+            String latestValue
+    ) {
+    }
+
+    /**
+     * Visible Change / Wound notes over time — universal across species. This is
+     * an owner-observed timeline, not a diagnosis; photos, where present, line up
+     * by date so a vet can see how a change looked. Null when nothing was logged.
+     */
+    public record VisibleChangeSummary(
+            List<VisibleChangeEntry> entries,
+            int photoCount,
+            String narrative
+    ) {
+    }
+
+    public record VisibleChangeEntry(
+            LocalDate date,
+            String value,
+            String status,
+            String severity,
+            String note,
+            int photoCount
     ) {
     }
 }

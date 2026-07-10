@@ -1,5 +1,6 @@
 package com.petpattern.vet;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petpattern.api.dto.VetSummaryDto;
 import com.petpattern.domain.AppetiteLevel;
 import com.petpattern.domain.DailyCheckIn;
@@ -9,6 +10,7 @@ import com.petpattern.domain.FoodLog;
 import com.petpattern.domain.HidingBehavior;
 import com.petpattern.domain.LitterBoxUse;
 import com.petpattern.domain.Pet;
+import com.petpattern.domain.PhotoArea;
 import com.petpattern.domain.Protein;
 import com.petpattern.domain.Sex;
 import com.petpattern.domain.Species;
@@ -16,11 +18,15 @@ import com.petpattern.domain.StoolState;
 import com.petpattern.domain.UrinationChange;
 import com.petpattern.domain.WaterLevel;
 import com.petpattern.i18n.Copy;
+import com.petpattern.observations.ObservationSignal;
+import com.petpattern.observations.ObservationSignals;
 import com.petpattern.patterns.PatternCandidate;
 import com.petpattern.patterns.PatternEngine;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
+import com.petpattern.repository.PetPhotoRepository;
 import com.petpattern.repository.PetRepository;
+import com.petpattern.repository.PhotoView;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,10 +34,15 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalDouble;
+import java.util.Set;
 
 /**
  * Builds a vet-ready summary from stored, owner-reported history.
@@ -54,22 +65,33 @@ public class VetSummaryService {
     private static final int RECENT_WINDOW = 7;
     private static final int ITCHING_ELEVATED = 5;
 
+    /** Photo areas that represent a visible change worth lining up over time. */
+    private static final Set<PhotoArea> VISIBLE_CHANGE_AREAS = EnumSet.of(
+            PhotoArea.WOUND, PhotoArea.SWELLING, PhotoArea.SKIN,
+            PhotoArea.SHELL, PhotoArea.FEATHER, PhotoArea.FIN_SCALE);
+
     private final PetRepository petRepository;
     private final DailyCheckInRepository checkInRepository;
     private final FoodLogRepository foodLogRepository;
     private final PatternEngine patternEngine;
     private final com.petpattern.repository.MedicationRepository medicationRepository;
+    private final PetPhotoRepository photoRepository;
+    private final ObjectMapper objectMapper;
 
     public VetSummaryService(PetRepository petRepository,
                              DailyCheckInRepository checkInRepository,
                              FoodLogRepository foodLogRepository,
                              PatternEngine patternEngine,
-                             com.petpattern.repository.MedicationRepository medicationRepository) {
+                             com.petpattern.repository.MedicationRepository medicationRepository,
+                             PetPhotoRepository photoRepository,
+                             ObjectMapper objectMapper) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.patternEngine = patternEngine;
         this.medicationRepository = medicationRepository;
+        this.photoRepository = photoRepository;
+        this.objectMapper = objectMapper;
     }
 
     public VetSummaryDto build(java.util.UUID petId, Integer requestedDays) {
@@ -103,10 +125,16 @@ public class VetSummaryService {
         List<VetSummaryDto.MedicationLine> medications = medications(pet, rangeStart, rangeEnd);
         List<VetSummaryDto.PatternSummary> patternSummaries = patternSummaries(patterns);
         List<VetSummaryDto.OwnerNote> ownerNotes = ownerNotes(checkIns);
+        // Species-specific observations (starter species) and the universal visible-change
+        // timeline both read the flexible observations_json; photos line up by date.
+        List<PhotoView> visibleChangePhotos = visibleChangePhotos(pet, rangeStart, rangeEnd);
+        VetSummaryDto.ObservationSummary observations = speciesObservations(pet, checkIns);
+        VetSummaryDto.VisibleChangeSummary visibleChanges = visibleChanges(pet, checkIns, visibleChangePhotos);
         String mainConcern = mainConcern(pet, patterns, checkInSummary, stoolSummary);
 
         String plainText = plainText(identity, today, rangeStart, rangeEnd, days, mainConcern,
-                checkInSummary, stoolSummary, catSignals, wellbeing, foodChanges, medications, patternSummaries, ownerNotes);
+                checkInSummary, stoolSummary, catSignals, wellbeing, foodChanges, medications, patternSummaries,
+                ownerNotes, observations, visibleChanges);
 
         return new VetSummaryDto(
                 today,
@@ -123,6 +151,8 @@ public class VetSummaryService {
                 medications,
                 patternSummaries,
                 ownerNotes,
+                observations,
+                visibleChanges,
                 disclaimer(),
                 plainText
         );
@@ -326,6 +356,102 @@ public class VetSummaryService {
         return notes;
     }
 
+    /** Photo metadata (no bytes) in visible-change areas within the range. */
+    private List<PhotoView> visibleChangePhotos(Pet pet, LocalDate rangeStart, LocalDate rangeEnd) {
+        return photoRepository.findPhotoViewByPetOrderByCapturedDateDescCreatedAtDesc(pet).stream()
+                .filter(v -> v.getArea() != null && VISIBLE_CHANGE_AREAS.contains(v.getArea()))
+                .filter(v -> v.getCapturedDate() != null
+                        && !v.getCapturedDate().isBefore(rangeStart) && !v.getCapturedDate().isAfter(rangeEnd))
+                .toList();
+    }
+
+    /**
+     * Starter-species owner-observed signals, aggregated from observations_json.
+     * Null for dog/cat (they use the explicit sections above). Visible changes are
+     * reported separately and excluded here. Only signals logged as changed on at
+     * least one day are surfaced — an all-normal signal is not worth a vet's time.
+     */
+    VetSummaryDto.ObservationSummary speciesObservations(Pet pet, List<DailyCheckIn> checkIns) {
+        if (pet.getSpecies() != null && pet.getSpecies().isFullSupport()) {
+            return null;
+        }
+        Map<String, Integer> changedDays = new LinkedHashMap<>();
+        Map<String, String> labels = new LinkedHashMap<>();
+        Map<String, String> latestValue = new LinkedHashMap<>();
+
+        // checkIns arrive ascending by date, so the last write per key is the latest value.
+        for (DailyCheckIn checkIn : checkIns) {
+            for (ObservationSignal signal : ObservationSignals.parse(checkIn.getObservationsJson(), objectMapper)) {
+                String key = signal.key();
+                if (key == null || key.isBlank() || signal.isVisibleChange() || !signal.isChanged()) {
+                    continue;
+                }
+                changedDays.merge(key, 1, Integer::sum);
+                labels.putIfAbsent(key, signal.displayLabel());
+                latestValue.put(key, signal.displayValue());
+            }
+        }
+        if (changedDays.isEmpty()) {
+            return null;
+        }
+        List<VetSummaryDto.ObservationLine> lines = changedDays.entrySet().stream()
+                .map(e -> new VetSummaryDto.ObservationLine(
+                        e.getKey(), labels.get(e.getKey()), e.getValue(), latestValue.get(e.getKey())))
+                .sorted(Comparator.comparingInt(VetSummaryDto.ObservationLine::changedDays).reversed()
+                        .thenComparing(VetSummaryDto.ObservationLine::label, Comparator.nullsLast(String::compareTo)))
+                .toList();
+
+        String narrative = Copy.t("{0} had species-specific changes the owner logged in this period. "
+                + "These are owner-observed notes, not a diagnosis.", pet.getName());
+        return new VetSummaryDto.ObservationSummary(lines, narrative);
+    }
+
+    /**
+     * Visible Change / Wound timeline — universal across species. Reads
+     * {@code visible_change} signals from observations_json (any species can log
+     * them) and lines up visible-change photos by date. Owner-observed only, never
+     * a diagnosis. Null when nothing visible was logged.
+     */
+    VetSummaryDto.VisibleChangeSummary visibleChanges(Pet pet, List<DailyCheckIn> checkIns, List<PhotoView> photos) {
+        Map<LocalDate, Integer> photosByDate = new LinkedHashMap<>();
+        for (PhotoView view : photos) {
+            photosByDate.merge(view.getCapturedDate(), 1, Integer::sum);
+        }
+
+        List<VetSummaryDto.VisibleChangeEntry> entries = new ArrayList<>();
+        for (DailyCheckIn checkIn : checkIns) {
+            LocalDate date = checkIn.getCheckInDate();
+            for (ObservationSignal signal : ObservationSignals.parse(checkIn.getObservationsJson(), objectMapper)) {
+                if (!signal.isVisibleChange()) {
+                    continue;
+                }
+                entries.add(new VetSummaryDto.VisibleChangeEntry(
+                        date,
+                        signal.displayValue(),
+                        signal.normalizedStatus(),
+                        blankToNull(signal.severity()),
+                        blankToNull(signal.note()),
+                        photosByDate.getOrDefault(date, 0)));
+            }
+        }
+
+        int totalPhotos = photos.size();
+        if (entries.isEmpty() && totalPhotos == 0) {
+            return null;
+        }
+
+        String narrative = entries.isEmpty()
+                ? Copy.t("{0} visible-change photo(s) were saved in this period. Track how a change looks "
+                        + "over time — useful for your vet conversation, not a diagnosis.", totalPhotos)
+                : Copy.t("The owner logged {0} visible-change note(s) in this period. This is a timeline of "
+                        + "how things looked over time, not a diagnosis.", entries.size());
+        return new VetSummaryDto.VisibleChangeSummary(entries, totalPhotos, narrative);
+    }
+
+    private static String blankToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value.trim();
+    }
+
     private String mainConcern(Pet pet,
                                List<PatternCandidate> patterns,
                                VetSummaryDto.CheckInSummary checkInSummary,
@@ -345,6 +471,7 @@ public class VetSummaryService {
                 case LITTER_BOX_CHANGE -> Copy.t("A recent change in litter box behavior that the owner wants to review.");
                 case HIDING_INCREASED -> Copy.t("{0} has been hiding more than usual, which the owner wants to review.", pet.getName());
                 case REPEATED_VOMITING -> Copy.t("{0} vomited on more than one recent day, which the owner wants to review.", pet.getName());
+                case REPEATED_OBSERVATION -> Copy.t("A recurring change the owner logged that they want to review.");
             };
         }
         if (stoolSummary.softDays() + stoolSummary.diarrheaDays() > 0
@@ -370,7 +497,9 @@ public class VetSummaryService {
                              List<VetSummaryDto.FoodChange> foodChanges,
                              List<VetSummaryDto.MedicationLine> medications,
                              List<VetSummaryDto.PatternSummary> patterns,
-                             List<VetSummaryDto.OwnerNote> ownerNotes) {
+                             List<VetSummaryDto.OwnerNote> ownerNotes,
+                             VetSummaryDto.ObservationSummary observations,
+                             VetSummaryDto.VisibleChangeSummary visibleChanges) {
         StringBuilder out = new StringBuilder();
         out.append(Copy.t("PetPattern — Vet Visit Summary")).append('\n');
         out.append(Copy.t("Generated {0}", rangeEnd)).append("\n\n");
@@ -434,6 +563,40 @@ public class VetSummaryService {
 
         out.append(Copy.t("WATER / APPETITE / ENERGY")).append('\n');
         out.append("- ").append(wellbeing.narrative()).append("\n\n");
+
+        // Starter species: the owner-observed signals that dogs/cats capture in columns.
+        if (observations != null && !observations.signals().isEmpty()) {
+            out.append(Copy.t("SPECIES-SPECIFIC OBSERVATIONS")).append('\n');
+            for (VetSummaryDto.ObservationLine line : observations.signals()) {
+                out.append("- ").append(line.label()).append(": ")
+                        .append(Copy.t("logged as changed on {0}", Copy.days(line.changedDays())));
+                if (line.latestValue() != null && !line.latestValue().isBlank()) {
+                    out.append(" (").append(Copy.t("latest")).append(": ").append(line.latestValue()).append(")");
+                }
+                out.append("\n");
+            }
+            out.append("\n");
+        }
+
+        // Universal visible-change / wound timeline (owner-observed, not a diagnosis).
+        if (visibleChanges != null) {
+            out.append(Copy.t("VISIBLE CHANGES OVER TIME")).append('\n');
+            out.append("- ").append(visibleChanges.narrative()).append("\n");
+            for (VetSummaryDto.VisibleChangeEntry entry : visibleChanges.entries()) {
+                out.append("- ").append(entry.date()).append(": ").append(entry.value());
+                if (entry.status() != null) {
+                    out.append(" (").append(Copy.t(titleCase(entry.status()))).append(")");
+                }
+                if (entry.note() != null && !entry.note().isBlank()) {
+                    out.append(" — ").append(entry.note());
+                }
+                if (entry.photoCount() > 0) {
+                    out.append(" [").append(Copy.t("{0} photo(s)", entry.photoCount())).append("]");
+                }
+                out.append("\n");
+            }
+            out.append("\n");
+        }
 
         out.append(Copy.t("POSSIBLE PATTERNS")).append('\n');
         if (patterns.isEmpty()) {

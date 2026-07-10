@@ -40,6 +40,7 @@ import { api, setUnauthorizedHandler } from './api'
 import { t, setLang, getLang, loadLang, persistLang, LANGUAGES } from './i18n'
 import { LEGAL } from './legal'
 import { track } from './analytics'
+import { SPECIES_PROFILES, SPECIES_ORDER, speciesProfile, isStarterSpecies, categoryOptions, isChangedValue, visibleChangeConfig, VISIBLE_CHANGE_STATUSES } from './speciesProfiles'
 
 // The brand mark: a paw whose pads sit on a small memory trail, with one coral
 // pad for the point that changed. Drawn in currentColor so it inherits the
@@ -127,7 +128,7 @@ function PetPhotoStack({ pet, photos, onAddPhoto }) {
           {busy ? t('Adding…') : (hasPhotos ? t('Add another') : t('Add a photo of {name}', { name: pet.name }))}
         </span>
       </button>
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={onFile} />
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
     </div>
   )
 }
@@ -219,7 +220,7 @@ const CAT_BREEDS = [
   'Devon Rex', 'Burmese', 'Exotic Shorthair'
 ]
 
-const PHOTO_AREAS = ['EAR', 'PAW', 'SKIN', 'COAT', 'EYE', 'STOOL', 'OTHER']
+const PHOTO_AREAS = ['EAR', 'PAW', 'SKIN', 'COAT', 'EYE', 'STOOL', 'WOUND', 'SWELLING', 'SHELL', 'FEATHER', 'FIN_SCALE', 'OTHER']
 
 // Species shapes what we track and how we talk about it. Copy is translated at
 // render time via t(); these are the English keys.
@@ -248,11 +249,69 @@ function keep(level) {
 // A fresh check-in seeded only with the fields that species actually tracks, so a
 // cat never carries dog signals (scratching/stool) and vice-versa.
 function emptyCheckInFor(species) {
-  const base = { checkInDate: today, appetiteLevel: 'NORMAL', waterLevel: 'NORMAL', energyLevel: 'NORMAL', vomiting: false, freeTextNote: '' }
+  // Starter species (rabbit, bird, …) track via the flexible observations model,
+  // not the dog/cat columns. `observations` is a { key: {label,value,severity,note} }
+  // map, serialized to observationsJson on save.
+  if (species && species !== 'DOG' && species !== 'CAT') {
+    return { checkInDate: today, freeTextNote: '', observations: {} }
+  }
+  // `observations` also carries the universal Visible Change / Wound signal, so
+  // dog/cat check-ins can hold one alongside their explicit columns.
+  const base = { checkInDate: today, appetiteLevel: 'NORMAL', waterLevel: 'NORMAL', energyLevel: 'NORMAL', vomiting: false, freeTextNote: '', observations: {} }
   if (species === 'CAT') {
     return { ...base, litterBoxUse: 'NORMAL', urinationChange: 'NORMAL', straining: false, hidingBehavior: 'NORMAL', weightConcern: false }
   }
   return { ...base, itchingScore: 2, stoolState: 'NORMAL', earRedness: false, pawLicking: false }
+}
+
+// Serialize a starter-species check-in form's observations map to the JSON string
+// the backend stores. Returns null when nothing was recorded.
+function toObservationsJson(form, species) {
+  const obs = form.observations || {}
+  const signals = Object.entries(obs)
+    .filter(([, v]) => v && (v.value || v.note))
+    .map(([key, v]) => {
+      const signal = { key, label: v.label || key, value: v.value || '' }
+      if (v.severity) signal.severity = v.severity
+      if (v.status) signal.status = v.status
+      if (v.area) signal.area = v.area
+      if (v.note) signal.note = v.note
+      return signal
+    })
+  return signals.length ? JSON.stringify({ species, signals }) : null
+}
+
+// Parse a stored observationsJson back into the form's observations map (for edit).
+function parseObservations(json) {
+  if (!json) return {}
+  try {
+    const parsed = JSON.parse(json)
+    const out = {}
+    for (const s of parsed.signals || []) {
+      if (s.key) out[s.key] = { label: s.label || s.key, value: s.value || '', severity: s.severity || null, status: s.status || null, area: s.area || null, note: s.note || '' }
+    }
+    return out
+  } catch (err) {
+    return {}
+  }
+}
+
+// Recent starter-species observations for the vet summary — one row per check-in
+// that logged a changed signal (owner-observed facts only, never a diagnosis).
+function starterObservationRows(checkIns) {
+  return (checkIns || [])
+    .map((c) => {
+      const obs = parseObservations(c.observationsJson)
+      // Visible changes get their own "Visible changes over time" section.
+      const changed = Object.entries(obs)
+        .filter(([key, v]) => key !== 'visible_change' && v && isChangedValue(v.value))
+        .map(([, v]) => v)
+      if (!changed.length) return null
+      const text = changed.map((v) => `${v.label ? `${t(v.label)}: ` : ''}${t(v.value)}`).join(', ')
+      return { date: c.checkInDate, text }
+    })
+    .filter(Boolean)
+    .slice(0, 20)
 }
 
 function App() {
@@ -656,6 +715,28 @@ function App() {
     }
   }
 
+  // Attach a health / visible-change photo tagged with a body area (WOUND, SKIN,
+  // SHELL, FEATHER, FIN_SCALE, …) and dated to the check-in day, so it lines up in
+  // the area-grouped progression view. Unlike addPetPhoto this is NOT a profile photo.
+  async function addHealthPhoto(file, area, capturedDate) {
+    if (!selectedPet || !file) return null
+    setError('')
+    try {
+      const blob = await resizeImage(file, 1400, 0.82)
+      const formData = new FormData()
+      formData.append('file', blob, 'photo.jpg')
+      formData.append('area', area || 'WOUND')
+      formData.append('capturedDate', capturedDate || today)
+      const saved = await api.uploadPhoto(selectedPet.id, formData)
+      setPhotos(await api.listPhotos(selectedPet.id))
+      showToast(t('Photo added — track how it looks over time.'))
+      return saved
+    } catch (err) {
+      setError('That photo could not be added. Try a JPEG or PNG.')
+      return null
+    }
+  }
+
   async function removePhoto(photo) {
     if (!selectedPet || !photo) return
     if (!window.confirm(t('Remove this photo? This cannot be undone.'))) return
@@ -775,6 +856,12 @@ function App() {
         hidingBehavior: item.hidingBehavior ?? 'NORMAL',
         weightConcern: !!item.weightConcern
       })
+    } else if (isStarterSpecies(selectedPet?.species)) {
+      setCheckInForm({
+        checkInDate: item.checkInDate,
+        freeTextNote: item.freeTextNote ?? '',
+        observations: parseObservations(item.observationsJson)
+      })
     } else {
       setCheckInForm({
         ...shared,
@@ -836,6 +923,48 @@ function App() {
     }
   }
 
+  // Milo the cat demo. Seeds Milo alongside Bella under the same demo account, then
+  // selects Milo so the cat-specific signals show immediately. loadInitial() (via
+  // afterSignedIn) defaults to Bella, so we override the selection afterwards.
+  async function signInCatDemo() {
+    const milo = await api.seedCatDemo()
+    await afterSignedIn(await api.me())
+    if (milo?.id) setSelectedPetId(milo.id)
+    go('today')
+  }
+
+  async function loadCatDemo() {
+    setError('')
+    setSaving(true)
+    try {
+      await signInCatDemo()
+    } catch (err) {
+      setError(t('Demo could not load. Try again in a moment.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Poppy the rabbit — a starter-species demo (flexible observations model).
+  async function signInRabbitDemo() {
+    const poppy = await api.seedRabbitDemo()
+    await afterSignedIn(await api.me())
+    if (poppy?.id) setSelectedPetId(poppy.id)
+    go('today')
+  }
+
+  async function loadRabbitDemo() {
+    setError('')
+    setSaving(true)
+    try {
+      await signInRabbitDemo()
+    } catch (err) {
+      setError(t('Demo could not load. Try again in a moment.'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
   // Used by the species-specific onboarding flow. Returns the created pet (or
   // throws, so the onboarding component can show its own inline error).
   async function createPetFromOnboarding(payload) {
@@ -887,7 +1016,12 @@ function App() {
     setError('')
     setSaving(true)
     try {
-      await api.saveCheckIn(selectedPet.id, checkInForm)
+      // Every species can carry observations now: starter-species signals and the
+      // universal visible-change note. Strip the working object and send the JSON
+      // (null when nothing was recorded — dog/cat keep using their explicit columns).
+      const { observations, ...rest } = checkInForm
+      const payload = { ...rest, observationsJson: toObservationsJson(checkInForm, selectedPet.species) }
+      await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
@@ -1020,7 +1154,7 @@ function App() {
   }
 
   if (!owner) {
-    return <AuthScreen lang={lang} onLangChange={switchLang} onLogin={signIn} onRegister={signUp} onDemo={signInDemo} demoEnabled={demoEnabled} googleEnabled={googleEnabled} />
+    return <AuthScreen lang={lang} onLangChange={switchLang} onLogin={signIn} onRegister={signUp} onDemo={signInDemo} onCatDemo={signInCatDemo} onRabbitDemo={signInRabbitDemo} demoEnabled={demoEnabled} googleEnabled={googleEnabled} />
   }
 
   if (loading) {
@@ -1059,6 +1193,8 @@ function App() {
             onCreate={createPetFromOnboarding}
             onFinish={finishOnboarding}
             onDemo={loadDemo}
+            onCatDemo={loadCatDemo}
+            onRabbitDemo={loadRabbitDemo}
             demoBusy={saving}
             demoEnabled={demoEnabled}
           />
@@ -1148,6 +1284,7 @@ function App() {
             onQuickLog={quickLog}
             onAddFood={addFoodFromSuggestion}
             onAddPhoto={() => go('photos')}
+            onAddHealthPhoto={addHealthPhoto}
             onAddMedication={() => go('medications')}
           />
         )}
@@ -1163,6 +1300,17 @@ function App() {
             onSave={saveFood}
             onDeleteFood={removeFoodLog}
             onTrial={() => go('trial')}
+            onFoodDetective={() => go('food-detective')}
+          />
+        )}
+
+        {view === 'food-detective' && (
+          <FoodDetectiveView
+            pet={selectedPet}
+            foodLogs={foodLogs}
+            checkIns={checkIns}
+            onBack={() => go('food')}
+            onFoodChange={() => go('food')}
           />
         )}
 
@@ -1178,6 +1326,7 @@ function App() {
             onSetStatus={setPatternStatus}
             onRecap={() => go('recap')}
             onVetSummary={() => openVetSummary()}
+            onFoodDetective={() => go('food-detective')}
           />
         )}
 
@@ -1247,6 +1396,7 @@ function App() {
             summary={vetSummary}
             loading={vetLoading}
             days={vetDays}
+            checkIns={checkIns}
             onBack={() => go('today')}
             onChangeDays={openVetSummary}
             onMedications={() => go('medications')}
@@ -1265,6 +1415,7 @@ function App() {
             onSomethingChanged={() => openCheckIn('changed')}
             onAddNoteOrPhoto={() => openCheckIn('note')}
             onFoodChange={() => go('food')}
+            onFoodDetective={() => go('food-detective')}
             onPatterns={() => go('patterns')}
             onShowTimeline={openTimeline}
             onVetSummary={() => openVetSummary()}
@@ -1355,6 +1506,23 @@ function TodayNoteCard({ pet, overview, topPattern, checkIns, loggedToday }) {
         <p className="today-note-text">{body}</p>
       </div>
     </section>
+  )
+}
+
+// Latest observed signals for a starter species, read from the flexible
+// observations model. A changed value reads "watch"; a quiet day shows a prompt.
+function StarterSignals({ latestCheckIn, pet }) {
+  const obs = parseObservations(latestCheckIn?.observationsJson)
+  const signals = Object.entries(obs).filter(([, v]) => v && (v.value || v.note)).slice(0, 6)
+  if (!signals.length) {
+    return <p className="muted">{t('Log a day and {name}\'s signals show up here.', { name: pet.name })}</p>
+  }
+  return (
+    <>
+      {signals.map(([key, v]) => (
+        <Signal key={key} label={t(v.label || key)} value={t(v.value || 'Noticed')} tone={isChangedValue(v.value) ? 'watch' : 'calm'} />
+      ))}
+    </>
   )
 }
 
@@ -1458,7 +1626,7 @@ function BackfillCard({ pet, checkIns, loggedToday, onQuickLog, onLogDay }) {
   )
 }
 
-function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto }) {
+function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onFoodDetective, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto }) {
   const loggedToday = overview?.retention?.loggedToday ?? checkIns.some((c) => c.checkInDate === today)
   return (
     <>
@@ -1466,11 +1634,13 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
         <div className="today-copy">
           <p className="kicker">{t('{name} today', { name: pet.name })}</p>
           <h1>{todayHeadline(pet, overview, topPattern, latestCheckIn)}</h1>
-          <p>{overview?.todayExplanation ?? `${pet.name} is ready for a first check-in.`}</p>
+          <p>{overview?.todayExplanation ?? t('{name} is ready for a first check-in.', { name: pet.name })}</p>
         </div>
 
-        <div className={`state-panel ${overview?.todayStatus ?? 'changed'}`}>
-          <span>{statusLabel(overview?.todayStatus, pet.name)}</span>
+        {/* A never-logged pet gets a calm "getting started" panel, not the coral
+            "changed" alert — there is nothing to have changed on day zero. */}
+        <div className={`state-panel ${latestCheckIn ? (overview?.todayStatus ?? 'changed') : 'normal'}`}>
+          <span>{latestCheckIn ? statusLabel(overview?.todayStatus, pet.name) : t('Getting started')}</span>
           <strong>{overview?.nextAction ?? t('Log today')}</strong>
         </div>
       </section>
@@ -1500,7 +1670,9 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
             <h2>{t('Recent signals')}</h2>
           </div>
           <div className="signal-list">
-            {isCat(pet) ? (
+            {!latestCheckIn ? (
+              <p className="muted">{t("Log a day and {name}'s signals show up here.", { name: pet.name })}</p>
+            ) : isCat(pet) ? (
               <>
                 <Signal label={t('Litter box')} value={litterLabel(latestCheckIn?.litterBoxUse)} tone={['LESS', 'MORE', 'NONE'].includes(latestCheckIn?.litterBoxUse) ? 'watch' : 'calm'} />
                 <Signal label={t('Appetite')} value={levelLabel(latestCheckIn?.appetiteLevel)} tone={latestCheckIn?.appetiteLevel === 'LOWER' || latestCheckIn?.appetiteLevel === 'REFUSED' ? 'watch' : 'calm'} />
@@ -1508,6 +1680,8 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
                 <Signal label={t('Hiding')} value={hidingLabel(latestCheckIn?.hidingBehavior)} tone={latestCheckIn?.hidingBehavior === 'MORE' ? 'watch' : 'calm'} />
                 <Signal label={t('Energy')} value={levelLabel(latestCheckIn?.energyLevel)} tone={latestCheckIn?.energyLevel === 'LOW' || latestCheckIn?.energyLevel === 'RESTLESS' ? 'watch' : 'calm'} />
               </>
+            ) : isStarterSpecies(pet.species) ? (
+              <StarterSignals latestCheckIn={latestCheckIn} pet={pet} />
             ) : (
               <>
                 <Signal label={t('Scratching')} value={latestCheckIn?.itchingScore != null ? `${latestCheckIn.itchingScore}/10` : t('Not logged')} tone={latestCheckIn?.itchingScore >= 6 ? 'watch' : 'calm'} />
@@ -1539,6 +1713,11 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
             <p className="muted">{t('Add the first food change and we can line it up against how things have been going.')}</p>
           )}
           <p className="muted food-note">{t('Food changes often matter more than they seem. PetPattern lines them up with stool, scratching, appetite, vomiting and energy changes.')}</p>
+          {onFoodDetective && (
+            <button className="text-button" type="button" onClick={onFoodDetective}>
+              {speciesProfile(pet.species).detectiveMode === 'ENVIRONMENT' ? t('Open environment detective') : t('Open food detective')} <ChevronRight size={16} />
+            </button>
+          )}
         </article>
 
         <article className="panel pattern-teaser">
@@ -1726,7 +1905,134 @@ function nearbyFoodChanges(pattern, foodLogs) {
     .slice(0, 3)
 }
 
-function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddMedication }) {
+// Generic value-selectors for a STARTER species' guided categories. Each choice is
+// written into form.observations (serialized to observationsJson on save), so a
+// rabbit/bird/reptile logs its own signals — never the dog/cat columns. Categories
+// flagged as food/medication route to those existing flows instead of a field.
+function StarterGuidedFields({ categories, form, setForm, note, onAddFood, onAddMedication }) {
+  function setValue(cat, value) {
+    const prev = (form.observations || {})[cat.key] || {}
+    setForm({ ...form, observations: { ...(form.observations || {}), [cat.key]: { label: cat.label, ...prev, value } } })
+  }
+  return (
+    <>
+      {categories.map((cat) => {
+        if (cat.cta === 'food') {
+          return (
+            <button key={cat.key} type="button" className="ghost-button wide" onClick={() => onAddFood(null, note)}>
+              <Utensils size={18} /> {t('Add a food or treat change')}
+            </button>
+          )
+        }
+        if (cat.cta === 'medication') {
+          return (
+            <button key={cat.key} type="button" className="ghost-button wide" onClick={onAddMedication}>
+              <Pill size={18} /> {t('Add a medication or care note')}
+            </button>
+          )
+        }
+        const current = (form.observations || {})[cat.key] || {}
+        return (
+          <QuickChoices
+            key={cat.key}
+            label={t(cat.label)}
+            value={current.value || ''}
+            options={categoryOptions(cat).map((o) => ({ value: o, label: t(o) }))}
+            onChange={(value) => setValue(cat, value)}
+          />
+        )
+      })}
+    </>
+  )
+}
+
+// Universal Visible Change / Wound tracker — one guided entry (what you saw +
+// better/same/worse + optional note + optional photo) for every species. It writes
+// a single `visible_change` signal into form.observations. NOT a diagnosis or a
+// wound detector: it only records what the owner can see, to track it over time.
+function VisibleChangeField({ pet, form, setForm, onAddPhoto }) {
+  const config = visibleChangeConfig(pet.species)
+  const fileRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+  const current = (form.observations || {}).visible_change || {}
+
+  function update(patch) {
+    const prev = (form.observations || {}).visible_change || {}
+    setForm({ ...form, observations: { ...(form.observations || {}), visible_change: { label: 'Visible change', ...prev, ...patch } } })
+  }
+
+  async function onFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !onAddPhoto) return
+    setUploading(true)
+    try {
+      // Dated to the check-in day and tagged with the selected area, so it lines up
+      // in the area-grouped progression view even before the check-in is saved.
+      await onAddPhoto(file, current.area || 'WOUND', form.checkInDate)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="visible-change">
+      <p className="form-section-label">{t(config.label)}</p>
+      <p className="vc-safe">{t('Track how this looks over time. Useful for your vet conversation. Not a diagnosis.')}</p>
+      <div className="guided-chip-grid">
+        {config.options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            className={current.value === opt.value ? 'guided-chip active' : 'guided-chip'}
+            aria-pressed={current.value === opt.value}
+            onClick={() => update({ value: opt.value, area: opt.area })}
+          >
+            {t(opt.value)}
+          </button>
+        ))}
+      </div>
+      {current.value && (
+        <>
+          <p className="form-section-label">{t('Compared to before')}</p>
+          <div className="chip-row">
+            {VISIBLE_CHANGE_STATUSES.map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                className={current.status === s.value ? 'guided-chip active' : 'guided-chip'}
+                aria-pressed={current.status === s.value}
+                onClick={() => update({ status: s.value })}
+              >
+                {t(s.label)}
+              </button>
+            ))}
+          </div>
+          <label className="field-label">
+            {t('Note about this change (optional)')}
+            <input
+              type="text"
+              value={current.note || ''}
+              maxLength={300}
+              placeholder={t('e.g. small red patch near the left ear')}
+              onChange={(e) => update({ note: e.target.value })}
+            />
+          </label>
+          {onAddPhoto && (
+            <>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
+              <button type="button" className="ghost-button wide" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                <ImagePlus size={18} /> {uploading ? t('Adding…') : t('Add a photo of this')}
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddHealthPhoto, onAddMedication }) {
   const [note, setNote] = useState(form.freeTextNote || '')
   const [suggestion, setSuggestion] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -1784,12 +2090,42 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
     if (suggestion.energyLevel && suggestion.energyLevel !== 'UNKNOWN') next.energyLevel = suggestion.energyLevel
     if (suggestion.vomiting) next.vomiting = true
     if (suggestion.earRedness) next.earRedness = true
+    // Cat-specific fields (present on the cat check-in form).
+    if (suggestion.litterBoxUse && suggestion.litterBoxUse !== 'UNKNOWN') next.litterBoxUse = suggestion.litterBoxUse
+    if (suggestion.urinationChange && suggestion.urinationChange !== 'UNKNOWN') next.urinationChange = suggestion.urinationChange
+    if (suggestion.hidingBehavior && suggestion.hidingBehavior !== 'UNKNOWN') next.hidingBehavior = suggestion.hidingBehavior
+    if (suggestion.straining) next.straining = true
+    if (suggestion.weightConcern) next.weightConcern = true
+    // Starter species (and any visible-change note): map generic detectedSignals into
+    // the flexible observations model. Dog/cat return no detectedSignals, so this is a
+    // no-op for them and their explicit-field behavior above is preserved.
+    if (Array.isArray(suggestion.detectedSignals) && suggestion.detectedSignals.length) {
+      const observations = { ...(next.observations || {}) }
+      for (const signal of suggestion.detectedSignals) {
+        if (!signal || !signal.key) continue
+        const prev = observations[signal.key] || {}
+        observations[signal.key] = {
+          ...prev,
+          label: signal.label || prev.label || signal.key,
+          value: signal.value || prev.value || 'Changed',
+          severity: signal.severity || prev.severity || null,
+          note: prev.note || ''
+        }
+      }
+      next.observations = observations
+    }
     setForm(next)
     setApplied(true)
   }
 
   const cat = isCat(pet)
-  const categories = cat ? CHANGED_CATEGORIES.CAT : CHANGED_CATEGORIES.DOG
+  const starter = isStarterSpecies(pet.species)
+  const profile = speciesProfile(pet.species)
+  const guidedCategories = starter ? profile.guidedCategories : (cat ? CHANGED_CATEGORIES.CAT : CHANGED_CATEGORIES.DOG)
+  // A universal Visible Change / Wound category on every species' chip grid. Its
+  // fields render as a dedicated <VisibleChangeField> (not a plain value chip).
+  const vcCategory = { key: 'visible_change', label: visibleChangeConfig(pet.species).label }
+  const categories = [...guidedCategories, vcCategory]
 
   return (
     <section className="flow-panel">
@@ -1832,15 +2168,29 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
                 {t('Date')}
                 <DateField value={form.checkInDate} onChange={(d) => setForm({ ...form, checkInDate: d })} />
               </div>
-              <GuidedFieldsForCategory
-                categories={changedCats}
-                cat={cat}
-                form={form}
-                setForm={setForm}
-                onAddFood={onAddFood}
-                onAddMedication={onAddMedication}
-                note={note}
-              />
+              {starter ? (
+                <StarterGuidedFields
+                  categories={guidedCategories.filter((c) => changedCats.includes(c.key))}
+                  form={form}
+                  setForm={setForm}
+                  note={note}
+                  onAddFood={onAddFood}
+                  onAddMedication={onAddMedication}
+                />
+              ) : (
+                <GuidedFieldsForCategory
+                  categories={changedCats.filter((k) => k !== 'visible_change')}
+                  cat={cat}
+                  form={form}
+                  setForm={setForm}
+                  onAddFood={onAddFood}
+                  onAddMedication={onAddMedication}
+                  note={note}
+                />
+              )}
+              {changedCats.includes('visible_change') && (
+                <VisibleChangeField pet={pet} form={form} setForm={setForm} onAddPhoto={onAddHealthPhoto} />
+              )}
               <label className="field-label">
                 {t('Add a note (optional)')}
                 <textarea
@@ -1876,14 +2226,16 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
             </div>
             <textarea
               className="note-first-input"
-              placeholder={cat
-                ? t('e.g. {name} used the litter box less today, hid under the bed, and ate about half a meal.', { name: pet.name })
-                : t('e.g. {name} scratched more today, stool was softer, and we gave a new chicken treat yesterday.', { name: pet.name })}
+              placeholder={starter
+                ? t(profile.notePlaceholder, { name: pet.name })
+                : cat
+                  ? t('e.g. {name} used the litter box less today, hid under the bed, and ate about half a meal.', { name: pet.name })
+                  : t('e.g. {name} scratched more today, stool was softer, and we gave a new chicken treat yesterday.', { name: pet.name })}
               value={note}
               onChange={(e) => updateNote(e.target.value)}
             />
             <div className="action-row">
-              {!cat && aiSuggestEnabled && (
+              {aiSuggestEnabled && (
                 <button className="secondary-button" type="button" onClick={suggestFields} disabled={aiLoading || !note.trim()}>
                   <Pencil size={16} /> {aiLoading ? t('Reading…') : t('Suggest fields')}
                 </button>
@@ -1912,7 +2264,7 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
         </div>
       )}
 
-      {mode === 'full' && (
+      {mode === 'full' && !starter && (
         <>
       {onQuickLog && (
         <div className="quiet-day">
@@ -2062,10 +2414,10 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
               <h2>{t('Write what happened')}</h2>
             </div>
             <p className="muted">
-              {cat
-                ? t('Write naturally — a note is often the most useful thing for a cat.')
-                : aiSuggestEnabled
-                  ? t('Write naturally — PetPattern can suggest fields, but you stay in control.')
+              {aiSuggestEnabled
+                ? t('Write naturally — PetPattern can suggest fields, but you stay in control.')
+                : cat
+                  ? t('Write naturally — a note is often the most useful thing for a cat.')
                   : t('Write naturally — a short note is often the most useful thing to bring to your vet.')}
             </p>
             <textarea
@@ -2075,7 +2427,7 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
               value={note}
               onChange={(e) => updateNote(e.target.value)}
             />
-            {!cat && aiSuggestEnabled && (
+            {aiSuggestEnabled && (
               <>
                 <div className="action-row">
                   <button className="secondary-button" type="button" onClick={suggestFields} disabled={aiLoading || !note.trim()}>
@@ -2109,6 +2461,28 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
       </form>
         </>
       )}
+
+      {mode === 'full' && starter && (
+        <form className="quick-form" onSubmit={onSave}>
+          <div className="field-label">
+            {t('Date')}
+            <DateField value={form.checkInDate} onChange={(d) => setForm({ ...form, checkInDate: d })} />
+          </div>
+          <p className="form-section-label">{t('What did you notice for {name}?', { name: pet.name })}</p>
+          <StarterGuidedFields categories={guidedCategories} form={form} setForm={setForm} note={note} onAddFood={onAddFood} onAddMedication={onAddMedication} />
+          <VisibleChangeField pet={pet} form={form} setForm={setForm} onAddPhoto={onAddHealthPhoto} />
+          <label className="field-label">
+            {t('Add a note (optional)')}
+            <textarea placeholder={t('Anything else worth remembering about today?')} value={note} onChange={(e) => updateNote(e.target.value)} />
+          </label>
+          <button type="button" className="ghost-button wide" onClick={onAddPhoto}>
+            <ImagePlus size={18} /> {t('Add a photo if it helps')}
+          </button>
+          <button className="primary-button wide" type="submit" disabled={saving}>
+            <Check size={18} /> {t('Save today')}
+          </button>
+        </form>
+      )}
     </section>
   )
 }
@@ -2122,8 +2496,20 @@ function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
   if (suggestion.energyLevel && suggestion.energyLevel !== 'UNKNOWN') chips.push(`${t('Energy')} ${levelLabel(suggestion.energyLevel)}`)
   if (suggestion.vomiting) chips.push(t('Vomiting'))
   if (suggestion.earRedness) chips.push(t('Ear redness'))
+  // Cat-specific chips.
+  if (suggestion.litterBoxUse && suggestion.litterBoxUse !== 'UNKNOWN') chips.push(`${t('Litter box')}: ${litterLabel(suggestion.litterBoxUse)}`)
+  if (suggestion.urinationChange && suggestion.urinationChange !== 'UNKNOWN') chips.push(`${t('Urination')}: ${t(titleCase(suggestion.urinationChange))}`)
+  if (suggestion.straining) chips.push(t('Straining'))
+  if (suggestion.hidingBehavior === 'MORE') chips.push(t('Hiding more'))
+  if (suggestion.weightConcern) chips.push(t('Weight concern'))
+  // Starter-species generic signals (rabbit, bird, reptile, …) and any visible-change
+  // note come back as detectedSignals — show them so the preview isn't empty for them.
+  for (const signal of suggestion.detectedSignals || []) {
+    if (signal && signal.key) chips.push(`${t(signal.label || signal.key)}: ${t(signal.value || 'Changed')}`)
+  }
 
   const trigger = suggestion.possibleFoodTrigger
+  const environment = suggestion.possibleEnvironmentTrigger
 
   return (
     <div className="suggestion">
@@ -2150,6 +2536,12 @@ function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
         </div>
       )}
 
+      {environment && environment.description && (
+        <div className="food-callout env-callout">
+          <span>{t('Care or environment change mentioned:')} <strong>{environment.description}</strong></span>
+        </div>
+      )}
+
       {suggestion.warnings?.length > 0 && (
         <ul className="warning-list">
           {suggestion.warnings.map((warning) => <li key={warning}>{warning}</li>)}
@@ -2163,7 +2555,119 @@ function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
   )
 }
 
-function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDeleteFood, onTrial }) {
+// Notable (worth-mentioning) signals on a single check-in, species-aware. Only
+// flags real changes — never claims a cause. Used by the Food/Environment Detective.
+function foodDetectiveSignals(checkIn, species) {
+  const out = []
+  if (isStarterSpecies(species)) {
+    const obs = parseObservations(checkIn.observationsJson)
+    Object.values(obs).forEach((v) => {
+      if (v && isChangedValue(v.value)) out.push(`${t(v.label)}: ${t(v.value)}`)
+    })
+    return out
+  }
+  const cat = species === 'CAT'
+  if (cat) {
+    if (checkIn.litterBoxUse && !['NORMAL', 'UNKNOWN'].includes(checkIn.litterBoxUse)) out.push(`${t('Litter box')}: ${litterLabel(checkIn.litterBoxUse)}`)
+    if (checkIn.urinationChange && !['NORMAL', 'UNKNOWN'].includes(checkIn.urinationChange)) out.push(`${t('Urination')}: ${t(titleCase(checkIn.urinationChange))}`)
+    if (checkIn.straining) out.push(t('Straining'))
+    if (checkIn.hidingBehavior === 'MORE') out.push(t('Hiding more'))
+    if (checkIn.appetiteLevel === 'LOWER' || checkIn.appetiteLevel === 'REFUSED') out.push(`${t('Appetite')}: ${levelLabel(checkIn.appetiteLevel)}`)
+    if (checkIn.waterLevel === 'HIGHER' || checkIn.waterLevel === 'LOWER') out.push(`${t('Water')}: ${levelLabel(checkIn.waterLevel)}`)
+    if (checkIn.vomiting) out.push(t('Vomiting'))
+    if (checkIn.weightConcern) out.push(t('Weight concern'))
+  } else {
+    if (checkIn.itchingScore != null && checkIn.itchingScore >= 6) out.push(`${t('Scratching')} ${checkIn.itchingScore}/10`)
+    if (checkIn.stoolState === 'SOFT' || checkIn.stoolState === 'DIARRHEA') out.push(`${t('Stool')}: ${stoolLabel(checkIn)}`)
+    if (checkIn.vomiting) out.push(t('Vomiting'))
+    if (checkIn.appetiteLevel === 'LOWER' || checkIn.appetiteLevel === 'REFUSED') out.push(`${t('Appetite')}: ${levelLabel(checkIn.appetiteLevel)}`)
+    if (checkIn.energyLevel === 'LOW' || checkIn.energyLevel === 'RESTLESS') out.push(`${t('Energy')}: ${levelLabel(checkIn.energyLevel)}`)
+    if (checkIn.earRedness) out.push(t('Ear redness'))
+    if (checkIn.pawLicking) out.push(t('Paw licking'))
+  }
+  return out
+}
+
+// A transparent timeline: each food/treat change with the notable check-in signals
+// logged within the following week. It lines things up — it never claims a cause.
+function FoodDetectiveView({ pet, foodLogs, checkIns, onBack, onFoodChange }) {
+  const profile = speciesProfile(pet.species)
+  const environment = profile.detectiveMode === 'ENVIRONMENT'
+  const hasData = foodLogs?.length > 0 && checkIns?.length > 0
+  const byDateAsc = [...(checkIns || [])].sort((a, b) => (a.checkInDate < b.checkInDate ? -1 : 1))
+  const entries = [...(foodLogs || [])]
+    .sort((a, b) => (a.dateStarted < b.dateStarted ? 1 : -1))
+    .slice(0, 12)
+    .map((food) => {
+      const start = food.dateStarted
+      const end = addDays(start, 7)
+      const nearby = byDateAsc
+        .filter((c) => c.checkInDate >= start && c.checkInDate <= end)
+        .flatMap((c) => {
+          const n = Math.round((parseLocalDate(c.checkInDate) - parseLocalDate(start)) / 86400000)
+          return foodDetectiveSignals(c, pet.species).map((sig) => ({ n, sig }))
+        })
+        .slice(0, 8)
+      return { food, nearby }
+    })
+
+  return (
+    <section className="flow-panel food-detective">
+      <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
+      <p className="kicker">{t('Timeline')}</p>
+      <h1>{environment ? t('Environment detective') : t('Food detective')}</h1>
+      <p className="lead">{environment
+        ? t('See whether appetite, activity, droppings or other changes often happen near a care or environment change.')
+        : t('See whether stool, scratching, appetite, vomiting, or energy changes often happen near food or treat changes.')}</p>
+      <p className="pattern-disclaimer muted">{environment
+        ? t('PetPattern lines up care or environment changes with later observations. This is not a diagnosis.')
+        : t('This is not an allergy diagnosis. It is a timeline you can discuss with your vet.')}</p>
+
+      {!hasData ? (
+        <article className="panel">
+          <p className="muted">{t('Add a food or treat change and a few check-ins. PetPattern will line them up here.')}</p>
+        </article>
+      ) : (
+        <div className="detective-list">
+          {entries.map(({ food, nearby }) => (
+            <article className="panel detective-entry" key={food.id}>
+              <div className="detective-head">
+                <strong>{formatDate(food.dateStarted)}</strong>
+                <span className="detective-food">{[food.brand, food.productName].filter(Boolean).join(' - ') || foodKindLabel(food.foodKind)}</span>
+                <div className="chip-row">
+                  <span className="chip">{proteinLabel(food.primaryProtein)}</span>
+                  <span className="chip">{foodKindLabel(food.foodKind)}</span>
+                  {food.newFood && <span className="chip alert">{t('New')}</span>}
+                </div>
+              </div>
+              {nearby.length > 0 ? (
+                <ul className="detective-signals">
+                  {nearby.map((row, idx) => (
+                    <li key={idx}>
+                      <span className="detective-when">{row.n <= 0 ? t('Same day') : row.n === 1 ? t('1 day after') : t('{n} days after', { n: row.n })}</span>
+                      <span className="detective-sig">{row.sig}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">{t('Nothing notable was logged in the week after this change.')}</p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
+      <div className="context-cta">
+        <p className="muted">{t('These signals were logged near a change — worth mentioning to your vet, not a proven cause.')}</p>
+        <button className="secondary-button" type="button" onClick={onFoodChange}>
+          <Utensils size={18} /> {t('Add food change')}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDeleteFood, onTrial, onFoodDetective }) {
   function toggleSecondary(protein) {
     const exists = form.secondaryProteins.includes(protein)
     setForm({
@@ -2263,6 +2767,15 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
         </div>
       )}
 
+      {onFoodDetective && (
+        <div className="context-cta">
+          <p className="muted">{t('Wondering if a food change lines up with a change in how {name} felt?', { name: pet.name })}</p>
+          <button className="secondary-button" type="button" onClick={onFoodDetective}>
+            <Search size={18} /> {t('See food timeline')}
+          </button>
+        </div>
+      )}
+
       <div className="context-cta">
         <p className="muted">{t('Already changing food with your vet? You can note when a change started and keep watching how {name} does.', { name: pet.name })}</p>
         <button className="secondary-button" type="button" onClick={onTrial}>
@@ -2273,7 +2786,7 @@ function FoodView({ pet, form, setForm, saving, foodLogs, onBack, onSave, onDele
   )
 }
 
-function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShowTimeline, onSetStatus, onRecap, onVetSummary }) {
+function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShowTimeline, onSetStatus, onRecap, onVetSummary, onFoodDetective }) {
   const active = patterns.filter((pattern) => patternGroup(pattern) === 'active')
   const settled = patterns.filter((pattern) => patternGroup(pattern) === 'settled')
   const dismissed = patterns.filter((pattern) => patternGroup(pattern) === 'dismissed')
@@ -2301,7 +2814,7 @@ function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShow
           </article>
         )}
         {active.map((pattern) => (
-          <PatternCard key={pattern.id} pattern={pattern} variant="active" checkIns={checkIns} foodLogs={foodLogs} onShowTimeline={onShowTimeline} onSetStatus={onSetStatus} onVetSummary={onVetSummary} />
+          <PatternCard key={pattern.id} pattern={pattern} variant="active" checkIns={checkIns} foodLogs={foodLogs} onShowTimeline={onShowTimeline} onSetStatus={onSetStatus} onVetSummary={onVetSummary} onFoodDetective={onFoodDetective} />
         ))}
       </div>
 
@@ -2506,7 +3019,7 @@ function PatternCellStrip({ pattern, checkIns, sig, foodLogs }) {
   )
 }
 
-function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onSetStatus, onVetSummary }) {
+function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onSetStatus, onVetSummary, onFoodDetective }) {
   const meta = statusMeta(pattern.status)
 
   // Settled / dismissed cards stay compact and unchanged — the case-file layout is
@@ -2604,6 +3117,11 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
         <button className="primary-button" type="button" onClick={() => onShowTimeline(pattern)}>
           {t('Open case file')} <ChevronRight size={16} />
         </button>
+        {onFoodDetective && pattern.type === 'POSSIBLE_FOOD_TRIGGER' && (
+          <button className="secondary-button" type="button" onClick={onFoodDetective}>
+            <Search size={18} /> {t('Open food detective')}
+          </button>
+        )}
         {onVetSummary && (
           <button className="secondary-button" type="button" onClick={onVetSummary}>
             <Stethoscope size={18} /> {t('Bring this to your vet')}
@@ -2713,7 +3231,7 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
   )
 }
 
-function VetSummaryView({ pet, summary, loading, days, onBack, onChangeDays, onMedications }) {
+function VetSummaryView({ pet, summary, loading, days, checkIns, onBack, onChangeDays, onMedications }) {
   const [copied, setCopied] = useState(false)
   // Native share is mostly a phone/tablet capability; on a desktop without it the
   // "Copy summary" button below is the fallback, so we simply hide Share there.
@@ -2801,26 +3319,33 @@ function VetSummaryView({ pet, summary, loading, days, onBack, onChangeDays, onM
         </div>
       </div>
 
-      <VetSheet summary={summary} onMedications={onMedications} />
+      <VetSheet summary={summary} species={pet?.species} onMedications={onMedications} checkIns={checkIns} />
     </section>
   )
 }
 
-function VetSheet({ summary, onMedications }) {
+function VetSheet({ summary, species, onMedications, checkIns }) {
   const identity = summary.pet
-  // Stool is a dog signal; cats track litter box instead, so don't show an
-  // all-zero stool block for a cat (their signals surface via patterns + wellbeing).
-  const cat = /cat/i.test(identity?.species || '')
+  // Stool is a dog signal; cats track litter box; starter species use the flexible
+  // observations model — so gate each dog/cat section by the exact species. Use the
+  // real enum code when available (owner view); fall back to the localized display
+  // label for the shared-link view, which has no enum client-side.
+  const cat = species ? species === 'CAT' : /cat/i.test(identity?.species || '')
+  const dog = species ? species === 'DOG' : /dog/i.test(identity?.species || '')
+  const starter = species ? isStarterSpecies(species) : !(cat || dog)
+  const observationRows = starter ? starterObservationRows(checkIns) : []
   return (
     <div className="vet-sheet">
-      <section className="vet-block">
+      <section className="vet-block vet-report-head">
+        <p className="vet-report-kicker">{t('PetPattern vet summary')}</p>
         <h2>{identity?.name}</h2>
         <p className="vet-identity">
-          {[identity?.breed, identity?.ageLabel, identity?.sex, identity?.weightKg ? `${identity.weightKg} kg` : null]
+          {[identity?.species, identity?.breed, identity?.ageLabel, identity?.sex, identity?.weightKg ? `${identity.weightKg} kg` : null]
             .filter(Boolean)
             .join(' · ')}
         </p>
         <p className="vet-range">{formatLongDate(summary.rangeStart)} – {formatLongDate(summary.rangeEnd)} ({summary.days} {t('days')})</p>
+        <p className="vet-report-note muted">{t('Owner-observed timeline, not a diagnosis.')}</p>
       </section>
 
       <VetBlock title={t('Owner-observed concern')}>
@@ -2866,7 +3391,7 @@ function VetSheet({ summary, onMedications }) {
         )}
       </VetBlock>
 
-      {!cat && (
+      {dog && (
         <VetBlock title={t('Stool changes')}>
           <p>{summary.stoolSummary?.narrative}</p>
           <p className="muted">{t('Normal')}: {summary.stoolSummary?.normalDays} · {t('Soft')}: {summary.stoolSummary?.softDays} · {t('Diarrhea')}: {summary.stoolSummary?.diarrheaDays}</p>
@@ -2882,9 +3407,47 @@ function VetSheet({ summary, onMedications }) {
         </VetBlock>
       )}
 
-      <VetBlock title={t('Water, appetite & energy')}>
-        <p>{summary.wellbeing?.narrative}</p>
-      </VetBlock>
+      {!starter && (
+        <VetBlock title={t('Water, appetite & energy')}>
+          <p>{summary.wellbeing?.narrative}</p>
+        </VetBlock>
+      )}
+
+      {starter && (
+        <VetBlock title={t('Species-specific observations')}>
+          {observationRows.length ? (
+            <ul className="vet-observations-list">
+              {observationRows.map((row, index) => (
+                <li key={index}><span className="obs-date">{formatDate(row.date)}</span> — {row.text}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">{t('No species-specific observations logged in this period.')}</p>
+          )}
+        </VetBlock>
+      )}
+
+      {summary.visibleChanges && (
+        <VetBlock title={t('Visible changes over time')}>
+          <p className="muted">{t('Track how this looked over time. Useful to show your vet. Not a diagnosis.')}</p>
+          {summary.visibleChanges.entries?.length ? (
+            <ul className="vet-list vet-visible-changes">
+              {summary.visibleChanges.entries.map((entry, index) => (
+                <li key={`${entry.date}-${index}`}>
+                  <strong>{formatDate(entry.date)}</strong> — {t(entry.value)}
+                  {entry.status && <span className="vc-status"> ({t(titleCase(entry.status))})</span>}
+                  {entry.note && <span className="muted"> — {entry.note}</span>}
+                  {entry.photoCount > 0 && (
+                    <span className="muted vc-photos"> · <ImagePlus size={12} /> {entry.photoCount}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">{summary.visibleChanges.narrative}</p>
+          )}
+        </VetBlock>
+      )}
 
       <VetBlock title={t('Possible patterns')}>
         {summary.patterns?.length ? (
@@ -3354,7 +3917,7 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
       <p className="kicker">{t('Photo record')}</p>
       <h1>{t("{name}'s photos", { name: pet.name })}</h1>
-      <p className="lead">{t('Add a photo of an ear, paw, skin or stool to see how it changes over time — handy to show your vet.')}</p>
+      <p className="lead">{t('Add a photo of anything you want to keep an eye on and watch how it changes over time — handy to show your vet.')}</p>
 
       <div className="photo-uploader">
         <div className="choice-block">
@@ -3377,7 +3940,7 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
             <input value={caption} maxLength={300} placeholder={t('e.g. left ear, looked red after the walk')} onChange={(e) => setCaption(e.target.value)} />
           </label>
         </div>
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={onFile} />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
         <button className="primary-button wide" type="button" disabled={uploading} onClick={() => fileRef.current?.click()}>
           <ImagePlus size={18} /> {uploading ? t('Adding…') : t('Add a photo')}
         </button>
@@ -3387,7 +3950,7 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
       {groups.length === 0 ? (
         <article className="panel">
           <h2>{t('No photos yet')}</h2>
-          <p className="muted">{t("Add a photo of {name}'s ear, paw or skin to start a visual record you can compare later.", { name: pet.name })}</p>
+          <p className="muted">{t("Add {name}'s first photo to start a visual record you can compare later.", { name: pet.name })}</p>
         </article>
       ) : (
         groups.map((group) => (
@@ -3665,7 +4228,7 @@ function trendWord(label) {
   }
 }
 
-function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, demoEnabled = true, googleEnabled = false }) {
+function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo, onRabbitDemo, demoEnabled = true, googleEnabled = false }) {
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -3722,6 +4285,30 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, demoEnabl
     setBusy(true)
     try {
       await onDemo()
+    } catch (err) {
+      setError(t('Demo could not load. Try again in a moment.'))
+      setBusy(false)
+    }
+  }
+
+  async function catDemo() {
+    if (!onCatDemo) return
+    setError('')
+    setBusy(true)
+    try {
+      await onCatDemo()
+    } catch (err) {
+      setError(t('Demo could not load. Try again in a moment.'))
+      setBusy(false)
+    }
+  }
+
+  async function rabbitDemo() {
+    if (!onRabbitDemo) return
+    setError('')
+    setBusy(true)
+    try {
+      await onRabbitDemo()
     } catch (err) {
       setError(t('Demo could not load. Try again in a moment.'))
       setBusy(false)
@@ -3786,9 +4373,21 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, demoEnabl
         {demoEnabled && (
           <div className="auth-demo">
             <p className="muted">{t('Just exploring?')}</p>
-            <button className="secondary-button" type="button" onClick={demo} disabled={busy}>
-              <PawPrint size={18} /> {t('Load Bella demo')}
-            </button>
+            <div className="demo-buttons">
+              <button className="secondary-button" type="button" onClick={demo} disabled={busy}>
+                <Dog size={18} /> {t('Try dog demo')}
+              </button>
+              {onCatDemo && (
+                <button className="secondary-button" type="button" onClick={catDemo} disabled={busy}>
+                  <Cat size={18} /> {t('Try cat demo')}
+                </button>
+              )}
+              {onRabbitDemo && (
+                <button className="secondary-button" type="button" onClick={rabbitDemo} disabled={busy}>
+                  <span className="btn-emoji" aria-hidden="true">🐰</span> {t('Try rabbit demo')}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -3958,7 +4557,7 @@ function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, onAddPhoto, canAdd 
                 </span>
                 <ImagePlus size={16} aria-hidden="true" />
               </button>
-              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={onFile} />
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
             </>
           )}
           {pets.map((pet) => (
@@ -4043,7 +4642,7 @@ function QuickChoices({ label, value, options, onChange }) {
   return (
     <div className="choice-block">
       <span>{label}</span>
-      <div className="choice-grid">
+      <div className="choice-grid" role="group" aria-label={label}>
         {options.map((option) => (
           <button
             key={option.value}
@@ -4069,7 +4668,7 @@ function ToggleButton({ active, label, onClick }) {
   )
 }
 
-function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEnabled = true }) {
+function PetOnboarding({ onCreate, onFinish, onDemo, onCatDemo, onRabbitDemo, onCancel, demoBusy, demoEnabled = true }) {
   const [step, setStep] = useState('species') // species | profile | done
   const [species, setSpecies] = useState(null)
   const [form, setForm] = useState({ name: '', breed: '', birthDate: '', currentWeightKg: '', sex: 'UNKNOWN' })
@@ -4127,7 +4726,7 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
   if (step === 'done' && createdPet) {
     return (
       <section className="onboarding onboarding-done">
-        <span className="brand-mark big">{isCat(createdPet) ? <Cat size={26} /> : <Dog size={26} />}</span>
+        <span className="brand-mark big species-emoji" aria-hidden="true">{speciesProfile(createdPet.species).emoji}</span>
         <h1>{t('{name} is all set.', { name: createdPet.name })}</h1>
         <p className="lead">{t('Log your first check-in and PetPattern starts learning what’s normal for {name}.', { name: createdPet.name })}</p>
         <div className="action-row">
@@ -4143,28 +4742,31 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
   }
 
   if (step === 'profile') {
-    const meta = SPECIES[species]
+    const meta = speciesProfile(species)
+    const isDogCat = species === 'DOG' || species === 'CAT'
     return (
       <section className="onboarding">
         <button className="back-button" type="button" onClick={() => { setStep('species'); setError('') }}>
           <ArrowLeft size={17} /> {t('Back')}
         </button>
-        <p className="kicker">{species === 'CAT' ? t('New cat') : t('New dog')}</p>
-        <h1>{species === 'CAT' ? t('Tell us about your cat') : t('Tell us about your dog')}</h1>
-        <p className="lead">{t(meta.intro)}</p>
+        <p className="kicker"><span aria-hidden="true">{meta.emoji}</span> {t(meta.label)}</p>
+        <h1>{t('Tell us about your {species}', { species: t(meta.label).toLowerCase() })}</h1>
+        <p className="lead">{t(meta.description)}</p>
         <form className="stack-form onboarding-form" onSubmit={submit}>
           <label className="field-label">{t('Name')}
-            <input autoFocus value={form.name} placeholder={species === 'CAT' ? t("Your cat's name") : t("Your dog's name")} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <input autoFocus value={form.name} placeholder={t("Your pet's name")} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </label>
 
           <div className="optional-fields">
             <p className="optional-fields-hint">{t('You can add these now or later.')}</p>
           <label className="field-label">{t('Breed (optional)')}
-            <input value={form.breed} list="breed-options" autoComplete="off"
+            <input value={form.breed} list={isDogCat ? 'breed-options' : undefined} autoComplete="off"
               onChange={(e) => setForm({ ...form, breed: e.target.value })} />
-            <datalist id="breed-options">
-              {(species === 'CAT' ? CAT_BREEDS : DOG_BREEDS).map((b) => <option key={b} value={b} />)}
-            </datalist>
+            {isDogCat && (
+              <datalist id="breed-options">
+                {(species === 'CAT' ? CAT_BREEDS : DOG_BREEDS).map((b) => <option key={b} value={b} />)}
+              </datalist>
+            )}
           </label>
           <label className="field-label">{t('Birth date (optional)')}
             <input type="date" max={today} value={form.birthDate} onChange={(e) => setForm({ ...form, birthDate: e.target.value })} />
@@ -4193,7 +4795,7 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
           </div>
           {error && <div className="error-box" role="alert">{error}</div>}
           <button className="primary-button wide" type="submit" disabled={busy}>
-            <Check size={18} /> {t(meta.cta)}
+            <Check size={18} /> {t('Create profile')}
           </button>
         </form>
       </section>
@@ -4206,27 +4808,39 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCancel, demoBusy, demoEna
       {onCancel && (
         <button className="back-button" type="button" onClick={onCancel}><ArrowLeft size={17} /> {t('Back')}</button>
       )}
-      <p className="kicker">{t('Private health memory for dogs and cats')}</p>
-      <h1>{t('Who are we tracking?')}</h1>
-      <p className="lead">{t('PetPattern remembers the small daily signals and helps you spot changes worth watching.')}</p>
-      <div className="species-choice">
-        <button type="button" className="species-card" onClick={() => choose('DOG')}>
-          <Dog size={30} />
-          <strong>{t('Dog')}</strong>
-          <span>{t(SPECIES.DOG.intro)}</span>
-        </button>
-        <button type="button" className="species-card" onClick={() => choose('CAT')}>
-          <Cat size={30} />
-          <strong>{t('Cat')}</strong>
-          <span>{t(SPECIES.CAT.intro)}</span>
-        </button>
+      <p className="kicker">{t('Species-specific pattern memory')}</p>
+      <h1>{t('What pet do you want to track?')}</h1>
+      <p className="lead">{t('PetPattern uses species-specific signals, not generic logs.')}</p>
+      <div className="species-grid">
+        {SPECIES_ORDER.map((key) => {
+          const profile = SPECIES_PROFILES[key]
+          return (
+            <button key={key} type="button" className={`species-card support-${profile.support.toLowerCase()}`} onClick={() => choose(key)}>
+              <span className="species-emoji" aria-hidden="true">{profile.emoji}</span>
+              <strong>{t(profile.label)}</strong>
+              <span className="species-support">{profile.support === 'FULL' ? t('Full support') : t('Starter support')}</span>
+            </button>
+          )
+        })}
       </div>
       {onDemo && demoEnabled && (
         <div className="onboarding-demo">
           <span className="muted">{t('Just exploring?')}</span>
-          <button className="ghost-button" type="button" onClick={onDemo} disabled={demoBusy}>
-            <PawPrint size={16} /> {t('Load Bella demo')}
-          </button>
+          <div className="demo-buttons">
+            <button className="ghost-button" type="button" onClick={onDemo} disabled={demoBusy}>
+              <Dog size={16} /> {t('Try dog demo')}
+            </button>
+            {onCatDemo && (
+              <button className="ghost-button" type="button" onClick={onCatDemo} disabled={demoBusy}>
+                <Cat size={16} /> {t('Try cat demo')}
+              </button>
+            )}
+            {onRabbitDemo && (
+              <button className="ghost-button" type="button" onClick={onRabbitDemo} disabled={demoBusy}>
+                <span className="btn-emoji" aria-hidden="true">🐰</span> {t('Try rabbit demo')}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </section>
@@ -4678,7 +5292,7 @@ function AccountView({ owner, pets = [], onDeletePet, onBack, onDeleted }) {
 
 function hashView() {
   const value = window.location.hash.replace('#', '')
-  return ['today', 'check-in', 'food', 'patterns', 'timeline', 'photos', 'trial', 'recap', 'medications', 'vet', 'caregivers', 'add-pet', 'account'].includes(value) ? value : 'today'
+  return ['today', 'check-in', 'food', 'food-detective', 'patterns', 'timeline', 'photos', 'trial', 'recap', 'medications', 'vet', 'caregivers', 'add-pet', 'account'].includes(value) ? value : 'today'
 }
 
 function isProfilePhoto(photo) {
@@ -4694,6 +5308,11 @@ function photoAreaLabel(area) {
     case 'COAT': return t('Coat')
     case 'EYE': return t('Eyes')
     case 'STOOL': return t('Stool')
+    case 'WOUND': return t('Wound / visible change')
+    case 'SWELLING': return t('Swelling')
+    case 'SHELL': return t('Shell')
+    case 'FEATHER': return t('Feathers')
+    case 'FIN_SCALE': return t('Fins / scales')
     default: return t('Other')
   }
 }

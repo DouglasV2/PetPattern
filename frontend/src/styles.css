@@ -2058,13 +2058,16 @@ textarea {
 
 @media print {
   @page {
-    margin: 16mm;
+    margin: 14mm;
   }
 
   .top-bar,
   .record-nav,
   .no-print,
   .vet-toolbar,
+  .vet-share,
+  .back-button,
+  .context-cta,
   .error-box {
     display: none !important;
   }
@@ -2072,6 +2075,7 @@ textarea {
   body,
   :root {
     background: #fff;
+    color: #000;
   }
 
   .screen {
@@ -2084,10 +2088,37 @@ textarea {
   .panel {
     box-shadow: none;
     border: none;
+    background: #fff;
   }
 
-  .vet-block {
+  /* The report prints as black text on white with a clear section rhythm. */
+  .vet-summary h1,
+  .vet-sheet,
+  .vet-sheet h2,
+  .vet-sheet h3,
+  .vet-sheet p,
+  .vet-sheet li,
+  .vet-sheet strong,
+  .vet-report-kicker {
+    color: #000 !important;
+  }
+
+  .vet-sheet .muted {
+    color: #444 !important;
+  }
+
+  /* Keep each section whole across page breaks, separated by a light rule. */
+  .vet-block,
+  .vet-report-head,
+  .detective-entry,
+  .story-row {
     break-inside: avoid;
+  }
+
+  .vet-block + .vet-block {
+    border-top: 1px solid #ccc;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
   }
 }
 
@@ -2659,49 +2690,11 @@ textarea {
   margin: 0;
 }
 
-.species-choice {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: 1fr 1fr;
-}
-
-@media (max-width: 520px) {
-  .species-choice {
-    grid-template-columns: 1fr;
-  }
-}
-
-.species-card {
-  display: grid;
-  gap: 0.45rem;
-  justify-items: start;
-  text-align: left;
-  padding: 1.1rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--paper);
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
-}
-
-.species-card:hover {
-  border-color: var(--teal);
-  background: var(--teal-soft);
-}
-
-.species-card svg {
-  color: var(--teal);
-}
-
-.species-card strong {
-  font-size: 1.1rem;
-  color: var(--ink);
-}
-
-.species-card span {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
+/* Legacy onboarding species-choice styles removed. The redesigned species grid
+   (see "Multi-species support" below) is the single source of truth; the old
+   `.species-card span { font-size: 0.9rem }` rule was winning on specificity and
+   shrinking the new `.species-emoji` (1.9rem) and enlarging the `.species-support`
+   badge (0.68rem). `.species-choice` was unused. */
 
 .onboarding-demo {
   display: flex;
@@ -3424,8 +3417,26 @@ select {
   button,
   .text-button,
   .chip-button,
-  .ghost-button {
+  .ghost-button,
+  .lang-trigger,
+  .pet-switcher-trigger,
+  .unit-btn {
     min-height: 40px;
+  }
+
+  /* Icon-only row actions get the 40px height from the button floor above; match
+     the width so the destructive edit/delete targets aren't a cramped 34px. */
+  .icon-button {
+    width: 40px;
+  }
+}
+
+/* Tablet has a single-row top bar, so re-assert the flush 62px sticky offset that
+   the phone value above (96px, sized for the two-row phone bar) otherwise shadows
+   at 700–899px by source order. */
+@media (min-width: 700px) and (max-width: 899.98px) {
+  .record-nav {
+    top: calc(62px + env(safe-area-inset-top));
   }
 }
 
@@ -3715,4 +3726,244 @@ select {
   .guided-chip-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+
+/* ============================================================
+   Cat parity + Food detective + Vet report polish
+   ============================================================ */
+
+/* Two demo buttons (dog + cat) sit side by side, wrapping on narrow screens. */
+.demo-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.demo-buttons > button {
+  flex: 1 1 8rem;
+}
+
+/* Food detective — a transparent food → nearby-signal timeline. Never a cause. */
+.detective-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.detective-entry {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.detective-head {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.detective-head strong {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.detective-food {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.detective-signals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.detective-signals li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.6rem;
+  align-items: baseline;
+  padding: 0.5rem 0.65rem;
+  border-left: 3px solid var(--gold);
+  background: var(--paper-2);
+  border-radius: var(--radius-sm);
+}
+
+.detective-when {
+  font-weight: 700;
+  color: var(--gold);
+  font-size: 0.82rem;
+  min-width: 5.5rem;
+}
+
+.detective-sig {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+/* Vet summary — reads like one clean report page. */
+.vet-report-head {
+  text-align: left;
+}
+
+.vet-report-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.vet-report-head h2 {
+  margin: 0 0 0.15rem;
+  font-size: 1.5rem;
+}
+
+.vet-report-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+/* ============================================================
+   Multi-species support
+   Onboarding species grid + starter-species observation UI.
+   Mobile-first: a comfortable card grid at 375/390/430px, wider
+   on larger screens. Never a cramped dropdown.
+   ============================================================ */
+
+.species-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  margin: 0.4rem 0 1rem;
+}
+
+.species-card {
+  display: grid;
+  gap: 0.28rem;
+  justify-items: center;
+  align-content: start;
+  text-align: center;
+  padding: 0.95rem 0.5rem;
+  min-height: 104px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.species-card:hover {
+  border-color: var(--teal);
+  transform: translateY(-1px);
+  background: var(--paper-2);
+}
+
+.species-emoji {
+  display: inline-block;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.species-card strong {
+  font-size: 0.95rem;
+}
+
+.species-support {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.species-card.support-full .species-support {
+  color: var(--teal);
+}
+
+.btn-emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+/* Species-specific observation section in the vet summary. */
+.vet-observations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.vet-observations-list li {
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.vet-observations-list .obs-date {
+  font-weight: 700;
+}
+
+@media (min-width: 560px) {
+  .species-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 900px) {
+  .species-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* ============================================================
+   Visible change tracking
+   Universal, owner-observed "how does this look over time" flow.
+   Calm and factual — never a clinical or diagnostic look.
+   ============================================================ */
+
+.visible-change {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.3rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+
+.visible-change .form-section-label {
+  margin: 0;
+}
+
+.visible-change .field-label {
+  margin: 0;
+}
+
+/* The safe-copy reassurance line — quiet, never alarming. */
+.vc-safe {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Care/environment callout in the AI suggestion preview — teal, so it reads as
+   context rather than a food trigger (which is gold). */
+.env-callout {
+  background: var(--teal-soft);
+}
+
+/* Visible-changes-over-time list in the vet summary. */
+.vet-visible-changes .vc-status {
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.vet-visible-changes .vc-photos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  white-space: nowrap;
 }

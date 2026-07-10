@@ -12,5 +12,8 @@ public enum PatternType {
     WATER_CHANGE,
     LITTER_BOX_CHANGE,
     HIDING_INCREASED,
-    REPEATED_VOMITING
+    REPEATED_VOMITING,
+    // Species-neutral (starter species): an owner-observed signal from the flexible
+    // observations model that repeated across more than one day. Non-diagnostic.
+    REPEATED_OBSERVATION
 }

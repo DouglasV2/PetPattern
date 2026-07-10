@@ -3,6 +3,7 @@ package com.petpattern.ai;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
 
@@ -52,17 +53,38 @@ public class GeminiAiProvider implements AiProvider {
               "energyLevel": "LOW" | "NORMAL" | "RESTLESS" | "HIGH" | "UNKNOWN",
               "vomiting": boolean,
               "earRedness": boolean or null,
+              "litterBoxUse": "NORMAL" | "LESS" | "MORE" | "NONE" | "UNKNOWN",
+              "urinationChange": "NORMAL" | "LESS" | "MORE" | "UNKNOWN",
+              "straining": boolean or null,
+              "hidingBehavior": "NORMAL" | "MORE" | "UNKNOWN",
+              "weightConcern": boolean or null,
               "possibleFoodTrigger": null or {
                 "foodKind": "MAIN_FOOD" | "TREAT" | "SUPPLEMENT" | "OTHER",
                 "primaryProtein": "CHICKEN" | "BEEF" | "LAMB" | "SALMON" | "TURKEY" | "DUCK" | "PORK" | "EGG" | "DAIRY" | "OTHER" | "UNKNOWN",
                 "description": string
               },
               "confidence": "LOW" | "MEDIUM" | "HIGH",
-              "warnings": array of short strings
+              "warnings": array of short strings,
+              "detectedSignals": array of { "key": string, "label": string, "value": string, "severity": "mild" | "moderate" | "strong" | null, "confidence": "LOW" | "MEDIUM" | "HIGH" },
+              "possibleEnvironmentTrigger": null or { "description": string, "confidence": "LOW" | "MEDIUM" | "HIGH" }
             }
-            The note may describe a dog or a cat, in English or Croatian. The same fields
-            apply to both species (scratching, stool, appetite, water, energy, vomiting,
-            ear redness, and any food or treat change).
+            The note may describe a dog or a cat, in English or Croatian. Shared signals
+            (scratching, stool, appetite, water, energy, vomiting, ear redness, food/treat
+            changes) apply to both. The cat-specific fields — litterBoxUse, urinationChange,
+            straining, hidingBehavior, weightConcern — describe a cat; leave them UNKNOWN or
+            null for a dog or whenever the note does not clearly mention them.
+            For a DOG or CAT, fill the explicit fields above and leave detectedSignals empty.
+            For ANY OTHER species (rabbit, hamster, guinea pig, bird, reptile, turtle, fish,
+            small pet), leave the dog/cat fields UNKNOWN/null and instead list each owner-observed
+            change in detectedSignals with a short snake_case key (e.g. "appetite_hay",
+            "droppings", "basking", "water_clarity"). If the owner mentions a care or environment
+            change (temperature, humidity, water/tank, enclosure, cage), set possibleEnvironmentTrigger.
+            If the owner describes a visible change they can see (a wound, cut, scratch, redness,
+            swelling, a spot or mark, a skin/shell/feather/fin change), add a detectedSignals entry
+            with key "visible_change" and a short value describing only what they saw (e.g.
+            "redness noticed", "small scab", "bald patch"). Never name a condition, an infection,
+            or a cause for it.
+            Report only what the owner wrote — never infer a cause or condition.
             Rules:
             - Use UNKNOWN or null whenever the note does not clearly state a field.
             - Do not guess. Report only what the owner actually wrote.
@@ -98,15 +120,18 @@ public class GeminiAiProvider implements AiProvider {
     }
 
     @Override
-    public DailyNoteExtractionResult extract(String note) {
+    public DailyNoteExtractionResult extract(String note, Species species) {
         if (note == null || note.isBlank()) {
             List<String> warnings = new ArrayList<>();
             warnings.add(Copy.t("The note was empty, so no fields could be suggested."));
             return new DailyNoteExtractionResult(
-                    null, StoolState.UNKNOWN, null, null, null, false, null, null, "LOW", warnings);
+                    null, StoolState.UNKNOWN, null, null, null, false, null,
+                    null, null, null, null, null, null, "LOW", warnings,
+                    List.of(), null);
         }
         try {
-            String requestBody = mapper.writeValueAsString(buildRequest(note));
+            String content = (species == null ? "" : "Pet species: " + species.name() + ".\n") + note;
+            String requestBody = mapper.writeValueAsString(buildRequest(content));
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(endpointUri())
                     .timeout(Duration.ofSeconds(30))

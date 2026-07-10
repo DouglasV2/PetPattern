@@ -3,6 +3,7 @@ package com.petpattern.ai;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
 
@@ -34,7 +35,7 @@ public class AnthropicAiProvider implements AiProvider {
     private static final int MAX_TOKENS = 1024;
 
     private static final String SYSTEM_PROMPT = """
-            You extract structured fields from a dog owner's free-text daily note for a
+            You extract structured fields from a pet owner's free-text daily note for a
             longitudinal pet-health tracker. Return ONLY a JSON object, no prose, no code
             fences, matching exactly this shape:
             {
@@ -45,16 +46,44 @@ public class AnthropicAiProvider implements AiProvider {
               "energyLevel": "LOW" | "NORMAL" | "RESTLESS" | "HIGH" | "UNKNOWN",
               "vomiting": boolean,
               "earRedness": boolean or null,
+              "litterBoxUse": "NORMAL" | "LESS" | "MORE" | "NONE" | "UNKNOWN",
+              "urinationChange": "NORMAL" | "LESS" | "MORE" | "UNKNOWN",
+              "straining": boolean or null,
+              "hidingBehavior": "NORMAL" | "MORE" | "UNKNOWN",
+              "weightConcern": boolean or null,
               "possibleFoodTrigger": null or {
                 "foodKind": "MAIN_FOOD" | "TREAT" | "SUPPLEMENT" | "OTHER",
                 "primaryProtein": "CHICKEN" | "BEEF" | "LAMB" | "SALMON" | "TURKEY" | "DUCK" | "PORK" | "EGG" | "DAIRY" | "OTHER" | "UNKNOWN",
                 "description": string
               },
               "confidence": "LOW" | "MEDIUM" | "HIGH",
-              "warnings": array of short strings
+              "warnings": array of short strings,
+              "detectedSignals": array of { "key": string, "label": string, "value": string, "severity": "mild" | "moderate" | "strong" | null, "confidence": "LOW" | "MEDIUM" | "HIGH" },
+              "possibleEnvironmentTrigger": null or { "description": string, "confidence": "LOW" | "MEDIUM" | "HIGH" }
             }
-            Use UNKNOWN or null whenever the note does not clearly state a field. Do not
-            guess. Do not diagnose, name a disease, or recommend treatment.""";
+            The note may describe a dog or a cat, in English or Croatian. Shared signals
+            (scratching, stool, appetite, water, energy, vomiting, ear redness, food/treat
+            changes) apply to both. The cat-specific fields — litterBoxUse, urinationChange,
+            straining, hidingBehavior, weightConcern — describe a cat; leave them UNKNOWN or
+            null for a dog or whenever the note does not clearly mention them.
+            For a DOG or CAT, fill the explicit fields above and leave detectedSignals empty.
+            For ANY OTHER species (rabbit, hamster, guinea pig, bird, reptile, turtle, fish,
+            small pet), leave the dog/cat fields UNKNOWN/null and instead list each owner-observed
+            change in detectedSignals with a short snake_case key (e.g. "appetite_hay",
+            "droppings", "basking", "water_clarity"). If the owner mentions a care or environment
+            change (temperature, humidity, water/tank, enclosure, cage), set possibleEnvironmentTrigger.
+            If the owner describes a visible change they can see (a wound, cut, scratch, redness,
+            swelling, a spot or mark, a skin/shell/feather/fin change), add a detectedSignals entry
+            with key "visible_change" and a short value describing only what they saw (e.g.
+            "redness noticed", "small scab", "bald patch"). Never name a condition, an infection,
+            or a cause for it.
+            Rules:
+            - Use UNKNOWN or null whenever the note does not clearly state a field.
+            - Do not guess. Report only what the owner actually wrote.
+            - Do not diagnose, do not name any disease, do not recommend medication or
+              treatment, and never mention emergencies or triage.
+            - You are only an input helper: the owner reviews and confirms every field
+              before anything is saved.""";
 
     private final String apiKey;
     private final String model;
@@ -83,15 +112,18 @@ public class AnthropicAiProvider implements AiProvider {
     }
 
     @Override
-    public DailyNoteExtractionResult extract(String note) {
+    public DailyNoteExtractionResult extract(String note, Species species) {
         if (note == null || note.isBlank()) {
             List<String> warnings = new ArrayList<>();
             warnings.add(Copy.t("The note was empty, so no fields could be suggested."));
             return new DailyNoteExtractionResult(
-                    null, StoolState.UNKNOWN, null, null, null, false, null, null, "LOW", warnings);
+                    null, StoolState.UNKNOWN, null, null, null, false, null,
+                    null, null, null, null, null, null, "LOW", warnings,
+                    List.of(), null);
         }
         try {
-            String requestBody = mapper.writeValueAsString(buildRequest(note));
+            String content = species == null ? note : "(Pet species: " + species.name() + ")\n" + note;
+            String requestBody = mapper.writeValueAsString(buildRequest(content));
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(ENDPOINT))
                     .timeout(Duration.ofSeconds(30))
@@ -124,7 +156,7 @@ public class AnthropicAiProvider implements AiProvider {
     }
 
     /** Pull the first text block out of the Messages API response. */
-    private String extractText(String responseBody) throws IOException {
+    String extractText(String responseBody) throws IOException {
         JsonNode root = mapper.readTree(responseBody);
         for (JsonNode block : root.path("content")) {
             if ("text".equals(block.path("type").asText())) {
@@ -134,7 +166,7 @@ public class AnthropicAiProvider implements AiProvider {
         throw new IllegalStateException("AI response contained no text block");
     }
 
-    private DailyNoteExtractionResult parseResult(String text) throws IOException {
+    DailyNoteExtractionResult parseResult(String text) throws IOException {
         int start = text.indexOf('{');
         int end = text.lastIndexOf('}');
         if (start < 0 || end < start) {

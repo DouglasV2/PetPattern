@@ -81,6 +81,12 @@ public class DailyCheckIn {
     private boolean straining;
     private boolean weightConcern;
 
+    // Flexible, species-specific observations for starter species (RABBIT, BIRD,
+    // REPTILE, …) as a small JSON string of owner-observed facts. NULL for dogs
+    // and cats, which use the explicit columns above. Never holds a diagnosis.
+    @Column(name = "observations_json", length = 8000)
+    private String observationsJson;
+
     @Column(length = 1200)
     private String freeTextNote;
 
@@ -260,6 +266,14 @@ public class DailyCheckIn {
 
     public void setWeightConcern(boolean weightConcern) {
         this.weightConcern = weightConcern;
+    }
+
+    public String getObservationsJson() {
+        return observationsJson;
+    }
+
+    public void setObservationsJson(String observationsJson) {
+        this.observationsJson = observationsJson;
     }
 
     public String getFreeTextNote() {

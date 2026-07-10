@@ -102,6 +102,9 @@ public class CheckInController {
         checkIn.setStraining(request.straining());
         checkIn.setHidingBehavior(request.resolvedHidingBehavior());
         checkIn.setWeightConcern(request.weightConcern());
+        // Starter-species observations (null for dog/cat). Stored verbatim as the
+        // owner-observed JSON; blank collapses to null so it doesn't linger.
+        checkIn.setObservationsJson(clean(request.observationsJson()));
         checkIn.setFreeTextNote(note);
         checkIn.setNotes(note);
 

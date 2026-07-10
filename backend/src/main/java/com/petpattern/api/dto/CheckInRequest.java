@@ -39,7 +39,10 @@ public record CheckInRequest(
         UrinationChange urinationChange,
         boolean straining,
         HidingBehavior hidingBehavior,
-        boolean weightConcern
+        boolean weightConcern,
+        // Species-specific observations for starter species (BIRD, REPTILE, …) as a
+        // JSON string. Optional — dog/cat clients omit it and keep working.
+        @Size(max = 8000, message = "Too many observations") String observationsJson
 ) {
     public LitterBoxUse resolvedLitterBoxUse() {
         return litterBoxUse == null ? LitterBoxUse.UNKNOWN : litterBoxUse;

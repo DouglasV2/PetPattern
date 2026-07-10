@@ -175,5 +175,7 @@ export const api = {
   deleteAccount: () => request('/account', { method: 'DELETE' }),
   // Token goes in a header, not the URL, so it stays out of server/access logs.
   sharedVetSummary: (token) => request('/shared/vet-summary', { headers: { 'X-Share-Token': token } }),
-  seedDemo: () => request('/dev/seed', { method: 'POST' })
+  seedDemo: () => request('/dev/seed', { method: 'POST' }),
+  seedCatDemo: () => request('/dev/seed-cat', { method: 'POST' }),
+  seedRabbitDemo: () => request('/dev/seed-rabbit', { method: 'POST' })
 }

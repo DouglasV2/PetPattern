@@ -26,19 +26,22 @@ public class PatternEngine {
     private final SymptomTrendAnalyzer symptomTrendAnalyzer;
     private final FoodExposureAnalyzer foodExposureAnalyzer;
     private final CatSymptomAnalyzer catSymptomAnalyzer;
+    private final ObservationPatternAnalyzer observationPatternAnalyzer;
 
     public PatternEngine(PetRepository petRepository,
                          DailyCheckInRepository checkInRepository,
                          FoodLogRepository foodLogRepository,
                          SymptomTrendAnalyzer symptomTrendAnalyzer,
                          FoodExposureAnalyzer foodExposureAnalyzer,
-                         CatSymptomAnalyzer catSymptomAnalyzer) {
+                         CatSymptomAnalyzer catSymptomAnalyzer,
+                         ObservationPatternAnalyzer observationPatternAnalyzer) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.symptomTrendAnalyzer = symptomTrendAnalyzer;
         this.foodExposureAnalyzer = foodExposureAnalyzer;
         this.catSymptomAnalyzer = catSymptomAnalyzer;
+        this.observationPatternAnalyzer = observationPatternAnalyzer;
     }
 
     public List<PatternCandidate> analyze(UUID petId) {
@@ -61,13 +64,18 @@ public class PatternEngine {
             catSymptomAnalyzer.litterBoxChange(pet, checkIns).ifPresent(candidates::add);
             catSymptomAnalyzer.hidingIncreased(pet, checkIns).ifPresent(candidates::add);
             catSymptomAnalyzer.repeatedVomiting(pet, checkIns).ifPresent(candidates::add);
-        } else {
-            // Dog rules (default).
+        } else if (pet.getSpecies() == Species.DOG) {
+            // Dog rules.
             symptomTrendAnalyzer.itchingAboveBaseline(pet, checkIns).ifPresent(candidates::add);
             symptomTrendAnalyzer.stoolInstability(pet, checkIns).ifPresent(candidates::add);
             symptomTrendAnalyzer.waterDrop(pet, checkIns).ifPresent(candidates::add);
             symptomTrendAnalyzer.recurringEarRedness(pet, checkIns).ifPresent(candidates::add);
             foodExposureAnalyzer.possibleFoodTrigger(pet, checkIns, foodLogs).ifPresent(candidates::add);
+        } else {
+            // Starter species (rabbit, bird, reptile, …): species-neutral repeated
+            // observations from the flexible model. Never runs dog/cat rules on
+            // their data (which would misread empty dog/cat columns).
+            candidates.addAll(observationPatternAnalyzer.analyze(pet, checkIns));
         }
 
         candidates.sort(Comparator

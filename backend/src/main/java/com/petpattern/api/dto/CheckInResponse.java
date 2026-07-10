@@ -35,7 +35,8 @@ public record CheckInResponse(
         UrinationChange urinationChange,
         boolean straining,
         HidingBehavior hidingBehavior,
-        boolean weightConcern
+        boolean weightConcern,
+        String observationsJson
 ) {
     public static CheckInResponse from(DailyCheckIn checkIn) {
         return new CheckInResponse(
@@ -61,7 +62,8 @@ public record CheckInResponse(
                 checkIn.getUrinationChange(),
                 checkIn.isStraining(),
                 checkIn.getHidingBehavior(),
-                checkIn.isWeightConcern()
+                checkIn.isWeightConcern(),
+                checkIn.getObservationsJson()
         );
     }
 }

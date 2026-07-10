@@ -1,5 +1,6 @@
 package com.petpattern.patterns;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petpattern.api.dto.PatternTimelineDto;
 import com.petpattern.api.dto.PatternTimelineEventDto;
 import com.petpattern.domain.DailyCheckIn;
@@ -11,6 +12,8 @@ import com.petpattern.domain.Protein;
 import com.petpattern.domain.StoolState;
 import com.petpattern.domain.WaterLevel;
 import com.petpattern.i18n.Copy;
+import com.petpattern.observations.ObservationSignal;
+import com.petpattern.observations.ObservationSignals;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.MedicationRepository;
@@ -22,9 +25,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -53,17 +58,20 @@ public class PatternTimelineService {
     private final FoodLogRepository foodLogRepository;
     private final PatternEngine patternEngine;
     private final MedicationRepository medicationRepository;
+    private final ObjectMapper objectMapper;
 
     public PatternTimelineService(PetRepository petRepository,
                                   DailyCheckInRepository checkInRepository,
                                   FoodLogRepository foodLogRepository,
                                   PatternEngine patternEngine,
-                                  MedicationRepository medicationRepository) {
+                                  MedicationRepository medicationRepository,
+                                  ObjectMapper objectMapper) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.patternEngine = patternEngine;
         this.medicationRepository = medicationRepository;
+        this.objectMapper = objectMapper;
     }
 
     /** Timeline for a specific pattern by its stable id (e.g. from the pattern list). */
@@ -108,6 +116,7 @@ public class PatternTimelineService {
         events.addAll(foodEvents(foodLogs, window));
         events.addAll(medicationEvents(pet, window));
         events.addAll(symptomEvents(checkIns, window));
+        events.addAll(observationEvents(checkIns, window));
         events.add(patternDetectedEvent(candidate, window.end()));
 
         events.sort(Comparator
@@ -155,7 +164,8 @@ public class PatternTimelineService {
             case WATER_DROP -> new Window(latestDate.minusDays(10), latestDate);
             case RECURRING_EAR_REDNESS -> new Window(latestDate.minusDays(16), latestDate);
             // Cat patterns: a shared recent window is enough for the "what changed" view.
-            case APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING ->
+            case APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING,
+                 REPEATED_OBSERVATION ->
                     new Window(latestDate.minusDays(20), latestDate);
         };
     }
@@ -275,6 +285,76 @@ public class PatternTimelineService {
         return events;
     }
 
+    /**
+     * Starter-species equivalent of {@link #symptomEvents}: walks the in-window
+     * check-ins and emits an event whenever an owner-observed signal (from
+     * observations_json) transitions from not-changed to changed. Visible-change
+     * signals get their own event type so they stand out. Works for any species —
+     * a dog or cat that logs a visible change gets it on their timeline too.
+     */
+    private List<PatternTimelineEventDto> observationEvents(List<DailyCheckIn> checkIns, Window window) {
+        List<PatternTimelineEventDto> events = new ArrayList<>();
+        DailyCheckIn previous = null;
+        for (DailyCheckIn checkIn : checkIns) {
+            if (checkIn.getCheckInDate().isBefore(window.start())) {
+                previous = checkIn;
+                continue;
+            }
+            if (checkIn.getCheckInDate().isAfter(window.end())) {
+                break;
+            }
+            Set<String> changedBefore = changedKeys(previous);
+            for (ObservationSignal signal : ObservationSignals.parse(checkIn.getObservationsJson(), objectMapper)) {
+                String key = signal.key();
+                if (key == null || key.isBlank() || !signal.isChanged() || changedBefore.contains(key)) {
+                    continue;
+                }
+                if (signal.isVisibleChange()) {
+                    events.add(symptom(checkIn, "VISIBLE_CHANGE", Copy.t("Visible change noticed"),
+                            visibleChangeSummary(signal), "watch"));
+                } else {
+                    events.add(symptom(checkIn, "OBSERVATION_CHANGE",
+                            Copy.t("Change logged: {0}", signal.displayLabel()),
+                            observationSummary(signal), "watch"));
+                }
+            }
+            previous = checkIn;
+        }
+        return events;
+    }
+
+    /** The set of signal keys logged as "changed" on a given check-in (empty if none/null). */
+    private Set<String> changedKeys(DailyCheckIn checkIn) {
+        if (checkIn == null) {
+            return Set.of();
+        }
+        Set<String> keys = new HashSet<>();
+        for (ObservationSignal signal : ObservationSignals.parse(checkIn.getObservationsJson(), objectMapper)) {
+            if (signal.key() != null && !signal.key().isBlank() && signal.isChanged()) {
+                keys.add(signal.key());
+            }
+        }
+        return keys;
+    }
+
+    private String observationSummary(ObservationSignal signal) {
+        String base = Copy.t("Logged as {0}.", signal.displayValue());
+        String note = signal.note();
+        return (note == null || note.isBlank()) ? base : base + " " + note.trim();
+    }
+
+    private String visibleChangeSummary(ObservationSignal signal) {
+        String status = signal.normalizedStatus();
+        StringBuilder builder = new StringBuilder(signal.displayValue());
+        if (status != null) {
+            builder.append(" (").append(status).append(')');
+        }
+        if (signal.note() != null && !signal.note().isBlank()) {
+            builder.append(" — ").append(signal.note().trim());
+        }
+        return builder.toString();
+    }
+
     private PatternTimelineEventDto symptom(DailyCheckIn checkIn, String type, String title,
                                             String summary, String severity) {
         return new PatternTimelineEventDto(
@@ -318,6 +398,8 @@ public class PatternTimelineService {
             case HIDING_INCREASED -> Copy.t("{0} has been hiding more than usual — worth watching and mentioning to your vet.", name);
             case REPEATED_VOMITING -> Copy.t("{0} vomited on more than one recent day. Worth bringing to your vet "
                     + "if it continues. This is not a diagnosis.", name);
+            case REPEATED_OBSERVATION -> Copy.t("You logged this change on more than one day. Looking at the days "
+                    + "around it can help you and your vet. This is not a diagnosis.", name);
         };
     }
 
@@ -427,6 +509,8 @@ public class PatternTimelineService {
             Map.entry("STOOL_CHANGE", 3),
             Map.entry("WATER_CHANGE", 4),
             Map.entry("CHECK_IN_SYMPTOM", 5),
+            Map.entry("OBSERVATION_CHANGE", 5),
+            Map.entry("VISIBLE_CHANGE", 5),
             Map.entry("MEDICATION_ENDED", 6),
             Map.entry("NOTE", 7),
             Map.entry("PATTERN_DETECTED", 9)

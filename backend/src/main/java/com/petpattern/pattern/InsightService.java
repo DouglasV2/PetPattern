@@ -74,7 +74,8 @@ public class InsightService {
         return switch (candidate.type()) {
             case POSSIBLE_FOOD_TRIGGER -> "pattern";
             case ITCHING_ABOVE_BASELINE, STOOL_INSTABILITY, WATER_DROP, RECURRING_EAR_REDNESS,
-                 APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING -> "watch";
+                 APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING,
+                 REPEATED_OBSERVATION -> "watch";
         };
     }
 }

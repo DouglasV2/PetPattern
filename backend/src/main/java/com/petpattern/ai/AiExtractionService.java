@@ -1,8 +1,11 @@
 package com.petpattern.ai;
 
+import com.petpattern.domain.Pet;
+import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
 import com.petpattern.repository.AiParseAttemptRepository;
+import com.petpattern.repository.PetRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,16 +31,23 @@ public class AiExtractionService {
 
     private final AiProvider provider;
     private final AiParseAttemptRepository attemptRepository;
+    private final PetRepository petRepository;
 
-    public AiExtractionService(AiProvider provider, AiParseAttemptRepository attemptRepository) {
+    public AiExtractionService(AiProvider provider,
+                               AiParseAttemptRepository attemptRepository,
+                               PetRepository petRepository) {
         this.provider = provider;
         this.attemptRepository = attemptRepository;
+        this.petRepository = petRepository;
     }
 
     public DailyNoteExtractionResult parseDailyNote(UUID petId, String note) {
+        // The provider is species-aware: dogs/cats map to explicit fields, starter
+        // species to generic signals. A missing pet just extracts generically.
+        Species species = resolveSpecies(petId);
         DailyNoteExtractionResult result;
         try {
-            result = provider.extract(note);
+            result = provider.extract(note, species);
         } catch (RuntimeException ex) {
             log.warn("AI provider '{}' failed to extract a note; returning a safe empty suggestion.",
                     provider.name(), ex);
@@ -58,7 +68,8 @@ public class AiExtractionService {
         warnings.add(Copy.t("Suggestions are temporarily unavailable. Please fill in the fields yourself."));
         return new DailyNoteExtractionResult(
                 null, StoolState.UNKNOWN, null, null, null,
-                false, null, null, "LOW", warnings);
+                false, null, null, null, null, null, null, null, "LOW", warnings,
+                List.of(), null);
     }
 
     /** A quiet reminder that these are just guesses read from the note. */
@@ -76,10 +87,24 @@ public class AiExtractionService {
                 result.energyLevel(),
                 result.vomiting(),
                 result.earRedness(),
+                result.litterBoxUse(),
+                result.urinationChange(),
+                result.straining(),
+                result.hidingBehavior(),
+                result.weightConcern(),
                 result.possibleFoodTrigger(),
                 result.confidence(),
-                warnings
+                warnings,
+                result.detectedSignals(),
+                result.possibleEnvironmentTrigger()
         );
+    }
+
+    private Species resolveSpecies(UUID petId) {
+        if (petId == null) {
+            return null;
+        }
+        return petRepository.findById(petId).map(Pet::getSpecies).orElse(null);
     }
 
     private void recordAttempt(UUID petId, String note, DailyNoteExtractionResult result) {

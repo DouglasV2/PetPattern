@@ -4,6 +4,7 @@ import com.petpattern.domain.AppetiteLevel;
 import com.petpattern.domain.EnergyLevel;
 import com.petpattern.domain.FoodKind;
 import com.petpattern.domain.Protein;
+import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
 import com.petpattern.domain.WaterLevel;
@@ -52,7 +53,9 @@ public class MockAiProvider implements AiProvider {
     }
 
     @Override
-    public DailyNoteExtractionResult extract(String note) {
+    public DailyNoteExtractionResult extract(String note, Species species) {
+        // The deterministic mock is keyword-only and species-blind; species is
+        // accepted for interface parity but not used here.
         String text = fold(note);
         List<String> warnings = new ArrayList<>();
         int signals = 0;
@@ -180,7 +183,13 @@ public class MockAiProvider implements AiProvider {
 
         return new DailyNoteExtractionResult(
                 itchingScore, stoolState, appetiteLevel, waterLevel, energyLevel,
-                vomiting, earRedness, trigger, confidence, warnings);
+                vomiting, earRedness,
+                // Cat-specific fields stay null: the deterministic mock is keyword-only
+                // and the UI hides it unless a real provider is configured.
+                null, null, null, null, null,
+                trigger, confidence, warnings,
+                // Starter-species signals are a hosted-model feature; the mock leaves them empty.
+                List.of(), null);
     }
 
     private DailyNoteExtractionResult.PossibleFoodTrigger detectFood(String text, String original) {

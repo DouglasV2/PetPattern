@@ -737,5 +737,126 @@ export default {
   'Going to the vet? Bring the timeline, not your memory.':
     'Ideš veterinaru? Ponesi vremensku crtu, ne pamćenje.',
   'Food changes often matter more than they seem. PetPattern lines them up with stool, scratching, appetite, vomiting and energy changes.':
-    'Promjene hrane često znače više nego što se čini. PetPattern ih poravnava s promjenama stolice, češanja, apetita, povraćanja i energije.'
+    'Promjene hrane često znače više nego što se čini. PetPattern ih poravnava s promjenama stolice, češanja, apetita, povraćanja i energije.',
+
+  // Cat demo + Food detective + Vet report (10/10 polish)
+  'Try dog demo': 'Probaj demo psa',
+  'Try cat demo': 'Probaj demo mačke',
+  'Food detective': 'Detektiv hrane',
+  'See whether stool, scratching, appetite, vomiting, or energy changes often happen near food or treat changes.':
+    'Pogledaj događaju li se promjene stolice, češanja, apetita, povraćanja ili energije često blizu promjena hrane ili poslastica.',
+  'Add a food or treat change and a few check-ins. PetPattern will line them up here.':
+    'Dodaj promjenu hrane ili poslastice i nekoliko unosa. PetPattern će ih ovdje poravnati.',
+  'Nothing notable was logged in the week after this change.':
+    'Ništa značajno nije zabilježeno u tjednu nakon ove promjene.',
+  'These signals were logged near a change — worth mentioning to your vet, not a proven cause.':
+    'Ovi signali zabilježeni su blizu promjene — vrijedno spomenuti veterinaru, ne dokazani uzrok.',
+  'Same day': 'Isti dan',
+  '1 day after': '1 dan poslije',
+  '{n} days after': '{n} dana poslije',
+  'Open food detective': 'Otvori detektiva hrane',
+  'See food timeline': 'Pogledaj vremensku crtu hrane',
+  'Wondering if a food change lines up with a change in how {name} felt?':
+    'Pitaš se poklapa li se promjena hrane s promjenom u tome kako se {name} osjećao/la?',
+  'New': 'Novo',
+  'PetPattern vet summary': 'PetPattern sažetak za veterinara',
+  'Owner-observed timeline, not a diagnosis.': 'Vremenska crta koju je zabilježio vlasnik, nije dijagnoza.',
+
+  // Multi-species support
+  'What pet do you want to track?': 'Kojeg ljubimca želiš pratiti?',
+  'PetPattern uses species-specific signals, not generic logs.':
+    'PetPattern koristi signale specifične za vrstu, ne generičke unose.',
+  'Species-specific pattern memory': 'Memorija obrazaca specifična za vrstu',
+  'Full support': 'Puna podrška',
+  'Starter support': 'Početna podrška',
+  'Rabbit': 'Zec',
+  'Hamster': 'Hrčak',
+  'Guinea pig': 'Zamorac',
+  'Bird': 'Ptica',
+  'Reptile': 'Gmaz',
+  'Turtle': 'Kornjača',
+  'Fish / Aquarium': 'Riba / Akvarij',
+  'Other small pet': 'Drugi mali ljubimac',
+  'Tell us about your {species}': 'Reci nam nešto o svom ljubimcu — {species}',
+  "Your pet's name": 'Ime tvog ljubimca',
+  'Try rabbit demo': 'Probaj demo zeca',
+  'What did you notice for {name}?': 'Što si primijetio/la kod {name}?',
+  "Log a day and {name}'s signals show up here.": 'Zabilježi dan i signali za {name} pojavit će se ovdje.',
+  // Detective (environment) + vet observations
+  'Environment detective': 'Detektiv okoline',
+  'Open environment detective': 'Otvori detektiva okoline',
+  'See whether appetite, activity, droppings or other changes often happen near a care or environment change.':
+    'Pogledaj događaju li se promjene apetita, aktivnosti, izmeta ili druge promjene često blizu promjene njege ili okoline.',
+  'PetPattern lines up care or environment changes with later observations. This is not a diagnosis.':
+    'PetPattern poravnava promjene njege ili okoline s kasnijim zapažanjima. Ovo nije dijagnoza.',
+  'Species-specific observations': 'Zapažanja specifična za vrstu',
+  'No species-specific observations logged in this period.':
+    'U ovom razdoblju nema zabilježenih zapažanja specifičnih za vrstu.',
+  // A few common starter signal labels + values (rest fall back to English)
+  'Poop': 'Izmet',
+  'Droppings': 'Izmet',
+  'Feeding': 'Hranjenje',
+  'Basking': 'Grijanje',
+  'Shedding': 'Presvlačenje',
+  'Appetite / hay': 'Apetit / sijeno',
+  'Eating less': 'Jede manje',
+  'Refused food': 'Odbija hranu',
+  'Softer': 'Mekše',
+  'Noticed change': 'Primijećena promjena',
+
+  // Visible change / wound tracking (universal, owner-observed — never a diagnosis)
+  'Visible change / skin / wound': 'Vidljiva promjena / koža / rana',
+  'Track how this looks over time. Useful for your vet conversation. Not a diagnosis.':
+    'Prati kako ovo izgleda tijekom vremena. Korisno za razgovor s veterinarom. Nije dijagnoza.',
+  'Compared to before': 'U usporedbi s prije',
+  'Better': 'Bolje',
+  'Same': 'Isto',
+  'Worse': 'Gore',
+  'Add a photo of this': 'Dodaj fotografiju ovoga',
+  'e.g. small red patch near the left ear': 'npr. mala crvena mrlja blizu lijevog uha',
+  'Photo added — track how it looks over time.': 'Fotografija dodana — prati kako izgleda tijekom vremena.',
+  'Care or environment change mentioned:': 'Spomenuta promjena njege ili okoline:',
+  // Visible change category labels (species-aware)
+  'Visible change / wound': 'Vidljiva promjena / rana',
+  'Skin / wound': 'Koža / rana',
+  'Visible change / feathers / skin': 'Vidljiva promjena / perje / koža',
+  'Visible change / skin': 'Vidljiva promjena / koža',
+  'Shell / skin change': 'Oklop / promjena kože',
+  'Visible change / fins / scales': 'Vidljiva promjena / peraje / ljuske',
+  // Visible change options
+  'Redness noticed': 'Primijećeno crvenilo',
+  'Swelling noticed': 'Primijećena oteklina',
+  'Scratch or cut noticed': 'Primijećena ogrebotina ili posjekotina',
+  'Bleeding noticed': 'Primijećeno krvarenje',
+  'Licking or bothering the area': 'Liže ili dira područje',
+  'Spot or mark noticed': 'Primijećena točka ili oznaka',
+  'Spot noticed': 'Primijećena točka',
+  'Skin change': 'Promjena kože',
+  'Wound noticed': 'Primijećena rana',
+  'Feather change': 'Promjena perja',
+  'Shedding concern': 'Zabrinutost oko presvlačenja',
+  'Shell mark noticed': 'Primijećena oznaka na oklopu',
+  'Shell soft spot noticed': 'Primijećeno mekano mjesto na oklopu',
+  'Fin change': 'Promjena peraja',
+  'Scale change': 'Promjena ljusaka',
+  // Vet summary — visible changes over time
+  'Visible changes over time': 'Vidljive promjene tijekom vremena',
+  'Track how this looked over time. Useful to show your vet. Not a diagnosis.':
+    'Prati kako je ovo izgledalo tijekom vremena. Korisno za pokazati veterinaru. Nije dijagnoza.',
+  // Photo areas (visible change)
+  'Wound / visible change': 'Rana / vidljiva promjena',
+  'Swelling': 'Oteklina',
+  'Shell': 'Oklop',
+  'Feathers': 'Perje',
+  'Fins / scales': 'Peraje / ljuske',
+
+  // Mobile QA polish pass — day-zero states, clearer labels
+  'Getting started': 'Početak',
+  '{name} is ready for a first check-in.': '{name} je spreman/na za prvu dnevnu provjeru.',
+  'Note about this change (optional)': 'Bilješka o ovoj promjeni (neobavezno)',
+  'Timeline': 'Vremenska crta',
+  'Add a photo of anything you want to keep an eye on and watch how it changes over time — handy to show your vet.':
+    'Dodaj fotografiju bilo čega što želiš pratiti i gledaj kako se mijenja tijekom vremena — zgodno za pokazati veterinaru.',
+  "Add {name}'s first photo to start a visual record you can compare later.":
+    'Dodaj prvu fotografiju za {name} kako bi započeo/la vizualni zapis koji možeš kasnije usporediti.'
 }
