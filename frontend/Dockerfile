@@ -20,6 +20,7 @@ RUN npm run build
 FROM nginx:1.27-alpine
 # Where the SPA proxies /api. Default matches docker-compose (service "backend");
 # override on Railway/other hosts, e.g. BACKEND_UPSTREAM=petpattern.railway.internal:8080.
+ENV PORT=80
 ENV BACKEND_UPSTREAM=backend:8080
 # Placed in templates/ so nginx's entrypoint runs envsubst on it at startup,
 # substituting ${BACKEND_UPSTREAM} into the final /etc/nginx/conf.d/default.conf.
