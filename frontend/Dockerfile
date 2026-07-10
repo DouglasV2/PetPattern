@@ -1,10 +1,10 @@
-FROM node:20-alpine AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
 ENV NPM_CONFIG_AUDIT=false \
     NPM_CONFIG_FUND=false
 # Copy the lockfile too and use `npm ci` for a reproducible, lockfile-exact build.
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN npm ci --include=dev --no-audit --no-fund
 COPY . .
 RUN test -x node_modules/.bin/vite
 # Optional, build-time only (Vite inlines VITE_* at build). Empty = feature off:
