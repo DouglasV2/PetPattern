@@ -4,7 +4,7 @@ ENV NPM_CONFIG_AUDIT=false \
     NPM_CONFIG_FUND=false
 # Copy the lockfile too and use `npm ci` for a reproducible, lockfile-exact build.
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN NODE_OPTIONS="--max-old-space-size=512" npm ci --no-audit --no-fund
 COPY . .
 RUN test -x node_modules/.bin/vite
 # Optional, build-time only (Vite inlines VITE_* at build). Empty = feature off:
