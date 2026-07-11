@@ -59,6 +59,22 @@ function BrandMark({ size = 20 }) {
   )
 }
 
+// A quiet botanical sprig for the Today hero — the "health notebook garden"
+// accent. Drawn in currentColor (set to a soft sage) at low opacity so it reads
+// as an ambient pressed-leaf in the corner, never a focal illustration. Hidden
+// from assistive tech; purely decorative.
+function HeroSprig() {
+  return (
+    <svg className="hero-sprig" width="132" height="120" viewBox="0 0 132 120" fill="none" aria-hidden="true" focusable="false">
+      <path d="M104 116 C 104 82, 92 54, 56 32" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+      <path d="M96 84 c -15 -7 -28 -2 -33 10 c 16 6 29 2 33 -10 z" fill="currentColor" opacity="0.5" />
+      <path d="M92 60 c 13 -10 27 -9 36 2 c -13 10 -27 9 -36 -2 z" fill="currentColor" opacity="0.68" />
+      <path d="M74 42 c -13 -8 -26 -3 -31 9 c 14 6 27 2 31 -9 z" fill="currentColor" opacity="0.56" />
+      <circle cx="56" cy="32" r="4.6" fill="currentColor" opacity="0.85" />
+    </svg>
+  )
+}
+
 // A small round pet avatar: the pet's most-recent photo thumbnail when there is
 // one, otherwise an original initials placeholder tinted by species. No stock art
 // or downloaded assets — the fallback is just a letter on a soft disc.
@@ -129,6 +145,78 @@ function PetPhotoStack({ pet, photos, onAddPhoto }) {
         </span>
       </button>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
+    </div>
+  )
+}
+
+// A short, plural-safe age derived from a pet's birth date ("5 yr" / "3 mo"), or
+// '' when the birthday is unknown. The abbreviations sidestep per-language plural
+// forms (Croatian uses "god." / "mj."), so this needs no extra translations
+// beyond the two count keys.
+function petAgeLabel(birthDate) {
+  if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return ''
+  const [y, m, d] = birthDate.split('-').map(Number)
+  const now = new Date()
+  let months = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m)
+  if (now.getDate() < d) months -= 1
+  if (months < 0) return ''
+  return months < 12 ? t('{count} mo', { count: months }) : t('{count} yr', { count: Math.floor(months / 12) })
+}
+
+// The quiet line under a pet's name on the sidebar "record cover": the breed the
+// owner typed (kept verbatim — their words), or the species when there's no breed,
+// plus the age when we know the birthday.
+function petSubtitle(pet) {
+  if (!pet) return ''
+  const breed = (pet.breed || '').trim()
+  const parts = [breed || t(speciesProfile(pet.species).label)]
+  const age = petAgeLabel(pet.birthDate)
+  if (age) parts.push(age)
+  return parts.join(' · ')
+}
+
+// The active pet presented as the cover of their record at the top of the
+// sidebar: a real photo when there is one (else the species-tinted initial), the
+// name in the display serif, and a breed · age line. The photo doubles as the
+// add/change-photo control — the one pet edit the app actually supports — so there
+// is no dead "edit profile" link for details that can't be changed yet.
+function PetIdentityCard({ pet, photos, onAddPhoto }) {
+  const [busy, setBusy] = useState(false)
+  const fileRef = useRef(null)
+  const canPhoto = Boolean(pet && pet.owned !== false && onAddPhoto)
+  const shot = (photos || []).find(isProfilePhoto)
+  const src = shot ? `${shot.imageUrl}?w=240` : (pet?.avatarImageUrl || null)
+  const openPicker = () => fileRef.current?.click()
+
+  async function onFile(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !canPhoto) return
+    setBusy(true)
+    try { await onAddPhoto(file) } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="pet-identity">
+      <div className="pet-identity-photo">
+        {src ? <img src={src} alt="" /> : <PetAvatar pet={pet} size={56} />}
+        {canPhoto && (
+          <button type="button" className="pet-identity-cam" onClick={openPicker} disabled={busy}
+                  aria-label={src ? t('Change photo for {name}', { name: pet.name }) : t('Add a photo of {name}', { name: pet.name })}>
+            <ImagePlus size={13} />
+          </button>
+        )}
+      </div>
+      <div className="pet-identity-copy">
+        <strong className="pet-identity-name">{pet?.name}</strong>
+        <span className="pet-identity-sub">{petSubtitle(pet)}</span>
+        {canPhoto && (
+          <button type="button" className="pet-identity-action" onClick={openPicker} disabled={busy}>
+            {busy ? t('Adding…') : (src ? t('Change photo') : t('Add a photo'))}
+          </button>
+        )}
+      </div>
+      {canPhoto && <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />}
     </div>
   )
 }
@@ -695,8 +783,12 @@ function App() {
 
   // Add a profile photo from the desktop sidebar or the mobile pet switcher.
   // Profile photos live in the same lightweight photo store, but are marked as
-  // PROFILE so they stay out of the health-photo gallery and timeline. The newest
-  // PROFILE photo becomes the avatar and top snapshot for this pet.
+  // PROFILE so they stay out of the health-photo gallery and timeline. A pet has a
+  // single cover: the new photo REPLACES the old one — once the upload succeeds we
+  // retire any previous PROFILE photos so they don't pile up unseen in the DB. The
+  // order matters: upload first, delete after, so a failed upload never leaves the
+  // pet with no photo. Health photos (ear/paw/wound…) are untouched and keep their
+  // full history.
   async function addPetPhoto(file) {
     if (!selectedPet || !file) return
     setError('')
@@ -707,6 +799,10 @@ function App() {
       formData.append('area', 'PROFILE')
       formData.append('capturedDate', today)
       await api.uploadPhoto(selectedPet.id, formData)
+      const priorProfile = (photos || []).filter(isProfilePhoto)
+      if (priorProfile.length) {
+        await Promise.allSettled(priorProfile.map((p) => api.deletePhoto(selectedPet.id, p.id)))
+      }
       setPhotos(await api.listPhotos(selectedPet.id))
       setPets(await api.listPets())
       showToast(t("Profile photo added — that's {name} now.", { name: selectedPet.name }))
@@ -1215,10 +1311,8 @@ function App() {
           </span>
         </div>
 
-        {selectedPet?.owned !== false && <PetPhotoStack pet={selectedPet} photos={photos} onAddPhoto={addPetPhoto} />}
-
-        <div className="rail-group">
-          <p className="rail-label">{t('My pets')}</p>
+        <div className="rail-group rail-pets">
+          {selectedPet && <PetIdentityCard pet={selectedPet} photos={photos} onAddPhoto={addPetPhoto} />}
           <PetSwitcher
             pets={pets}
             selectedPetId={selectedPetId}
@@ -1228,8 +1322,9 @@ function App() {
             canAdd={pets.length < maxPets}
           />
           <div className="pet-tabs">
-            {pets.map((pet) => (
-              <button key={pet.id} className={pet.id === selectedPetId ? 'pet-tab active' : 'pet-tab'} type="button" onClick={() => setSelectedPetId(pet.id)}>
+            {pets.some((p) => p.id !== selectedPetId) && <p className="rail-label pet-tabs-label">{t('Switch pet')}</p>}
+            {pets.filter((p) => p.id !== selectedPetId).map((pet) => (
+              <button key={pet.id} className="pet-tab" type="button" onClick={() => setSelectedPetId(pet.id)}>
                 <PetAvatar pet={pet} size={22} /> {pet.name}
               </button>
             ))}
@@ -1240,6 +1335,15 @@ function App() {
             )}
           </div>
         </div>
+
+        <nav className="record-nav" aria-label="PetPattern sections">
+          <p className="rail-label record-nav-head">{t('Notebook')}</p>
+          <Tab active={view === 'today'} onClick={() => go('today')} icon={<PawPrint size={16} />} label={t('{name} today', { name: selectedPet.name })} />
+          <Tab active={view === 'check-in' || view === 'photos'} onClick={() => openCheckIn('full')} icon={<ClipboardList size={16} />} label={t('Log')} />
+          <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} icon={<Utensils size={16} />} label={t('Food')} />
+          <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={16} />} label={t('Changes')} />
+          <Tab active={view === 'vet'} onClick={() => openVetSummary()} icon={<Stethoscope size={16} />} label={t('Vet')} />
+        </nav>
 
         <div className="rail-group rail-account">
           <p className="rail-label">{t('My account')}</p>
@@ -1258,14 +1362,6 @@ function App() {
       {invites.length > 0 && (
         <InvitesBanner invites={invites} onAccept={acceptInvite} onDecline={declineInvite} />
       )}
-      <nav className="record-nav" aria-label="PetPattern sections">
-        <p className="rail-label record-nav-head">{t('Notebook')}</p>
-        <Tab active={view === 'today'} onClick={() => go('today')} icon={<PawPrint size={16} />} label={t('{name} today', { name: selectedPet.name })} />
-        <Tab active={view === 'check-in' || view === 'photos'} onClick={() => openCheckIn('full')} icon={<ClipboardList size={16} />} label={t('Log')} />
-        <Tab active={view === 'food' || view === 'trial'} onClick={() => go('food')} icon={<Utensils size={16} />} label={t('Food')} />
-        <Tab active={view === 'patterns' || view === 'timeline' || view === 'recap'} onClick={() => go('patterns')} icon={<Activity size={16} />} label={t('Changes')} />
-        <Tab active={view === 'vet'} onClick={() => openVetSummary()} icon={<Stethoscope size={16} />} label={t('Vet')} />
-      </nav>
 
       <main className="screen">
         {error && <div className="error-box" role="alert">{error}</div>}
@@ -1534,7 +1630,6 @@ function TodayDecisionActions({ pet, loggedToday, onSameAsUsual, onSomethingChan
   return (
     <section className="today-decision" aria-label={t('How is {name} today?', { name: pet.name })}>
       <div className="today-decision-head">
-        <h2>{t('How is {name} today?', { name: pet.name })}</h2>
         <p>{t('Normal days are useful too. PetPattern learns what is normal for {name}.', { name: pet.name })}</p>
       </div>
       <div className="decision-grid">
@@ -1632,9 +1727,12 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
     <>
       <section className="today-spine">
         <div className="today-copy">
-          <p className="kicker">{t('{name} today', { name: pet.name })}</p>
-          <h1>{todayHeadline(pet, overview, topPattern, latestCheckIn)}</h1>
-          <p>{overview?.todayExplanation ?? t('{name} is ready for a first check-in.', { name: pet.name })}</p>
+          <div className="today-copy-text">
+            <p className="kicker">{formatDate(today)}</p>
+            <h1>{t('How is {name} today?', { name: pet.name })}</h1>
+            <p>{overview?.todayExplanation ?? t('{name} is ready for a first check-in.', { name: pet.name })}</p>
+          </div>
+          <HeroSprig />
         </div>
 
         {/* A never-logged pet gets a calm "getting started" panel, not the coral
@@ -2965,10 +3063,16 @@ function PatternLineChart({ pattern, checkIns, foodLogs }) {
         </span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="pattern-chart-svg" role="img" aria-label={t('Scratching')}>
+        {[0, 5, 10].map((s) => (
+          <line key={`g${s}`} x1="0" x2={W} y1={yAt(s).toFixed(1)} y2={yAt(s).toFixed(1)} className="chart-grid-line" />
+        ))}
         {foodMarks.map((x, i) => (
           <line key={i} x1={x.toFixed(1)} x2={x.toFixed(1)} y1={padT} y2={H - padB} className="chart-food-line" />
         ))}
         <path d={linePath} className="chart-line-path" />
+        {pts.map((p, i) => (
+          <circle key={`d${i}`} cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="2.1" className="chart-dot" />
+        ))}
         {foodMarks.map((x, i) => (
           <circle key={i} cx={x.toFixed(1)} cy={padT} r="3.4" className="chart-food-dot" />
         ))}
@@ -3231,6 +3335,48 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
   )
 }
 
+// A small ring gauge for the "days filled" vet stat — pure SVG, no dependency.
+function Donut({ pct }) {
+  const p = Math.max(0, Math.min(100, Math.round(pct || 0)))
+  const r = 15.5
+  const circ = 2 * Math.PI * r
+  return (
+    <svg className="vet-donut" viewBox="0 0 40 40" role="img" aria-label={`${p}%`}>
+      <circle cx="20" cy="20" r={r} className="vet-donut-track" />
+      <circle cx="20" cy="20" r={r} className="vet-donut-arc"
+        strokeDasharray={`${(circ * p / 100).toFixed(1)} ${circ.toFixed(1)}`} transform="rotate(-90 20 20)" />
+      <text x="20" y="20" className="vet-donut-label">{p}%</text>
+    </svg>
+  )
+}
+
+// Scannable header stats for the vet summary — days tracked · entries logged · how
+// full the record is. On-screen only (no-print); the printable sheet below carries
+// the full detail. Mirrors the summary's own range so the numbers always agree.
+function VetStats({ summary, checkIns }) {
+  const days = summary?.days || 0
+  const start = summary?.rangeStart
+  const end = summary?.rangeEnd
+  const entries = (checkIns || []).filter((c) => (!start || c.checkInDate >= start) && (!end || c.checkInDate <= end)).length
+  const pct = days ? Math.min(100, Math.round((entries / days) * 100)) : 0
+  return (
+    <div className="vet-stats no-print">
+      <div className="vet-stat">
+        <strong>{days}</strong>
+        <span>{t('days tracked')}</span>
+      </div>
+      <div className="vet-stat">
+        <strong>{entries}</strong>
+        <span>{t('entries')}</span>
+      </div>
+      <div className="vet-stat">
+        <Donut pct={pct} />
+        <span>{t('days filled')}</span>
+      </div>
+    </div>
+  )
+}
+
 function VetSummaryView({ pet, summary, loading, days, checkIns, onBack, onChangeDays, onMedications }) {
   const [copied, setCopied] = useState(false)
   // Native share is mostly a phone/tablet capability; on a desktop without it the
@@ -3288,6 +3434,8 @@ function VetSummaryView({ pet, summary, loading, days, checkIns, onBack, onChang
       <p className="kicker">{t('Bring this to your vet')}</p>
       <h1>{t('Vet visit summary')}</h1>
       <p className="lead">{t('A calm record of what you logged. Built to help a vet conversation, not to diagnose.')}</p>
+
+      <VetStats summary={summary} checkIns={checkIns} />
 
       <VetShareCard key={pet.id} pet={pet} />
 
