@@ -18,6 +18,7 @@ import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
 import com.petpattern.patterns.PatternMemoryService;
+import com.petpattern.patterns.WeeklyInsightService;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.PetCaregiverRepository;
@@ -50,6 +51,7 @@ public class PetController {
     private final DailyCheckInRepository checkInRepository;
     private final FoodLogRepository foodLogRepository;
     private final PatternMemoryService patternMemoryService;
+    private final WeeklyInsightService weeklyInsightService;
     private final PetCaregiverRepository caregiverRepository;
     private final PetPhotoRepository photoRepository;
     private final PetAccess petAccess;
@@ -66,6 +68,7 @@ public class PetController {
                          DailyCheckInRepository checkInRepository,
                          FoodLogRepository foodLogRepository,
                          PatternMemoryService patternMemoryService,
+                         WeeklyInsightService weeklyInsightService,
                          PetCaregiverRepository caregiverRepository,
                          PetPhotoRepository photoRepository,
                          PetAccess petAccess,
@@ -74,6 +77,7 @@ public class PetController {
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.patternMemoryService = patternMemoryService;
+        this.weeklyInsightService = weeklyInsightService;
         this.caregiverRepository = caregiverRepository;
         this.photoRepository = photoRepository;
         this.petAccess = petAccess;
@@ -138,7 +142,7 @@ public class PetController {
                 retention(pet),
                 goodNews(pet, recentCheckIns),
                 watchOut(pet, recentFoodLogs),
-                null
+                weeklyInsightService.generate(pet, recentCheckIns)
         );
     }
 
