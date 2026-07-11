@@ -46,4 +46,35 @@ class WeeklyInsightServiceTest {
         WeeklyInsight insight = service.generate(pet("Milo"), checkIns);
         assertEquals("STABLE", insight.state());
     }
+
+    @Test
+    void insightWhenScratchingRoseThisWeek() {
+        // last week calm (itch 1), this week itchy (itch 6) -> "itchier" INSIGHT, watch tone.
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(
+                itch(0, 6), itch(1, 6), itch(2, 6),
+                itch(7, 1), itch(8, 1), itch(9, 1)));
+        WeeklyInsight insight = service.generate(pet("Milo"), checkIns);
+        assertEquals("INSIGHT", insight.state());
+        assertEquals("watch", insight.tone(), "a rising symptom is a watch-tone insight");
+        org.junit.jupiter.api.Assertions.assertTrue(insight.headline().contains("Milo"));
+    }
+
+    private DailyCheckIn ear(int daysAgo, boolean earRedness) {
+        DailyCheckIn c = new DailyCheckIn();
+        c.setCheckInDate(LocalDate.now().minusDays(daysAgo));
+        c.setEarRedness(earRedness);
+        return c;
+    }
+
+    @Test
+    void insightWhenEarRednessAppearedThisWeekAsDayCount() {
+        // ear redness on 3 of this week's days, 0 last week -> day-count INSIGHT with support.
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(
+                ear(0, true), ear(1, true), ear(2, true), ear(3, false),
+                ear(7, false), ear(8, false), ear(9, false)));
+        WeeklyInsight insight = service.generate(pet("Milo"), checkIns);
+        assertEquals("INSIGHT", insight.state());
+        org.junit.jupiter.api.Assertions.assertNotNull(insight.support(),
+                "day-count insights carry a 'X of Y days' support line");
+    }
 }
