@@ -1800,6 +1800,20 @@ textarea {
   flex-wrap: wrap;
 }
 
+/* Weekly insight (Today) — a calm, single-observation strip below retention. */
+.weekly-insight {
+  display: grid;
+  gap: 0.35rem;
+  border-left: 3px solid var(--line-strong);
+}
+.weekly-insight.tone-watch { border-left-color: var(--gold); background: var(--gold-soft); }
+.weekly-insight.tone-good  { border-left-color: var(--sage); background: var(--sage-soft); }
+.weekly-insight.tone-calm  { border-left-color: var(--line-strong); background: var(--paper-2); }
+.weekly-insight-eyebrow { margin: 0; }
+.weekly-insight-headline { margin: 0; font-size: 1.05rem; }
+.weekly-insight-body { margin: 0; font-size: 0.95rem; }
+.weekly-insight-support { margin: 0.15rem 0 0; font-size: 0.85rem; }
+
 /* Retention (Sprint 11) */
 .retention-strip {
   display: grid;
