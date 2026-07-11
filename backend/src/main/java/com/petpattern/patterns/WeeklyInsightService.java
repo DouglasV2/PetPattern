@@ -72,13 +72,16 @@ public class WeeklyInsightService {
 
         // (c) observationsJson changed-days per signal key (starter species).
         java.util.Map<String, Integer> recentChanged = changedDaysByKey(recent);
-        java.util.Map<String, String> labels = labelsByKey(recent);
         java.util.Map<String, Integer> priorChanged = changedDaysByKey(prior);
-        for (var entry : recentChanged.entrySet()) {
-            int r = entry.getValue();
-            int p = priorChanged.getOrDefault(entry.getKey(), 0);
+        java.util.Map<String, String> labels = labelsByKey(recent);
+        labelsByKey(prior).forEach(labels::putIfAbsent); // labels for signals that cleared this week
+        java.util.Set<String> keys = new java.util.LinkedHashSet<>(recentChanged.keySet());
+        keys.addAll(priorChanged.keySet());
+        for (String key : keys) {
+            int r = recentChanged.getOrDefault(key, 0);
+            int p = priorChanged.getOrDefault(key, 0);
             if (Math.abs(r - p) >= 2) {
-                candidates.add(new Candidate("observation", labels.get(entry.getKey()),
+                candidates.add(new Candidate("observation", labels.get(key),
                         r > p, r, p, recent.size(), Math.abs(r - p)));
             }
         }

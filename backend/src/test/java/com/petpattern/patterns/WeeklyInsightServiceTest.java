@@ -77,4 +77,24 @@ class WeeklyInsightServiceTest {
         org.junit.jupiter.api.Assertions.assertNotNull(insight.support(),
                 "day-count insights carry a 'X of Y days' support line");
     }
+
+    private DailyCheckIn obs(int daysAgo, String json) {
+        DailyCheckIn c = new DailyCheckIn();
+        c.setCheckInDate(LocalDate.now().minusDays(daysAgo));
+        c.setObservationsJson(json);
+        return c;
+    }
+
+    @Test
+    void insightWhenAnObservationSignalClearedThisWeek() {
+        // "hiding" changed on 2 days last week, 0 this week -> easing INSIGHT, good tone.
+        String changed = "{\"signals\":[{\"key\":\"hiding\",\"label\":\"Hiding\",\"value\":\"more\"}]}";
+        String normal = "{\"signals\":[{\"key\":\"hiding\",\"label\":\"Hiding\",\"value\":\"normal\"}]}";
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(
+                obs(0, normal), obs(1, normal), obs(2, normal),
+                obs(7, changed), obs(8, changed), obs(9, normal)));
+        WeeklyInsight insight = service.generate(pet("Milo"), checkIns);
+        assertEquals("INSIGHT", insight.state());
+        assertEquals("good", insight.tone(), "a symptom that cleared is a good-tone insight");
+    }
 }
