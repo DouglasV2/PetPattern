@@ -692,6 +692,36 @@ public final class Copy {
         put("Nothing outside the usual range yet",
                 "Zasad ništa izvan uobičajenog raspona");
 
+        // --- Weekly insight (Today dashboard) -----------------------------------
+        put("THIS WEEK", "OVAJ TJEDAN");
+        put("Still getting to know {0}'s rhythm", "Još upoznajemo {0}ov ritam");
+        put("A few short notes will help useful patterns start to show.",
+                "Nekoliko kratkih bilješki pomoći će da se počnu pojavljivati korisni obrasci.");
+        put("This week looks fairly steady", "Ovaj tjedan izgleda prilično stabilno");
+        put("We didn't spot a big change in the logged routines and behaviour.",
+                "Nismo primijetili veću promjenu u zabilježenim rutinama i ponašanju.");
+        put("{0} scratched more often this week than last week.",
+                "{0} se ovaj tjedan češće češao nego prošli tjedan.");
+        put("It may be worth keeping an eye on — nothing conclusive on its own.",
+                "Možda vrijedi pratiti — ništa samo po sebi nije zaključak.");
+        put("{0} seemed calmer this week — less scratching than last week.",
+                "{0} je ovaj tjedan djelovao mirnije — manje češanja nego prošli tjedan.");
+        put("A quieter stretch. Worth noting what's been the same lately.",
+                "Mirniji period. Vrijedi zabilježiti što je u zadnje vrijeme ostalo isto.");
+        put("{0}: {1} came up more often this week.",
+                "{0}: {1} se ovaj tjedan češće bilježi.");
+        put("{0}: {1} eased off this week.",
+                "{0}: {1} se ovaj tjedan smirilo.");
+        put("Noted on {0} of {1} days, vs {2} days last week.",
+                "Zabilježeno {0} od {1} dana, u odnosu na {2} dana prošli tjedan.");
+        put("Just something the notes surfaced — worth keeping in view.",
+                "Nešto što su bilješke istaknule — vrijedi imati na oku.");
+        put("ear redness", "crvenilo u ušima");
+        put("paw licking", "lizanje šapa");
+        put("vomiting", "povraćanje");
+        put("loose stool", "mekana stolica");
+        put("a change", "promjena");
+
         // --- AI note reader ---------------------------------------------------------
         put("Suggestions are temporarily unavailable. Please fill in the fields yourself.",
                 "Prijedlozi su privremeno nedostupni. Ispuni polja ručno.");
