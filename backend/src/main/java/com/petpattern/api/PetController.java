@@ -137,7 +137,8 @@ public class PetController {
                 nextAction(latestCheckIn, patterns),
                 retention(pet),
                 goodNews(pet, recentCheckIns),
-                watchOut(pet, recentFoodLogs)
+                watchOut(pet, recentFoodLogs),
+                null
         );
     }
 

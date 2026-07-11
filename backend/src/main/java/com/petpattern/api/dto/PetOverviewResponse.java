@@ -12,6 +12,7 @@ public record PetOverviewResponse(
         String nextAction,
         RetentionSummary retention,
         String goodNews,
-        String watchOut
+        String watchOut,
+        WeeklyInsight weeklyInsight
 ) {
 }
