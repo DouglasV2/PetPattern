@@ -564,6 +564,41 @@ public final class Copy {
         put("Under 1 year", "Manje od 1 godine");
         put("Dog", "Pas");
         put("Cat", "Mačka");
+        // Starter-species names for the vet-summary identity line (titleCase(enum)).
+        put("Rabbit", "Zec");
+        put("Hamster", "Hrčak");
+        put("Guinea pig", "Zamorac");
+        put("Bird", "Ptica");
+        put("Reptile", "Gmaz");
+        put("Turtle", "Kornjača");
+        put("Fish aquarium", "Riba / akvarij");
+        put("Other small pet", "Drugi mali ljubimac");
+
+        // --- Vet summary: multi-species observations + visible change -----------
+        put("A recurring change the owner logged that they want to review.",
+                "Ponavljana promjena koju je vlasnik zabilježio i želi proći s veterinarom.");
+        put("{0} had species-specific changes the owner logged in this period. "
+                + "These are owner-observed notes, not a diagnosis.",
+                "U ovom razdoblju zabilježene su promjene specifične za vrstu. "
+                + "Ovo su zapažanja vlasnika, nije dijagnoza.");
+        put("{0} visible-change photo(s) were saved in this period. Track how a change looks "
+                + "over time — useful for your vet conversation, not a diagnosis.",
+                "U ovom razdoblju spremljene su fotografije vidljive promjene: {0}. Prati kako promjena "
+                + "izgleda kroz vrijeme — korisno za razgovor s veterinarom, nije dijagnoza.");
+        put("The owner logged {0} visible-change note(s) in this period. This is a timeline of "
+                + "how things looked over time, not a diagnosis.",
+                "Vlasnik je u ovom razdoblju zabilježio bilješke o vidljivoj promjeni: {0}. Ovo je "
+                + "vremenska crta kako je to izgledalo kroz vrijeme, nije dijagnoza.");
+        put("SPECIES-SPECIFIC OBSERVATIONS", "ZAPAŽANJA SPECIFIČNA ZA VRSTU");
+        put("No species-specific observations logged in this period.",
+                "U ovom razdoblju nema zabilježenih zapažanja specifičnih za vrstu.");
+        put("logged as changed on {0}", "zabilježena promjena: {0}");
+        put("latest", "zadnje");
+        put("VISIBLE CHANGES OVER TIME", "VIDLJIVE PROMJENE KROZ VRIJEME");
+        put("{0} photo(s)", "{0} fotografija");
+        put("Better", "Bolje");
+        put("Same", "Isto");
+        put("Worse", "Gore");
 
         // --- Recap --------------------------------------------------------------
         put("Still early — a few more days logged and {0}'s picture fills in.",
