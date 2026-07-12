@@ -78,4 +78,19 @@ class ActivityExposureAnalyzerTest {
         assertTrue(analyzer.scratchingAroundActivity(new Pet(), checkIns, walks).isEmpty(),
                 "a symptom day shared by two walk days must count once, not fire the pattern");
     }
+
+    @Test
+    void distinctDayCollapsePreventsRawRowCountFromInflatingTheFireDecision() {
+        // 3 distinct walk days, but today-1 has 5 rows (7 raw rows total); scratching on all 3 days.
+        // With .distinct(): n=3 distinct days, k=3 -> 6>=3 -> fires, exposureDays()==3.
+        // Without .distinct(): n=7 raw rows -> 6>=7 is false -> would NOT fire.
+        // So this pins "count DISTINCT exposure days, not raw ActivityLog rows".
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(scratch(1, 6), scratch(2, 6), scratch(3, 6)));
+        List<ActivityLog> walks = new ArrayList<>(List.of(
+                walk(1), walk(1), walk(1), walk(1), walk(1), walk(2), walk(3)));
+        Optional<ActivityExposureAnalyzer.ActivityCoOccurrence> result =
+                analyzer.scratchingAroundActivity(new Pet(), checkIns, walks);
+        assertTrue(result.isPresent(), "3 distinct scratched walk days should fire regardless of duplicate rows");
+        assertEquals(3, result.get().exposureDays(), "exposure days must count DISTINCT dates, not raw rows");
+    }
 }
