@@ -66,4 +66,16 @@ class ActivityExposureAnalyzerTest {
         List<ActivityLog> walks = new ArrayList<>(List.of(walk(2), walk(3)));
         assertTrue(analyzer.scratchingAroundActivity(new Pet(), checkIns, walks).isEmpty());
     }
+
+    @Test
+    void doesNotDoubleCountWhenTwoWalkDaysShareOneSymptomDay() {
+        // 3 distinct walk days (today-4/-3/-2); scratching only on today-3 and today-2.
+        // Correct dedup: today-3 and today-2 walks match same-day (k=2); the today-4 walk's
+        // next-day (today-3) is already consumed, so it must NOT count -> k=2 < 3 -> no fire.
+        // A double-counting impl would also credit the today-4 walk via today-3 -> k=3 -> fires.
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(scratch(3, 6), scratch(2, 6)));
+        List<ActivityLog> walks = new ArrayList<>(List.of(walk(4), walk(3), walk(2)));
+        assertTrue(analyzer.scratchingAroundActivity(new Pet(), checkIns, walks).isEmpty(),
+                "a symptom day shared by two walk days must count once, not fire the pattern");
+    }
 }
