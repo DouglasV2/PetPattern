@@ -46,7 +46,9 @@ public class ActivityController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Copy.t("An activity type is required"));
         }
         LocalDate date = request.occurredDate() != null ? request.occurredDate() : LocalDate.now();
-        if (date.isAfter(LocalDate.now())) {
+        // One-day grace: the server clock is UTC and a client near midnight can
+        // legitimately post "tomorrow" (matches CheckInController).
+        if (date.isAfter(LocalDate.now().plusDays(1))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Copy.t("An activity can't be in the future"));
         }
         ActivityLog activity = new ActivityLog();
@@ -65,7 +67,9 @@ public class ActivityController {
             activity.setType(request.type());
         }
         if (request.occurredDate() != null) {
-            if (request.occurredDate().isAfter(LocalDate.now())) {
+            // One-day grace: the server clock is UTC and a client near midnight can
+            // legitimately post "tomorrow" (matches CheckInController).
+            if (request.occurredDate().isAfter(LocalDate.now().plusDays(1))) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Copy.t("An activity can't be in the future"));
             }
             activity.setOccurredDate(request.occurredDate());
