@@ -865,5 +865,15 @@ export default {
   'Add a photo of anything you want to keep an eye on and watch how it changes over time — handy to show your vet.':
     'Dodaj fotografiju bilo čega što želiš pratiti i gledaj kako se mijenja tijekom vremena — zgodno za pokazati veterinaru.',
   "Add {name}'s first photo to start a visual record you can compare later.":
-    'Dodaj prvu fotografiju za {name} kako bi započeo/la vizualni zapis koji možeš kasnije usporediti.'
+    'Dodaj prvu fotografiju za {name} kako bi započeo/la vizualni zapis koji možeš kasnije usporediti.',
+
+  // Activities
+  'Log an activity': 'Zabilježi aktivnost',
+  'Walk': 'Šetnja',
+  'Play': 'Igra',
+  'Exercise': 'Vježba',
+  'Grooming': 'Njega',
+  'Outing': 'Izlazak',
+  'Other': 'Ostalo',
+  'Remove': 'Ukloni'
 }

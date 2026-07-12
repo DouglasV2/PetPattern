@@ -413,6 +413,7 @@ function App() {
   const [foodTrials, setFoodTrials] = useState([])
   const [recap, setRecap] = useState(null)
   const [medications, setMedications] = useState([])
+  const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -672,7 +673,7 @@ function App() {
   async function loadPetData(petId) {
     setError('')
     try {
-      const [nextOverview, nextCheckIns, nextFoodLogs, nextPatterns, nextPhotos, nextTrials, nextRecap, nextMeds] = await Promise.all([
+      const [nextOverview, nextCheckIns, nextFoodLogs, nextPatterns, nextPhotos, nextTrials, nextRecap, nextMeds, nextActivities] = await Promise.all([
         api.getOverview(petId),
         api.listCheckIns(petId),
         api.listFoodLogs(petId),
@@ -680,7 +681,8 @@ function App() {
         api.listPhotos(petId),
         api.listFoodTrials(petId),
         api.getRecap(petId, 30),
-        api.listMedications(petId)
+        api.listMedications(petId),
+        api.listActivities(petId)
       ])
       setOverview(nextOverview)
       setCheckIns(nextCheckIns)
@@ -690,6 +692,7 @@ function App() {
       setFoodTrials(nextTrials)
       setRecap(nextRecap)
       setMedications(nextMeds)
+      setActivities(nextActivities)
       // Switching pets invalidates any open detail view.
       setSelectedPattern(null)
       setTimeline(null)
@@ -930,6 +933,29 @@ function App() {
       await loadPetData(selectedPet.id)
     } catch (err) {
       setError('Could not delete the food entry. Try again in a moment.')
+    }
+  }
+
+  async function addActivity(type) {
+    if (!selectedPet) return
+    setError('')
+    try {
+      await api.addActivity(selectedPet.id, { type, occurredDate: today })
+      await loadPetData(selectedPet.id)   // refreshes activities + overview (weekly insight)
+    } catch (err) {
+      setError('Could not log the activity. Try again in a moment.')
+    }
+  }
+
+  async function removeActivity(activity) {
+    if (!selectedPet || !activity) return
+    if (!window.confirm('Remove this activity?')) return
+    setError('')
+    try {
+      await api.deleteActivity(selectedPet.id, activity.id)
+      await loadPetData(selectedPet.id)
+    } catch (err) {
+      setError('Could not remove the activity. Try again in a moment.')
     }
   }
 
@@ -1520,6 +1546,9 @@ function App() {
             onQuickLog={quickLog}
             onCaregivers={() => go('caregivers')}
             onLogDay={openCheckInForDate}
+            activities={activities}
+            onAddActivity={addActivity}
+            onRemoveActivity={removeActivity}
           />
         )}
       </main>
@@ -1567,6 +1596,47 @@ function NoteGlyph({ size = 22 }) {
       <path d="M8 12h6M8 15h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
       <circle cx="14.8" cy="15" r="1.1" fill="currentColor" />
     </svg>
+  )
+}
+
+const ACTIVITY_TYPES = ['WALK', 'PLAY', 'EXERCISE', 'GROOMING', 'OUTING', 'OTHER']
+
+function activityLabel(type) {
+  switch (type) {
+    case 'WALK': return t('Walk')
+    case 'PLAY': return t('Play')
+    case 'EXERCISE': return t('Exercise')
+    case 'GROOMING': return t('Grooming')
+    case 'OUTING': return t('Outing')
+    default: return t('Other')
+  }
+}
+
+function ActivityQuickAdd({ todayActivities, onAdd, onRemove }) {
+  return (
+    <section className="panel activity-quickadd" aria-label={t('Log an activity')}>
+      <div className="panel-heading">
+        <PawPrint size={18} />
+        <h2>{t('Log an activity')}</h2>
+      </div>
+      <div className="activity-chip-row">
+        {ACTIVITY_TYPES.map((type) => (
+          <button key={type} className="chip activity-add-chip" type="button" onClick={() => onAdd(type)}>
+            + {activityLabel(type)}
+          </button>
+        ))}
+      </div>
+      {todayActivities?.length ? (
+        <div className="activity-today-row">
+          {todayActivities.map((a) => (
+            <span key={a.id} className="chip activity-logged-chip">
+              {activityLabel(a.type)}
+              <button className="chip-x" type="button" aria-label={t('Remove')} onClick={() => onRemove(a)}>×</button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
   )
 }
 
@@ -1734,7 +1804,7 @@ function BackfillCard({ pet, checkIns, loggedToday, onQuickLog, onLogDay }) {
   )
 }
 
-function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onFoodDetective, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto }) {
+function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onFoodDetective, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto, activities, onAddActivity, onRemoveActivity }) {
   const loggedToday = overview?.retention?.loggedToday ?? checkIns.some((c) => c.checkInDate === today)
   return (
     <>
@@ -1771,6 +1841,12 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
       <SeenBeforeCard pet={pet} pattern={topPattern} onShowTimeline={onShowTimeline} />
 
       <BackfillCard pet={pet} checkIns={checkIns} loggedToday={loggedToday} onQuickLog={onQuickLog} onLogDay={onLogDay} />
+
+      <ActivityQuickAdd
+        todayActivities={(activities || []).filter((a) => a.occurredDate === today)}
+        onAdd={onAddActivity}
+        onRemove={onRemoveActivity}
+      />
 
       <RetentionStrip pet={pet} retention={overview?.retention} checkInCount={checkIns.length} onLogToday={onLogToday} onQuickLog={onQuickLog} />
 

@@ -1024,6 +1024,24 @@ textarea {
   color: var(--teal);
 }
 
+.activity-quickadd .activity-chip-row,
+.activity-quickadd .activity-today-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.activity-today-row { margin-top: 0.6rem; }
+.activity-add-chip { cursor: pointer; }
+.activity-logged-chip { background: var(--sage-soft); }
+.chip-x {
+  margin-left: 0.35rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .pattern-teaser strong {
   display: block;
   margin-bottom: 0.4rem;
