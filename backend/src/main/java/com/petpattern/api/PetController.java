@@ -3,6 +3,7 @@ package com.petpattern.api;
 import com.petpattern.account.AccountService;
 import com.petpattern.api.dto.*;
 import com.petpattern.auth.PetAccess;
+import com.petpattern.domain.ActivityLog;
 import com.petpattern.domain.AppetiteLevel;
 import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.FoodKind;
@@ -19,6 +20,7 @@ import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
 import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.patterns.WeeklyInsightService;
+import com.petpattern.repository.ActivityLogRepository;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.PetCaregiverRepository;
@@ -52,6 +54,7 @@ public class PetController {
     private final FoodLogRepository foodLogRepository;
     private final PatternMemoryService patternMemoryService;
     private final WeeklyInsightService weeklyInsightService;
+    private final ActivityLogRepository activityLogRepository;
     private final PetCaregiverRepository caregiverRepository;
     private final PetPhotoRepository photoRepository;
     private final PetAccess petAccess;
@@ -69,6 +72,7 @@ public class PetController {
                          FoodLogRepository foodLogRepository,
                          PatternMemoryService patternMemoryService,
                          WeeklyInsightService weeklyInsightService,
+                         ActivityLogRepository activityLogRepository,
                          PetCaregiverRepository caregiverRepository,
                          PetPhotoRepository photoRepository,
                          PetAccess petAccess,
@@ -78,6 +82,7 @@ public class PetController {
         this.foodLogRepository = foodLogRepository;
         this.patternMemoryService = patternMemoryService;
         this.weeklyInsightService = weeklyInsightService;
+        this.activityLogRepository = activityLogRepository;
         this.caregiverRepository = caregiverRepository;
         this.photoRepository = photoRepository;
         this.petAccess = petAccess;
@@ -129,6 +134,8 @@ public class PetController {
                 checkInRepository.findByPetAndCheckInDateGreaterThanEqualOrderByCheckInDateAsc(pet, today.minusDays(21));
         List<FoodLog> recentFoodLogs =
                 foodLogRepository.findByPetAndDateStartedGreaterThanEqualOrderByDateStartedAsc(pet, today.minusDays(14));
+        List<ActivityLog> recentActivities =
+                activityLogRepository.findByPetAndOccurredDateGreaterThanEqualOrderByOccurredDateAsc(pet, today.minusDays(30));
 
         String status = todayStatus(latestCheckIn, patterns);
         return new PetOverviewResponse(
@@ -142,7 +149,7 @@ public class PetController {
                 retention(pet),
                 goodNews(pet, recentCheckIns),
                 watchOut(pet, recentFoodLogs),
-                weeklyInsightService.generate(pet, recentCheckIns)
+                weeklyInsightService.generate(pet, recentCheckIns, recentActivities)
         );
     }
 

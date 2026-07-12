@@ -721,6 +721,16 @@ public final class Copy {
         put("vomiting", "povraćanje");
         put("loose stool", "mekana stolica");
         put("a change", "promjena");
+        put("Scratching is logged more often on walk days or the day after.",
+                "Češanje se češće bilježi na dan šetnje ili sljedeći dan.");
+        put("Scratching is logged more often around activity days.",
+                "Češanje se češće bilježi na dane s aktivnošću ili sljedeći dan.");
+        put("It's a co-occurrence, not a cause — but it's worth keeping an eye on.",
+                "Radi se o istodobnoj pojavi, ne o uzroku — ali vrijedi pratiti.");
+        put("Seen on {0} of the last {1} days linked to a walk.",
+                "Zabilježeno je u {0} od posljednja {1} dana povezana sa šetnjom.");
+        put("Seen on {0} of the last {1} days linked to an activity.",
+                "Zabilježeno je u {0} od posljednja {1} dana povezana s aktivnošću.");
 
         // --- AI note reader ---------------------------------------------------------
         put("Suggestions are temporarily unavailable. Please fill in the fields yourself.",

@@ -24,13 +24,20 @@ public class WeeklyInsightService {
 
     private final BaselineCalculator baseline;
     private final ObjectMapper mapper;
+    private final ActivityExposureAnalyzer activityAnalyzer;
 
-    public WeeklyInsightService(BaselineCalculator baseline, ObjectMapper mapper) {
+    public WeeklyInsightService(BaselineCalculator baseline, ObjectMapper mapper,
+                                ActivityExposureAnalyzer activityAnalyzer) {
         this.baseline = baseline;
         this.mapper = mapper;
+        this.activityAnalyzer = activityAnalyzer;
     }
 
     public WeeklyInsight generate(Pet pet, List<DailyCheckIn> checkIns) {
+        return generate(pet, checkIns, java.util.List.of());
+    }
+
+    public WeeklyInsight generate(Pet pet, List<DailyCheckIn> checkIns, List<com.petpattern.domain.ActivityLog> activities) {
         LocalDate today = LocalDate.now();
         List<DailyCheckIn> recent = baseline.between(checkIns, today.minusDays(WINDOW - 1L), today);
         List<DailyCheckIn> prior =
@@ -38,6 +45,11 @@ public class WeeklyInsightService {
 
         if (recent.size() < MIN_LOGS) {
             return learning(pet);
+        }
+        // Activity co-occurrence is the highest-priority insight when present.
+        var activity = activityAnalyzer.scratchingAroundActivity(pet, checkIns, activities);
+        if (activity.isPresent()) {
+            return activityInsight(activity.get());
         }
         return bestCandidate(pet, recent, prior)
                 .map(c -> insight(pet, c))
@@ -149,6 +161,22 @@ public class WeeklyInsightService {
                 c.recentDays(), c.loggedDays(), c.priorDays());
         return new WeeklyInsight("INSIGHT", tone, eyebrow, headline,
                 Copy.t("Just something the notes surfaced — worth keeping in view."), support);
+    }
+
+    private WeeklyInsight activityInsight(ActivityExposureAnalyzer.ActivityCoOccurrence a) {
+        String eyebrow = Copy.t("THIS WEEK");
+        if (a.type() == com.petpattern.domain.ActivityType.WALK) {
+            return new WeeklyInsight("INSIGHT", "watch", eyebrow,
+                    Copy.t("Scratching is logged more often on walk days or the day after."),
+                    Copy.t("It's a co-occurrence, not a cause — but it's worth keeping an eye on."),
+                    Copy.t("Seen on {0} of the last {1} days linked to a walk.",
+                            a.coOccurrenceDays(), a.exposureDays()));
+        }
+        return new WeeklyInsight("INSIGHT", "watch", eyebrow,
+                Copy.t("Scratching is logged more often around activity days."),
+                Copy.t("It's a co-occurrence, not a cause — but it's worth keeping an eye on."),
+                Copy.t("Seen on {0} of the last {1} days linked to an activity.",
+                        a.coOccurrenceDays(), a.exposureDays()));
     }
 
     private String dayCountLabel(String metric) {

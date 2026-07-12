@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class WeeklyInsightServiceTest {
 
     private final WeeklyInsightService service =
-            new WeeklyInsightService(new BaselineCalculator(), new ObjectMapper());
+            new WeeklyInsightService(new BaselineCalculator(), new ObjectMapper(), new ActivityExposureAnalyzer());
 
     private static Pet pet(String name) {
         Pet pet = new Pet();
@@ -96,5 +96,25 @@ class WeeklyInsightServiceTest {
         WeeklyInsight insight = service.generate(pet("Milo"), checkIns);
         assertEquals("INSIGHT", insight.state());
         assertEquals("good", insight.tone(), "a symptom that cleared is a good-tone insight");
+    }
+
+    private com.petpattern.domain.ActivityLog walk(int daysAgo) {
+        com.petpattern.domain.ActivityLog a = new com.petpattern.domain.ActivityLog();
+        a.setType(com.petpattern.domain.ActivityType.WALK);
+        a.setOccurredDate(LocalDate.now().minusDays(daysAgo));
+        return a;
+    }
+
+    @Test
+    void activityCoOccurrenceTakesPriority() {
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(
+                itch(0, 6), itch(2, 6), itch(4, 6),   // 3 recent logged days (>=MIN_LOGS), scratching
+                itch(7, 6), itch(8, 6), itch(9, 6)));
+        List<com.petpattern.domain.ActivityLog> walks =
+                new ArrayList<>(List.of(walk(0), walk(2), walk(4), walk(6)));
+        WeeklyInsight insight = service.generate(pet("Milo"), checkIns, walks);
+        assertEquals("INSIGHT", insight.state());
+        org.junit.jupiter.api.Assertions.assertNotNull(insight.support());
+        org.junit.jupiter.api.Assertions.assertTrue(insight.support().contains("3"));
     }
 }
