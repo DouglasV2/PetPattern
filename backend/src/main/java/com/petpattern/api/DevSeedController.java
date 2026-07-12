@@ -5,6 +5,7 @@ import com.petpattern.api.dto.PetResponse;
 import com.petpattern.auth.AuthService;
 import com.petpattern.domain.*;
 import com.petpattern.patterns.PatternType;
+import com.petpattern.repository.ActivityLogRepository;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.FoodLogRepository;
 import com.petpattern.repository.FoodTrialRepository;
@@ -48,6 +49,7 @@ public class DevSeedController {
     private final PetCaregiverRepository caregiverRepository;
     private final PetInviteRepository inviteRepository;
     private final ObjectMapper objectMapper;
+    private final ActivityLogRepository activityLogRepository;
 
     // When false (production, if opted out) the demo seed endpoint 404s.
     @Value("${petpattern.demo.enabled:true}")
@@ -64,7 +66,8 @@ public class DevSeedController {
                              MedicationRepository medicationRepository,
                              PetCaregiverRepository caregiverRepository,
                              PetInviteRepository inviteRepository,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             ActivityLogRepository activityLogRepository) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
@@ -77,6 +80,7 @@ public class DevSeedController {
         this.caregiverRepository = caregiverRepository;
         this.inviteRepository = inviteRepository;
         this.objectMapper = objectMapper;
+        this.activityLogRepository = activityLogRepository;
     }
 
     @PostMapping("/seed")
@@ -109,6 +113,7 @@ public class DevSeedController {
         medicationRepository.deleteByPet(pet);
         inviteRepository.deleteByPet(pet);
         caregiverRepository.deleteByPet(pet);
+        activityLogRepository.deleteByPet(pet);
         // Force the deletes to hit the database before we insert the fresh demo
         // rows. Without this, Hibernate orders inserts before deletes within the
         // same transaction and the new check-ins collide with the old ones on
@@ -121,6 +126,7 @@ public class DevSeedController {
         medicationRepository.flush();
         inviteRepository.flush();
         caregiverRepository.flush();
+        activityLogRepository.flush();
 
         LocalDate start = LocalDate.now().minusDays(44);
         createFood(pet, start, FoodKind.MAIN_FOOD, "North Bowl", "Lamb & Rice Adult", Protein.LAMB, Set.of(), false, false, "Stable main food before the tracked period.");
@@ -253,6 +259,7 @@ public class DevSeedController {
         medicationRepository.deleteByPet(pet);
         inviteRepository.deleteByPet(pet);
         caregiverRepository.deleteByPet(pet);
+        activityLogRepository.deleteByPet(pet);
         observationRepository.flush();
         checkInRepository.flush();
         foodLogRepository.flush();
@@ -261,6 +268,7 @@ public class DevSeedController {
         medicationRepository.flush();
         inviteRepository.flush();
         caregiverRepository.flush();
+        activityLogRepository.flush();
 
         LocalDate start = LocalDate.now().minusDays(44);
         createFood(pet, start, FoodKind.MAIN_FOOD, "Whisker Bowl", "Indoor Chicken", Protein.CHICKEN, Set.of(), false, false, "Stable main food before the tracked period.");
@@ -361,6 +369,7 @@ public class DevSeedController {
         medicationRepository.deleteByPet(pet);
         inviteRepository.deleteByPet(pet);
         caregiverRepository.deleteByPet(pet);
+        activityLogRepository.deleteByPet(pet);
         observationRepository.flush();
         checkInRepository.flush();
         foodLogRepository.flush();
@@ -369,6 +378,7 @@ public class DevSeedController {
         medicationRepository.flush();
         inviteRepository.flush();
         caregiverRepository.flush();
+        activityLogRepository.flush();
 
         LocalDate start = LocalDate.now().minusDays(44);
         createFood(pet, start, FoodKind.MAIN_FOOD, "Meadow", "Timothy Hay & Pellets", Protein.OTHER, Set.of(), false, false, "Usual hay and pellets before the tracked period.");

@@ -2,6 +2,7 @@ package com.petpattern.account;
 
 import com.petpattern.domain.Owner;
 import com.petpattern.domain.Pet;
+import com.petpattern.repository.ActivityLogRepository;
 import com.petpattern.repository.AiParseAttemptRepository;
 import com.petpattern.repository.AuthSessionRepository;
 import com.petpattern.repository.DailyCheckInRepository;
@@ -56,6 +57,7 @@ public class AccountService {
     private final AuthSessionRepository sessionRepository;
     private final AiParseAttemptRepository aiParseAttemptRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final ActivityLogRepository activityLogRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -73,7 +75,8 @@ public class AccountService {
                           PetInviteRepository inviteRepository,
                           AuthSessionRepository sessionRepository,
                           AiParseAttemptRepository aiParseAttemptRepository,
-                          PasswordResetTokenRepository passwordResetTokenRepository) {
+                          PasswordResetTokenRepository passwordResetTokenRepository,
+                          ActivityLogRepository activityLogRepository) {
         this.petRepository = petRepository;
         this.ownerRepository = ownerRepository;
         this.checkInRepository = checkInRepository;
@@ -88,6 +91,7 @@ public class AccountService {
         this.sessionRepository = sessionRepository;
         this.aiParseAttemptRepository = aiParseAttemptRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.activityLogRepository = activityLogRepository;
     }
 
     /**
@@ -114,6 +118,7 @@ public class AccountService {
         vetShareRepository.deleteByPet(pet);
         inviteRepository.deleteByPet(pet);
         caregiverRepository.deleteByPet(pet);
+        activityLogRepository.deleteByPet(pet);
         // AI note-parse audit rows hold the owner's raw notes (petId is a plain
         // column, no FK), so erase them explicitly for a complete GDPR delete.
         aiParseAttemptRepository.deleteByPetId(pet.getId());

@@ -2,6 +2,7 @@ package com.petpattern.account;
 
 import com.petpattern.domain.Owner;
 import com.petpattern.domain.Pet;
+import com.petpattern.repository.ActivityLogRepository;
 import com.petpattern.repository.AiParseAttemptRepository;
 import com.petpattern.repository.AuthSessionRepository;
 import com.petpattern.repository.DailyCheckInRepository;
@@ -43,13 +44,14 @@ class AccountServiceTest {
     private final AuthSessionRepository sessions = mock(AuthSessionRepository.class);
     private final AiParseAttemptRepository aiAttempts = mock(AiParseAttemptRepository.class);
     private final PasswordResetTokenRepository resetTokens = mock(PasswordResetTokenRepository.class);
+    private final ActivityLogRepository activities = mock(ActivityLogRepository.class);
     private final EntityManager em = mock(EntityManager.class);
 
     private final AccountService service = build();
 
     private AccountService build() {
         AccountService s = new AccountService(pets, owners, checkIns, foods, observations, photos,
-                trials, meds, shares, caregivers, invites, sessions, aiAttempts, resetTokens);
+                trials, meds, shares, caregivers, invites, sessions, aiAttempts, resetTokens, activities);
         ReflectionTestUtils.setField(s, "entityManager", em);
         return s;
     }
@@ -75,6 +77,7 @@ class AccountServiceTest {
         verify(shares).deleteByPet(mine);
         verify(invites).deleteByPet(mine);
         verify(caregivers).deleteByPet(mine);
+        verify(activities).deleteByPet(mine);
         verify(aiAttempts).deleteByPetId(mine.getId());
         // The pet, this owner's caregiver links elsewhere, invites to them, sessions, account.
         verify(pets).deleteAll(List.of(mine));

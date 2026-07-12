@@ -763,5 +763,10 @@ public final class Copy {
                         + "Otvori ovu poveznicu da postaviš novu lozinku (vrijedi 1 sat):\n{0}\n\n"
                         + "Ako ovaj zahtjev ne prepoznaješ, slobodno zanemari ovu poruku — "
                         + "lozinka ostaje nepromijenjena.");
+
+        // --- Activity logging ---
+        put("An activity type is required", "Vrsta aktivnosti je obavezna");
+        put("An activity can't be in the future", "Aktivnost ne može biti u budućnosti");
+        put("Activity not found", "Aktivnost nije pronađena");
     }
 }
