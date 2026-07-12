@@ -130,8 +130,11 @@ public class PetController {
         List<PatternResponse> patterns = patternMemoryService.activePatterns(petId);
 
         LocalDate today = LocalDate.now();
+        // 30 days so the weekly-insight activity analyzer (LOOKBACK_DAYS=30) has check-ins covering every
+        // exposure day it considers; goodNews/WeeklyInsightService each filter to their own sub-window
+        // internally, so a wider list is harmless.
         List<DailyCheckIn> recentCheckIns =
-                checkInRepository.findByPetAndCheckInDateGreaterThanEqualOrderByCheckInDateAsc(pet, today.minusDays(21));
+                checkInRepository.findByPetAndCheckInDateGreaterThanEqualOrderByCheckInDateAsc(pet, today.minusDays(30));
         List<FoodLog> recentFoodLogs =
                 foodLogRepository.findByPetAndDateStartedGreaterThanEqualOrderByDateStartedAsc(pet, today.minusDays(14));
         List<ActivityLog> recentActivities =
