@@ -1,0 +1,69 @@
+package com.petpattern.patterns;
+
+import com.petpattern.domain.ActivityLog;
+import com.petpattern.domain.ActivityType;
+import com.petpattern.domain.DailyCheckIn;
+import com.petpattern.domain.Pet;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class ActivityExposureAnalyzerTest {
+
+    private final ActivityExposureAnalyzer analyzer = new ActivityExposureAnalyzer();
+
+    private DailyCheckIn scratch(int daysAgo, int itch) {
+        DailyCheckIn c = new DailyCheckIn();
+        c.setCheckInDate(LocalDate.now().minusDays(daysAgo));
+        c.setItchingScore(itch);
+        return c;
+    }
+
+    private ActivityLog walk(int daysAgo) {
+        ActivityLog a = new ActivityLog();
+        a.setType(ActivityType.WALK);
+        a.setOccurredDate(LocalDate.now().minusDays(daysAgo));
+        return a;
+    }
+
+    @Test
+    void firesWhenScratchingOnThreeDistinctWalkDays() {
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(scratch(2, 6), scratch(4, 6), scratch(6, 6)));
+        List<ActivityLog> walks = new ArrayList<>(List.of(walk(2), walk(4), walk(6), walk(8)));
+        Optional<ActivityExposureAnalyzer.ActivityCoOccurrence> result =
+                analyzer.scratchingAroundActivity(new Pet(), checkIns, walks);
+        assertTrue(result.isPresent());
+        assertEquals(ActivityType.WALK, result.get().type());
+        assertEquals(3, result.get().coOccurrenceDays());
+    }
+
+    @Test
+    void doesNotFireOnTwoDistinctDays() {
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(scratch(2, 6), scratch(4, 6)));
+        List<ActivityLog> walks = new ArrayList<>(List.of(walk(2), walk(4)));
+        assertTrue(analyzer.scratchingAroundActivity(new Pet(), checkIns, walks).isEmpty());
+    }
+
+    @Test
+    void collapsesTwoWalksOnSameDateToOneExposureDay() {
+        // 2 distinct dates, but 2 walks on one of them -> still only 2 exposure days -> no fire.
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(scratch(2, 6), scratch(4, 6)));
+        List<ActivityLog> walks = new ArrayList<>(List.of(walk(2), walk(2), walk(2), walk(4)));
+        assertTrue(analyzer.scratchingAroundActivity(new Pet(), checkIns, walks).isEmpty());
+    }
+
+    @Test
+    void doesNotDoubleCountASharedNextDaySymptom() {
+        // Walks on days 2 and 3; scratching only on day 2. Day-3 walk's next-day (day 2)
+        // is already consumed by day-2 walk's same-day match -> only k=1.
+        List<DailyCheckIn> checkIns = new ArrayList<>(List.of(scratch(2, 6)));
+        List<ActivityLog> walks = new ArrayList<>(List.of(walk(2), walk(3)));
+        assertTrue(analyzer.scratchingAroundActivity(new Pet(), checkIns, walks).isEmpty());
+    }
+}
