@@ -41,6 +41,19 @@ import { t, setLang, getLang, loadLang, persistLang, LANGUAGES } from './i18n'
 import { LEGAL } from './legal'
 import { track } from './analytics'
 import { SPECIES_PROFILES, SPECIES_ORDER, speciesProfile, isStarterSpecies, categoryOptions, isChangedValue, visibleChangeConfig, VISIBLE_CHANGE_STATUSES } from './speciesProfiles'
+import { today, formatDate, formatLongDate, parseLocalDate, addDays } from './lib/date'
+import { kgToLb, lbToKg } from './lib/units'
+import { isCat, DOG_BREEDS, CAT_BREEDS } from './lib/species'
+import { petAgeLabel, petSubtitle } from './lib/pets'
+import { emptyCheckIn, emptyCheckInFor, keep, toObservationsJson, parseObservations, starterObservationRows, CHANGED_CATEGORIES, guidedTokens, titleCase, stoolLabel, levelLabel, litterLabel, hidingLabel, confidenceLabel } from './lib/checkins'
+import { emptyFood, proteinOptions, foodKindLabel, proteinLabel, nearbyFoodChanges, foodDetectiveSignals } from './lib/food'
+import { evidenceSignal, lastDays, changedLabel, patternGroup, settledLine, statusMeta, memoryLine, isDismissedStatus, statusLabel, trendWord } from './lib/patterns'
+import { trialStatusLabel, trialTone } from './lib/trials'
+import { ACTIVITY_TYPES, activityLabel } from './lib/activities'
+import { nudgeText, loadReminder, saveReminder, maybeNotify } from './lib/reminders'
+import { hashView, sharedTokenFromHash, resetTokenFromHash, legalFromHash } from './lib/nav'
+import { PHOTO_AREAS, photoAreaLabel, isProfilePhoto, byCapturedDateAsc, resizeImage } from './lib/photos'
+import { timelineSummary, timelineFlags } from './lib/timeline'
 
 // The brand mark: a paw whose pads sit on a small memory trail, with one coral
 // pad for the point that changed. Drawn in currentColor so it inherits the
@@ -149,32 +162,6 @@ function PetPhotoStack({ pet, photos, onAddPhoto }) {
   )
 }
 
-// A short, plural-safe age derived from a pet's birth date ("5 yr" / "3 mo"), or
-// '' when the birthday is unknown. The abbreviations sidestep per-language plural
-// forms (Croatian uses "god." / "mj."), so this needs no extra translations
-// beyond the two count keys.
-function petAgeLabel(birthDate) {
-  if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return ''
-  const [y, m, d] = birthDate.split('-').map(Number)
-  const now = new Date()
-  let months = (now.getFullYear() - y) * 12 + (now.getMonth() + 1 - m)
-  if (now.getDate() < d) months -= 1
-  if (months < 0) return ''
-  return months < 12 ? t('{count} mo', { count: months }) : t('{count} yr', { count: Math.floor(months / 12) })
-}
-
-// The quiet line under a pet's name on the sidebar "record cover": the breed the
-// owner typed (kept verbatim — their words), or the species when there's no breed,
-// plus the age when we know the birthday.
-function petSubtitle(pet) {
-  if (!pet) return ''
-  const breed = (pet.breed || '').trim()
-  const parts = [breed || t(speciesProfile(pet.species).label)]
-  const age = petAgeLabel(pet.birthDate)
-  if (age) parts.push(age)
-  return parts.join(' · ')
-}
-
 // The active pet presented as the cover of their record at the top of the
 // sidebar: a real photo when there is one (else the species-tinted initial), the
 // name in the display serif, and a breed · age line. The photo doubles as the
@@ -258,148 +245,6 @@ function GoogleG({ size = 18 }) {
       <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z" />
     </svg>
   )
-}
-
-const today = new Date().toISOString().slice(0, 10)
-
-const emptyCheckIn = {
-  checkInDate: today,
-  itchingScore: 2,
-  stoolState: 'NORMAL',
-  appetiteLevel: 'NORMAL',
-  waterLevel: 'NORMAL',
-  energyLevel: 'NORMAL',
-  vomiting: false,
-  earRedness: false,
-  pawLicking: false,
-  freeTextNote: ''
-}
-
-const emptyFood = {
-  dateStarted: today,
-  foodKind: 'TREAT',
-  brand: '',
-  productName: '',
-  primaryProtein: 'CHICKEN',
-  secondaryProteins: [],
-  grainFree: false,
-  newFood: true,
-  notes: ''
-}
-
-const proteinOptions = ['CHICKEN', 'BEEF', 'LAMB', 'SALMON', 'TURKEY', 'DUCK', 'PORK', 'EGG', 'DAIRY', 'OTHER']
-
-// Breed suggestions for the onboarding autocomplete (a native <datalist>, so it
-// only suggests — the owner can still type anything, incl. a Croatian name).
-const DOG_BREEDS = [
-  'Mixed breed', 'Labrador Retriever', 'Golden Retriever', 'German Shepherd', 'French Bulldog',
-  'Bulldog', 'Poodle', 'Beagle', 'Rottweiler', 'Dachshund', 'Yorkshire Terrier', 'Boxer',
-  'Cavalier King Charles Spaniel', 'Australian Shepherd', 'Siberian Husky', 'Cane Corso',
-  'Great Dane', 'Miniature Schnauzer', 'Doberman Pinscher', 'Shih Tzu', 'Boston Terrier',
-  'Bernese Mountain Dog', 'Pomeranian', 'Havanese', 'Cocker Spaniel', 'Border Collie', 'Maltese',
-  'Chihuahua', 'Shiba Inu', 'Vizsla', 'Pembroke Welsh Corgi', 'Australian Cattle Dog',
-  'Basset Hound', 'Bichon Frise', 'Belgian Malinois', 'Jack Russell Terrier', 'Weimaraner',
-  'Pug', 'Samoyed', 'Akita', 'Whippet', 'German Shorthaired Pointer'
-]
-const CAT_BREEDS = [
-  'Mixed breed', 'Domestic Shorthair', 'Domestic Longhair', 'Maine Coon', 'Persian', 'Ragdoll',
-  'British Shorthair', 'Siamese', 'Sphynx', 'Bengal', 'Scottish Fold', 'Abyssinian',
-  'American Shorthair', 'Norwegian Forest Cat', 'Russian Blue', 'Birman', 'Oriental Shorthair',
-  'Devon Rex', 'Burmese', 'Exotic Shorthair'
-]
-
-const PHOTO_AREAS = ['EAR', 'PAW', 'SKIN', 'COAT', 'EYE', 'STOOL', 'WOUND', 'SWELLING', 'SHELL', 'FEATHER', 'FIN_SCALE', 'OTHER']
-
-// Species shapes what we track and how we talk about it. Copy is translated at
-// render time via t(); these are the English keys.
-const SPECIES = {
-  DOG: {
-    label: 'Dog',
-    intro: 'PetPattern will focus on food changes, stool, scratching, vomiting and energy.',
-    cta: 'Start my dog’s memory'
-  },
-  CAT: {
-    label: 'Cat',
-    intro: 'PetPattern will focus on litter box changes, appetite, hiding, water, vomiting and weight.',
-    cta: 'Start my cat’s memory'
-  }
-}
-
-function isCat(pet) {
-  return (pet?.species || 'DOG') === 'CAT'
-}
-
-// Carry a steady level forward, falling back to NORMAL when it was unknown.
-function keep(level) {
-  return level && level !== 'UNKNOWN' ? level : 'NORMAL'
-}
-
-// A fresh check-in seeded only with the fields that species actually tracks, so a
-// cat never carries dog signals (scratching/stool) and vice-versa.
-function emptyCheckInFor(species) {
-  // Starter species (rabbit, bird, …) track via the flexible observations model,
-  // not the dog/cat columns. `observations` is a { key: {label,value,severity,note} }
-  // map, serialized to observationsJson on save.
-  if (species && species !== 'DOG' && species !== 'CAT') {
-    return { checkInDate: today, freeTextNote: '', observations: {} }
-  }
-  // `observations` also carries the universal Visible Change / Wound signal, so
-  // dog/cat check-ins can hold one alongside their explicit columns.
-  const base = { checkInDate: today, appetiteLevel: 'NORMAL', waterLevel: 'NORMAL', energyLevel: 'NORMAL', vomiting: false, freeTextNote: '', observations: {} }
-  if (species === 'CAT') {
-    return { ...base, litterBoxUse: 'NORMAL', urinationChange: 'NORMAL', straining: false, hidingBehavior: 'NORMAL', weightConcern: false }
-  }
-  return { ...base, itchingScore: 2, stoolState: 'NORMAL', earRedness: false, pawLicking: false }
-}
-
-// Serialize a starter-species check-in form's observations map to the JSON string
-// the backend stores. Returns null when nothing was recorded.
-function toObservationsJson(form, species) {
-  const obs = form.observations || {}
-  const signals = Object.entries(obs)
-    .filter(([, v]) => v && (v.value || v.note))
-    .map(([key, v]) => {
-      const signal = { key, label: v.label || key, value: v.value || '' }
-      if (v.severity) signal.severity = v.severity
-      if (v.status) signal.status = v.status
-      if (v.area) signal.area = v.area
-      if (v.note) signal.note = v.note
-      return signal
-    })
-  return signals.length ? JSON.stringify({ species, signals }) : null
-}
-
-// Parse a stored observationsJson back into the form's observations map (for edit).
-function parseObservations(json) {
-  if (!json) return {}
-  try {
-    const parsed = JSON.parse(json)
-    const out = {}
-    for (const s of parsed.signals || []) {
-      if (s.key) out[s.key] = { label: s.label || s.key, value: s.value || '', severity: s.severity || null, status: s.status || null, area: s.area || null, note: s.note || '' }
-    }
-    return out
-  } catch (err) {
-    return {}
-  }
-}
-
-// Recent starter-species observations for the vet summary — one row per check-in
-// that logged a changed signal (owner-observed facts only, never a diagnosis).
-function starterObservationRows(checkIns) {
-  return (checkIns || [])
-    .map((c) => {
-      const obs = parseObservations(c.observationsJson)
-      // Visible changes get their own "Visible changes over time" section.
-      const changed = Object.entries(obs)
-        .filter(([key, v]) => key !== 'visible_change' && v && isChangedValue(v.value))
-        .map(([, v]) => v)
-      if (!changed.length) return null
-      const text = changed.map((v) => `${v.label ? `${t(v.label)}: ` : ''}${t(v.value)}`).join(', ')
-      return { date: c.checkInDate, text }
-    })
-    .filter(Boolean)
-    .slice(0, 20)
 }
 
 function App() {
@@ -1599,19 +1444,6 @@ function NoteGlyph({ size = 22 }) {
   )
 }
 
-const ACTIVITY_TYPES = ['WALK', 'PLAY', 'EXERCISE', 'GROOMING', 'OUTING', 'OTHER']
-
-function activityLabel(type) {
-  switch (type) {
-    case 'WALK': return t('Walk')
-    case 'PLAY': return t('Play')
-    case 'EXERCISE': return t('Exercise')
-    case 'GROOMING': return t('Grooming')
-    case 'OUTING': return t('Outing')
-    default: return t('Other')
-  }
-}
-
 function ActivityQuickAdd({ todayActivities, onAdd, onRemove }) {
   return (
     <section className="panel activity-quickadd" aria-label={t('Log an activity')}>
@@ -1946,67 +1778,6 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
   )
 }
 
-// "Something changed" guided flow — species-specific categories. Selecting a chip
-// reveals only the fields that category maps to (see guidedTokens), so a changed
-// day never means the whole form. Labels are English keys for t(). Keep the field
-// controls below in sync with the full form (which stays the canonical copy).
-const CHANGED_CATEGORIES = {
-  DOG: [
-    { key: 'skin', label: 'Scratching / skin' },
-    { key: 'stool', label: 'Stool' },
-    { key: 'appetite', label: 'Appetite' },
-    { key: 'water', label: 'Water' },
-    { key: 'energy', label: 'Energy' },
-    { key: 'vomiting', label: 'Vomiting' },
-    { key: 'ear_paws', label: 'Ear / paws' },
-    { key: 'food', label: 'Food or treats' },
-    { key: 'medication', label: 'Medication' },
-    { key: 'other', label: 'Other' }
-  ],
-  CAT: [
-    { key: 'litter', label: 'Litter box' },
-    { key: 'urination', label: 'Urination' },
-    { key: 'appetite', label: 'Appetite' },
-    { key: 'water', label: 'Water' },
-    { key: 'energy', label: 'Energy' },
-    { key: 'hiding', label: 'Hiding' },
-    { key: 'vomiting', label: 'Vomiting' },
-    { key: 'weight', label: 'Weight concern' },
-    { key: 'food', label: 'Food' },
-    { key: 'medication', label: 'Medication' },
-    { key: 'other', label: 'Other' }
-  ]
-}
-
-// Which fields each "what changed?" category reveals, unioned across the selected
-// categories and de-duplicated, so two categories that both touch appetite show
-// it once. food/medication/other add CTAs (handled in GuidedFieldsForCategory).
-function guidedTokens(categories, cat) {
-  const set = new Set()
-  const add = (...tokens) => tokens.forEach((tk) => set.add(tk))
-  categories.forEach((key) => {
-    if (cat) {
-      if (key === 'litter') add('litter', 'urination', 'straining')
-      else if (key === 'urination') add('urination', 'straining', 'water')
-      else if (key === 'hiding') add('hiding', 'appetite', 'energy')
-      else if (key === 'appetite') add('appetite', 'water', 'energy')
-      else if (key === 'water') add('water', 'appetite')
-      else if (key === 'energy') add('energy', 'appetite')
-      else if (key === 'vomiting') add('vomiting', 'appetite', 'water')
-      else if (key === 'weight') add('weight', 'appetite')
-    } else {
-      if (key === 'skin') add('itching', 'earRedness', 'pawLicking')
-      else if (key === 'stool') add('stool', 'appetite')
-      else if (key === 'appetite') add('appetite', 'water', 'energy')
-      else if (key === 'water') add('water', 'appetite')
-      else if (key === 'energy') add('energy', 'appetite')
-      else if (key === 'vomiting') add('vomiting', 'appetite', 'water')
-      else if (key === 'ear_paws') add('earRedness', 'pawLicking', 'itching')
-    }
-  })
-  return set
-}
-
 // One QuickChoices control per guided token. Option lists mirror the full form's
 // (kept here so the guided flow is self-contained); the full form is canonical.
 function GuidedChoice({ token, form, setForm }) {
@@ -2079,19 +1850,6 @@ function GuidedFieldsForCategory({ categories, cat, form, setForm, onAddFood, on
       )}
     </>
   )
-}
-
-// Food/treat changes whose start date sits within (or just before) the pattern's
-// detected window — real logs only, never invented, capped at 3 (newest first).
-function nearbyFoodChanges(pattern, foodLogs) {
-  if (!pattern?.firstDetectedAt || !foodLogs?.length) return []
-  const start = addDays(pattern.firstDetectedAt, -21)
-  const end = pattern.lastDetectedAt || today
-  return foodLogs
-    .filter((f) => f.dateStarted && f.dateStarted >= start && f.dateStarted <= end)
-    .slice()
-    .sort((a, b) => (a.dateStarted < b.dateStarted ? 1 : -1))
-    .slice(0, 3)
 }
 
 // Generic value-selectors for a STARTER species' guided categories. Each choice is
@@ -2744,39 +2502,6 @@ function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
   )
 }
 
-// Notable (worth-mentioning) signals on a single check-in, species-aware. Only
-// flags real changes — never claims a cause. Used by the Food/Environment Detective.
-function foodDetectiveSignals(checkIn, species) {
-  const out = []
-  if (isStarterSpecies(species)) {
-    const obs = parseObservations(checkIn.observationsJson)
-    Object.values(obs).forEach((v) => {
-      if (v && isChangedValue(v.value)) out.push(`${t(v.label)}: ${t(v.value)}`)
-    })
-    return out
-  }
-  const cat = species === 'CAT'
-  if (cat) {
-    if (checkIn.litterBoxUse && !['NORMAL', 'UNKNOWN'].includes(checkIn.litterBoxUse)) out.push(`${t('Litter box')}: ${litterLabel(checkIn.litterBoxUse)}`)
-    if (checkIn.urinationChange && !['NORMAL', 'UNKNOWN'].includes(checkIn.urinationChange)) out.push(`${t('Urination')}: ${t(titleCase(checkIn.urinationChange))}`)
-    if (checkIn.straining) out.push(t('Straining'))
-    if (checkIn.hidingBehavior === 'MORE') out.push(t('Hiding more'))
-    if (checkIn.appetiteLevel === 'LOWER' || checkIn.appetiteLevel === 'REFUSED') out.push(`${t('Appetite')}: ${levelLabel(checkIn.appetiteLevel)}`)
-    if (checkIn.waterLevel === 'HIGHER' || checkIn.waterLevel === 'LOWER') out.push(`${t('Water')}: ${levelLabel(checkIn.waterLevel)}`)
-    if (checkIn.vomiting) out.push(t('Vomiting'))
-    if (checkIn.weightConcern) out.push(t('Weight concern'))
-  } else {
-    if (checkIn.itchingScore != null && checkIn.itchingScore >= 6) out.push(`${t('Scratching')} ${checkIn.itchingScore}/10`)
-    if (checkIn.stoolState === 'SOFT' || checkIn.stoolState === 'DIARRHEA') out.push(`${t('Stool')}: ${stoolLabel(checkIn)}`)
-    if (checkIn.vomiting) out.push(t('Vomiting'))
-    if (checkIn.appetiteLevel === 'LOWER' || checkIn.appetiteLevel === 'REFUSED') out.push(`${t('Appetite')}: ${levelLabel(checkIn.appetiteLevel)}`)
-    if (checkIn.energyLevel === 'LOW' || checkIn.energyLevel === 'RESTLESS') out.push(`${t('Energy')}: ${levelLabel(checkIn.energyLevel)}`)
-    if (checkIn.earRedness) out.push(t('Ear redness'))
-    if (checkIn.pawLicking) out.push(t('Paw licking'))
-  }
-  return out
-}
-
 // A transparent timeline: each food/treat change with the notable check-in signals
 // logged within the following week. It lines things up — it never claims a cause.
 function FoodDetectiveView({ pet, foodLogs, checkIns, onBack, onFoodChange }) {
@@ -3038,72 +2763,6 @@ function PatternsView({ pet, patterns, checkIns, foodLogs, recap, onBack, onShow
       )}
     </section>
   )
-}
-
-// For a given pattern, the ONE signal we show over time and how to read a single
-// check-in into a calm/watch/changed tone plus a short value for the tooltip.
-// Species is implicit in the pattern type, so we never mix dog/cat signals.
-function evidenceSignal(pattern) {
-  const lvl = (v, calm, watch, changed) =>
-    v == null || v === 'UNKNOWN' ? null : { tone: changed.includes(v) ? 'changed' : watch.includes(v) ? 'watch' : 'calm', value: levelLabel(v) }
-  switch (pattern.type) {
-    case 'ITCHING_ABOVE_BASELINE':
-    case 'POSSIBLE_FOOD_TRIGGER':
-      return { label: t('Scratching'), read: (c) => c.itchingScore == null ? null
-        : { tone: c.itchingScore >= 7 ? 'changed' : c.itchingScore >= 4 ? 'watch' : 'calm', value: `${c.itchingScore}/10` } }
-    case 'STOOL_INSTABILITY':
-      return { label: t('Stool'), read: (c) => !c.stoolState || c.stoolState === 'UNKNOWN' ? null
-        : { tone: c.stoolState === 'DIARRHEA' ? 'changed' : (c.stoolState === 'SOFT' || c.stoolState === 'NO_STOOL') ? 'watch' : 'calm', value: stoolLabel(c.stoolState) } }
-    case 'WATER_DROP':
-    case 'WATER_CHANGE':
-      return { label: t('Water'), read: (c) => lvl(c.waterLevel, [], ['LOWER', 'HIGHER'], []) }
-    case 'RECURRING_EAR_REDNESS':
-      return { label: t('Ears'), read: (c) => ({ tone: c.earRedness ? 'changed' : 'calm', value: c.earRedness ? t('Redness') : t('Clear') }) }
-    case 'APPETITE_LOW':
-      return { label: t('Appetite'), read: (c) => lvl(c.appetiteLevel, [], ['LOWER', 'HIGHER'], ['REFUSED']) }
-    case 'LITTER_BOX_CHANGE':
-      return { label: t('Litter box'), read: (c) => {
-        const off = (v) => v && v !== 'NORMAL' && v !== 'UNKNOWN'
-        const blank = (v) => v == null || v === 'UNKNOWN'
-        if (c.litterBoxUse === 'NONE') return { tone: 'changed', value: litterLabel(c.litterBoxUse) }
-        if (c.straining) return { tone: 'watch', value: t('Straining') }
-        if (off(c.litterBoxUse) || off(c.urinationChange)) return { tone: 'watch', value: litterLabel(c.litterBoxUse) }
-        if (blank(c.litterBoxUse) && blank(c.urinationChange)) return null
-        return { tone: 'calm', value: litterLabel(c.litterBoxUse) }
-      } }
-    case 'HIDING_INCREASED':
-      return { label: t('Hiding'), read: (c) => c.hidingBehavior === 'UNKNOWN' || c.hidingBehavior == null ? null
-        : { tone: c.hidingBehavior === 'MORE' ? 'watch' : 'calm', value: hidingLabel(c.hidingBehavior) } }
-    case 'REPEATED_VOMITING':
-      return { label: t('Vomiting'), read: (c) => ({ tone: c.vomiting ? 'changed' : 'calm', value: c.vomiting ? t('Vomiting') : t('None') }) }
-    default:
-      return null
-  }
-}
-
-// The last `window` calendar days, oldest first, as { iso, date }.
-function lastDays(window) {
-  const base = parseLocalDate(today)
-  const out = []
-  for (let i = window - 1; i >= 0; i--) {
-    const d = new Date(base)
-    d.setDate(base.getDate() - i)
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    out.push({ iso, date: d })
-  }
-  return out
-}
-
-// The word for a signal's notable ("changed") state, for the cell-strip legend.
-function changedLabel(type) {
-  switch (type) {
-    case 'RECURRING_EAR_REDNESS': return t('Redness')
-    case 'STOOL_INSTABILITY': return t('Diarrhea')
-    case 'REPEATED_VOMITING': return t('Vomiting')
-    case 'APPETITE_LOW': return t('Refused')
-    case 'HIDING_INCREASED': return t('Hiding more')
-    default: return t('Change')
-  }
 }
 
 // A quiet visual for the pattern: numeric signals (scratching) read best as a
@@ -3921,12 +3580,6 @@ function RetentionStrip({ pet, retention, checkInCount = 0, onLogToday, onQuickL
   )
 }
 
-function nudgeText(pet, daysSince) {
-  if (daysSince == null) return t("Start {name}'s memory with a quick check-in.", { name: pet.name })
-  if (daysSince <= 1) return t("Add today's check-in so {name}'s record stays complete.", { name: pet.name })
-  return t("It's been {n} days since {name}'s last note — a quick one keeps the picture clear.", { n: daysSince, name: pet.name })
-}
-
 function ReminderControl({ pet, loggedToday }) {
   const storageKey = `petpattern.reminder.${pet.id}`
   const [pref, setPref] = useState(() => loadReminder(storageKey))
@@ -3982,48 +3635,6 @@ function ReminderControl({ pet, loggedToday }) {
       )}
     </div>
   )
-}
-
-function loadReminder(key) {
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) return { enabled: false, time: '19:00', ...JSON.parse(raw) }
-  } catch (err) {
-    // ignore unreadable/blocked storage
-  }
-  return { enabled: false, time: '19:00' }
-}
-
-function saveReminder(key, pref) {
-  try {
-    localStorage.setItem(key, JSON.stringify({ enabled: pref.enabled, time: pref.time }))
-  } catch (err) {
-    // ignore blocked storage
-  }
-}
-
-function maybeNotify(pet, pref, loggedToday, key) {
-  if (loggedToday || !pref.enabled) return
-  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-  if (!/^\d{2}:\d{2}$/.test(pref.time)) return // ignore a cleared/invalid time
-  const now = new Date()
-  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  if (hhmm < pref.time) return
-  const today = now.toISOString().slice(0, 10)
-  const notifiedKey = `${key}.notified`
-  try {
-    if (localStorage.getItem(notifiedKey) === today) return
-  } catch (err) {
-    return
-  }
-  // Construct first; only mark the day as done if the notification actually
-  // fired, so a browser that throws here doesn't silently swallow the reminder.
-  try {
-    new Notification('PetPattern', { body: t("Time for {name}'s daily check-in.", { name: pet.name }) })
-    try { localStorage.setItem(notifiedKey, today) } catch (err) { /* ignore blocked storage */ }
-  } catch (err) {
-    // some browsers require a service worker for Notification construction; ignore
-  }
 }
 
 function RecentTimeline({ pet, checkIns, onEdit, onDelete, onLogDay }) {
@@ -4374,25 +3985,6 @@ function TrialWindow({ label, stat, tone }) {
   )
 }
 
-function trialStatusLabel(status) {
-  switch (status) {
-    case 'ACTIVE': return t('In progress')
-    case 'REINTRODUCED': return t('Reintroducing')
-    case 'COMPLETED': return t('Done')
-    case 'ABANDONED': return t('Stopped')
-    default: return status
-  }
-}
-
-function trialTone(status) {
-  switch (status) {
-    case 'ACTIVE': return 'vet'
-    case 'REINTRODUCED': return 'watch'
-    case 'COMPLETED': return 'calm'
-    default: return 'muted'
-  }
-}
-
 function RecapView({ pet, recap, onBack, onVetSummary }) {
   if (!recap) {
     return (
@@ -4457,14 +4049,6 @@ function RecapStat({ value, label }) {
       <span>{label}</span>
     </div>
   )
-}
-
-function trendWord(label) {
-  switch (label) {
-    case 'calmer': return t('calmer')
-    case 'itchier': return t('itchier')
-    default: return t('about the same')
-  }
 }
 
 function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo, onRabbitDemo, demoEnabled = true, googleEnabled = false }) {
@@ -4928,7 +4512,7 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCatDemo, onRabbitDemo, on
     if (unit === weightUnit) return
     const value = parseFloat(form.currentWeightKg)
     if (!Number.isNaN(value)) {
-      const converted = unit === 'lbs' ? value * 2.2046226 : value / 2.2046226
+      const converted = unit === 'lbs' ? kgToLb(value) : lbToKg(value)
       setForm({ ...form, currentWeightKg: String(Math.round(converted * 10) / 10) })
     }
     setWeightUnit(unit)
@@ -4950,7 +4534,7 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCatDemo, onRabbitDemo, on
         birthDate: form.birthDate || null,
         sex: form.sex || 'UNKNOWN',
         currentWeightKg: form.currentWeightKg
-          ? Math.round(Number(form.currentWeightKg) * (weightUnit === 'lbs' ? 0.45359237 : 1) * 100) / 100
+          ? Math.round((weightUnit === 'lbs' ? lbToKg(Number(form.currentWeightKg)) : Number(form.currentWeightKg)) * 100) / 100
           : null
       })
       setCreatedPet(pet)
@@ -5285,21 +4869,6 @@ function CaregiversView({ pet, onBack, onLeft }) {
   )
 }
 
-function sharedTokenFromHash() {
-  const match = (window.location.hash || '').match(/^#shared=(.+)$/)
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-function resetTokenFromHash() {
-  const match = (window.location.hash || '').match(/^#reset=(.+)$/)
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-function legalFromHash() {
-  const value = (window.location.hash || '').replace('#', '')
-  return ['privacy', 'terms', 'disclaimer'].includes(value) ? value : null
-}
-
 function LegalView({ section, lang, onLangChange, onBack }) {
   const content = (LEGAL[lang] || LEGAL.en)
   const order = ['privacy', 'terms', 'disclaimer']
@@ -5529,205 +5098,6 @@ function AccountView({ owner, pets = [], onDeletePet, onBack, onDeleted }) {
   )
 }
 
-function hashView() {
-  const value = window.location.hash.replace('#', '')
-  return ['today', 'check-in', 'food', 'food-detective', 'patterns', 'timeline', 'photos', 'trial', 'recap', 'medications', 'vet', 'caregivers', 'add-pet', 'account'].includes(value) ? value : 'today'
-}
-
-function isProfilePhoto(photo) {
-  return String(photo?.area || '').toUpperCase() === 'PROFILE'
-}
-
-function photoAreaLabel(area) {
-  switch (String(area || 'OTHER').toUpperCase()) {
-    case 'PROFILE': return t('Profile photo')
-    case 'EAR': return t('Ears')
-    case 'PAW': return t('Paw')
-    case 'SKIN': return t('Skin')
-    case 'COAT': return t('Coat')
-    case 'EYE': return t('Eyes')
-    case 'STOOL': return t('Stool')
-    case 'WOUND': return t('Wound / visible change')
-    case 'SWELLING': return t('Swelling')
-    case 'SHELL': return t('Shell')
-    case 'FEATHER': return t('Feathers')
-    case 'FIN_SCALE': return t('Fins / scales')
-    default: return t('Other')
-  }
-}
-
-function byCapturedDateAsc(a, b) {
-  return String(a.capturedDate).localeCompare(String(b.capturedDate))
-}
-
-// Downscale + re-encode to JPEG in the browser so uploads stay small and
-// the stored bytes are a known-safe raster type.
-function resizeImage(file, maxDim, quality) {
-  return new Promise((resolve, reject) => {
-    if (!file.type || !file.type.startsWith('image/')) {
-      reject(new Error('not an image'))
-      return
-    }
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      const scale = Math.min(1, maxDim / Math.max(img.width, img.height))
-      const width = Math.max(1, Math.round(img.width * scale))
-      const height = Math.max(1, Math.round(img.height * scale))
-      const canvas = document.createElement('canvas')
-      canvas.width = width
-      canvas.height = height
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, width, height)
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error('encode failed'))),
-        'image/jpeg',
-        quality
-      )
-    }
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('could not load image'))
-    }
-    img.src = url
-  })
-}
-
-function statusLabel(status, petName) {
-  if (status === 'normal') return t('Normal for {name}', { name: petName })
-  if (status === 'watch') return t('Worth watching')
-  return t('Changed')
-}
-
-function todayHeadline(pet, overview, topPattern, latestCheckIn) {
-  if (!latestCheckIn) return t('{name} needs a first baseline day.', { name: pet.name })
-  if (topPattern) return topPattern.title
-  if (overview?.todayStatus === 'watch') return t('{name} is worth watching today.', { name: pet.name })
-  if (overview?.todayStatus === 'changed') return t("{name} needs today's check-in.", { name: pet.name })
-  return t('{name} looks close to normal.', { name: pet.name })
-}
-
-function stoolLabel(checkIn) {
-  if (!checkIn) return t('Not logged')
-  const state = checkIn.stoolState
-  if (state === 'NORMAL') return t('Normal')
-  if (state === 'SOFT') return t('Soft')
-  if (state === 'DIARRHEA') return t('Diarrhea')
-  if (state === 'NO_STOOL') return t('No stool')
-  if (checkIn.diarrhea) return t('Diarrhea')
-  if (checkIn.stoolScore) return `${checkIn.stoolScore}/5`
-  return t('Not logged')
-}
-
-function levelLabel(value) {
-  if (!value || value === 'UNKNOWN') return t('Not logged')
-  return t(titleCase(value))
-}
-
-function litterLabel(value) {
-  if (!value || value === 'UNKNOWN') return t('Not logged')
-  if (value === 'NONE') return t('Not used')
-  return t(titleCase(value))
-}
-
-function hidingLabel(value) {
-  if (!value || value === 'UNKNOWN') return t('Not logged')
-  return value === 'MORE' ? t('Hiding more') : t('As usual')
-}
-
-function foodKindLabel(value) {
-  return (value ?? 'MAIN_FOOD') === 'TREAT' ? t('Treat') : t('Main food')
-}
-
-function proteinLabel(value) {
-  return t(titleCase(value ?? 'UNKNOWN'))
-}
-
-function confidenceLabel(value) {
-  const level = String(value ?? 'low').toLowerCase()
-  if (level === 'high') return t('High confidence')
-  if (level === 'medium') return t('Medium confidence')
-  return t('Low confidence')
-}
-
-function isDismissedStatus(status) {
-  return status === 'RESOLVED' || status === 'NOT_RELEVANT'
-}
-
-function patternGroup(pattern) {
-  if (isDismissedStatus(pattern.status)) return 'dismissed'
-  if (pattern.currentlyDetected === false) return 'settled'
-  return 'active'
-}
-
-function settledLine(pattern) {
-  const days = pattern.daysSinceLastSeen
-  if (days == null) return t('Settled')
-  if (days <= 0) return t('Settled — last seen today')
-  return t(days === 1 ? 'Not seen in {n} day' : 'Not seen in {n} days', { n: days })
-}
-
-function statusMeta(status) {
-  switch (status) {
-    case 'ACKNOWLEDGED':
-      return { label: t('Watching'), tone: 'watch' }
-    case 'SHARED_WITH_VET':
-      return { label: t('In vet summary'), tone: 'vet' }
-    case 'RESOLVED':
-      return { label: t('Resolved'), tone: 'calm' }
-    case 'NOT_RELEVANT':
-      return { label: t('Set aside'), tone: 'muted' }
-    default:
-      return { label: '', tone: '' }
-  }
-}
-
-function memoryLine(pattern) {
-  if (!pattern?.firstDetectedAt) return ''
-  if (pattern.seenBefore && pattern.detectionCount > 1) {
-    return t('Seen a few times since {date}', { date: formatDate(pattern.firstDetectedAt) })
-  }
-  return t('First noticed {date}', { date: formatDate(pattern.firstDetectedAt) })
-}
-
-function titleCase(value) {
-  return String(value).toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function dateLocale() {
-  return getLang() === 'hr' ? 'hr' : 'en'
-}
-
-// Parse a bare 'YYYY-MM-DD' as a LOCAL calendar date. new Date('YYYY-MM-DD')
-// parses as UTC midnight, which renders one day early in negative-UTC-offset
-// zones — so date-only strings (check-in dates, food dates) must be built from
-// local components to label the right day.
-function parseLocalDate(value) {
-  if (typeof value === 'string') {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
-  }
-  return new Date(value)
-}
-
-// Shift a bare 'YYYY-MM-DD' by n days and return the same string form (local).
-function addDays(isoDate, n) {
-  const d = parseLocalDate(isoDate)
-  d.setDate(d.getDate() + n)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function formatDate(value) {
-  if (!value) return ''
-  const date = parseLocalDate(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric' }).format(date)
-}
-
 // Friendly date entry: Today / Yesterday one-tap chips (the 95% case for a daily
 // log) plus an "Other day" chip that still opens the OS calendar for any date and
 // shows the chosen day in words. No date-picker dependency.
@@ -5760,11 +5130,6 @@ function DateField({ value, max = today, onChange, label }) {
   )
 }
 
-function formatLongDate(value) {
-  if (!value) return ''
-  return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric', year: 'numeric' }).format(parseLocalDate(value))
-}
-
 function timelineIcon(type) {
   switch (type) {
     case 'FOOD_STARTED':
@@ -5786,34 +5151,5 @@ function timelineIcon(type) {
   }
 }
 
-// The headline line for a day in the recent memory, in the signals that species
-// actually tracks — a cat never shows "Itching / stool", a dog never shows
-// litter box.
-function timelineSummary(item, cat) {
-  if (cat) {
-    return `${t('Litter box')} ${litterLabel(item.litterBoxUse)} · ${t('Appetite')} ${levelLabel(item.appetiteLevel)}`
-  }
-  return `${t('Scratching')} ${item.itchingScore ?? t('Not logged')} · ${t('Stool')} ${stoolLabel(item)}`
-}
-
-// The small "what else stood out" line, again species-appropriate and translated.
-function timelineFlags(item, cat) {
-  const flags = []
-  if (item.vomiting) flags.push(t('Vomiting'))
-  if (cat) {
-    if (item.straining) flags.push(t('Straining'))
-    if (item.hidingBehavior === 'MORE') flags.push(t('Hiding more'))
-    if (item.weightConcern) flags.push(t('Weight concern'))
-    if (item.urinationChange && item.urinationChange !== 'NORMAL' && item.urinationChange !== 'UNKNOWN') {
-      flags.push(t('Urination change'))
-    }
-  } else {
-    if (item.stoolState === 'DIARRHEA' || item.diarrhea) flags.push(t('Diarrhea'))
-    if (item.earRedness) flags.push(t('Ear redness'))
-    if (item.pawLicking) flags.push(t('Paw licking'))
-  }
-  if (item.freeTextNote) flags.push(item.freeTextNote)
-  return flags.length ? flags.join(' · ') : t('Nothing unusual noted')
-}
 
 export default App
