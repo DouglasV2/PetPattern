@@ -37,14 +37,14 @@ import {
   X
 } from 'lucide-react'
 import { api, setUnauthorizedHandler } from './api'
-import { t, setLang, getLang, loadLang, persistLang, LANGUAGES } from './i18n'
+import { t, setLang, getLang, loadLang, persistLang } from './i18n'
 import { LEGAL } from './legal'
 import { track } from './analytics'
 import { SPECIES_PROFILES, SPECIES_ORDER, speciesProfile, isStarterSpecies, categoryOptions, isChangedValue, visibleChangeConfig, VISIBLE_CHANGE_STATUSES } from './speciesProfiles'
 import { today, formatDate, formatLongDate, parseLocalDate, addDays } from './lib/date'
 import { kgToLb, lbToKg } from './lib/units'
 import { isCat, DOG_BREEDS, CAT_BREEDS } from './lib/species'
-import { petAgeLabel, petSubtitle } from './lib/pets'
+import { petAgeLabel } from './lib/pets'
 import { emptyCheckIn, emptyCheckInFor, keep, toObservationsJson, parseObservations, starterObservationRows, CHANGED_CATEGORIES, guidedTokens, titleCase, stoolLabel, levelLabel, litterLabel, hidingLabel, confidenceLabel } from './lib/checkins'
 import { emptyFood, proteinOptions, foodKindLabel, proteinLabel, nearbyFoodChanges, foodDetectiveSignals } from './lib/food'
 import { evidenceSignal, lastDays, changedLabel, patternGroup, settledLine, statusMeta, memoryLine, isDismissedStatus, statusLabel, trendWord } from './lib/patterns'
@@ -54,198 +54,17 @@ import { nudgeText, loadReminder, saveReminder, maybeNotify } from './lib/remind
 import { hashView, sharedTokenFromHash, resetTokenFromHash, legalFromHash } from './lib/nav'
 import { PHOTO_AREAS, photoAreaLabel, isProfilePhoto, byCapturedDateAsc, resizeImage } from './lib/photos'
 import { timelineSummary, timelineFlags } from './lib/timeline'
-
-// The brand mark: a paw whose pads sit on a small memory trail, with one coral
-// pad for the point that changed. Drawn in currentColor so it inherits the
-// .brand-mark colour (white on teal, teal on the soft variant); only the changed
-// pad carries the fixed coral accent.
-function BrandMark({ size = 20 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-      <path d="M12 15.4 C 14.2 13.8, 15.7 12.8, 16.7 10.9" stroke="currentColor" strokeWidth="0.85" strokeLinecap="round" strokeDasharray="0.2 1.7" opacity="0.6" />
-      <circle cx="7.45" cy="10.65" r="1.75" fill="currentColor" />
-      <circle cx="10.35" cy="8.35" r="1.75" fill="currentColor" />
-      <circle cx="13.65" cy="8.35" r="1.75" fill="currentColor" />
-      <circle cx="16.55" cy="10.65" r="1.75" fill="#bf5a46" />
-      <path d="M12 12.2c2.15 0 3.75 1.55 3.75 3.4 0 1.55-1.5 2.4-3.75 2.4s-3.75-.85-3.75-2.4c0-1.85 1.6-3.4 3.75-3.4z" fill="currentColor" />
-    </svg>
-  )
-}
-
-// A quiet botanical sprig for the Today hero — the "health notebook garden"
-// accent. Drawn in currentColor (set to a soft sage) at low opacity so it reads
-// as an ambient pressed-leaf in the corner, never a focal illustration. Hidden
-// from assistive tech; purely decorative.
-function HeroSprig() {
-  return (
-    <svg className="hero-sprig" width="132" height="120" viewBox="0 0 132 120" fill="none" aria-hidden="true" focusable="false">
-      <path d="M104 116 C 104 82, 92 54, 56 32" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <path d="M96 84 c -15 -7 -28 -2 -33 10 c 16 6 29 2 33 -10 z" fill="currentColor" opacity="0.5" />
-      <path d="M92 60 c 13 -10 27 -9 36 2 c -13 10 -27 9 -36 -2 z" fill="currentColor" opacity="0.68" />
-      <path d="M74 42 c -13 -8 -26 -3 -31 9 c 14 6 27 2 31 -9 z" fill="currentColor" opacity="0.56" />
-      <circle cx="56" cy="32" r="4.6" fill="currentColor" opacity="0.85" />
-    </svg>
-  )
-}
-
-// A small round pet avatar: the pet's most-recent photo thumbnail when there is
-// one, otherwise an original initials placeholder tinted by species. No stock art
-// or downloaded assets — the fallback is just a letter on a soft disc.
-function PetAvatar({ pet, size = 26 }) {
-  const [failed, setFailed] = useState(false)
-  // A new photo gives the same pet a fresh avatarImageUrl; clear a past load
-  // failure so the new (loadable) image gets a chance instead of sticking on
-  // the initials placeholder for the life of this reused component instance.
-  useEffect(() => { setFailed(false) }, [pet?.avatarImageUrl])
-  const initial = (pet?.name || '').trim().charAt(0).toUpperCase() || '·'
-  const showImage = pet?.avatarImageUrl && !failed
-  return (
-    <span className={`pet-avatar ${isCat(pet) ? 'is-cat' : 'is-dog'}`}
-          style={{ width: size, height: size, fontSize: Math.round(size * 0.46) }} aria-hidden="true">
-      {showImage
-        ? <img className="pet-avatar-img" src={pet.avatarImageUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
-        : <span className="pet-avatar-initial">{initial}</span>}
-    </span>
-  )
-}
-
-// The selected pet's two-or-three most-recent photos as gently rotated snapshot
-// cards — a quiet "this is their notebook" moment at the top of the sidebar, and
-// also the simplest place to ADD a photo (tap it to pick one from the device).
-// Desktop only (CSS hides it on narrow screens so it never crowds the header);
-// shows a soft placeholder that invites a first photo when there are none yet.
-function PetPhotoStack({ pet, photos, onAddPhoto }) {
-  const [busy, setBusy] = useState(false)
-  const fileRef = useRef(null)
-  const shots = (photos || []).filter(isProfilePhoto).slice(0, 3)
-  const hasPhotos = shots.length > 0
-
-  async function onFile(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file) return
-    setBusy(true)
-    try {
-      await onAddPhoto(file)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="pet-photo-stack">
-      <button type="button" className="pet-photo-stack-btn" disabled={busy}
-              onClick={() => fileRef.current?.click()}
-              aria-label={hasPhotos
-                ? t('Add another photo of {name}', { name: pet.name })
-                : t('Add a photo of {name}', { name: pet.name })}>
-        <span className="snap-set" aria-hidden="true">
-          {hasPhotos
-            ? shots.map((photo, i) => (
-                <span className={`snap snap-${i}`} key={photo.id}>
-                  <img src={`${photo.imageUrl}?w=320`} alt="" loading="lazy" />
-                </span>
-              ))
-            : (
-              <span className="snap snap-placeholder">
-                <PetAvatar pet={pet} size={58} />
-              </span>
-            )}
-        </span>
-        <span className="pet-photo-hint">
-          <ImagePlus size={13} />
-          {busy ? t('Adding…') : (hasPhotos ? t('Add another') : t('Add a photo of {name}', { name: pet.name }))}
-        </span>
-      </button>
-      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />
-    </div>
-  )
-}
-
-// The active pet presented as the cover of their record at the top of the
-// sidebar: a real photo when there is one (else the species-tinted initial), the
-// name in the display serif, and a breed · age line. The photo doubles as the
-// add/change-photo control — the one pet edit the app actually supports — so there
-// is no dead "edit profile" link for details that can't be changed yet.
-function PetIdentityCard({ pet, photos, onAddPhoto }) {
-  const [busy, setBusy] = useState(false)
-  const fileRef = useRef(null)
-  const canPhoto = Boolean(pet && pet.owned !== false && onAddPhoto)
-  const shot = (photos || []).find(isProfilePhoto)
-  const src = shot ? `${shot.imageUrl}?w=240` : (pet?.avatarImageUrl || null)
-  const openPicker = () => fileRef.current?.click()
-
-  async function onFile(event) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-    if (!file || !canPhoto) return
-    setBusy(true)
-    try { await onAddPhoto(file) } finally { setBusy(false) }
-  }
-
-  return (
-    <div className="pet-identity">
-      <div className="pet-identity-photo">
-        {src ? <img src={src} alt="" /> : <PetAvatar pet={pet} size={56} />}
-        {canPhoto && (
-          <button type="button" className="pet-identity-cam" onClick={openPicker} disabled={busy}
-                  aria-label={src ? t('Change photo for {name}', { name: pet.name }) : t('Add a photo of {name}', { name: pet.name })}>
-            <ImagePlus size={13} />
-          </button>
-        )}
-      </div>
-      <div className="pet-identity-copy">
-        <strong className="pet-identity-name">{pet?.name}</strong>
-        <span className="pet-identity-sub">{petSubtitle(pet)}</span>
-        {canPhoto && (
-          <button type="button" className="pet-identity-action" onClick={openPicker} disabled={busy}>
-            {busy ? t('Adding…') : (src ? t('Change photo') : t('Add a photo'))}
-          </button>
-        )}
-      </div>
-      {canPhoto && <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile} />}
-    </div>
-  )
-}
-
-// Small, self-contained flag glyphs for the language picker. Inline SVG (not
-// emoji) so they render the same on every OS — Windows shows flag emoji as bare
-// letters. Simplified but recognisable; 3:2 ratio.
-function Flag({ code, size = 20 }) {
-  const w = size, h = Math.round(size * 0.68)
-  const box = { width: w, height: h, viewBox: '0 0 24 16', style: { borderRadius: 2, display: 'block', flex: 'none' }, 'aria-hidden': true }
-  switch (code) {
-    case 'hr': return (<svg {...box}><rect width="24" height="5.33" fill="#c8102e"/><rect y="5.33" width="24" height="5.33" fill="#fff"/><rect y="10.66" width="24" height="5.34" fill="#1e40af"/><rect x="9.6" y="4.4" width="4.8" height="4.8" fill="#fff"/><rect x="9.6" y="4.4" width="1.6" height="1.6" fill="#c8102e"/><rect x="12.8" y="4.4" width="1.6" height="1.6" fill="#c8102e"/><rect x="11.2" y="6" width="1.6" height="1.6" fill="#c8102e"/><rect x="9.6" y="7.6" width="1.6" height="1.6" fill="#c8102e"/><rect x="12.8" y="7.6" width="1.6" height="1.6" fill="#c8102e"/></svg>)
-    case 'de': return (<svg {...box}><rect width="24" height="5.33" fill="#000"/><rect y="5.33" width="24" height="5.33" fill="#dd0000"/><rect y="10.66" width="24" height="5.34" fill="#ffce00"/></svg>)
-    case 'es': return (<svg {...box}><rect width="24" height="16" fill="#c60b1e"/><rect y="4" width="24" height="8" fill="#ffc400"/></svg>)
-    case 'fr': return (<svg {...box}><rect width="8" height="16" fill="#0055a4"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ef4135"/></svg>)
-    case 'it': return (<svg {...box}><rect width="8" height="16" fill="#009246"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#ce2b37"/></svg>)
-    case 'pl': return (<svg {...box}><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#dc143c"/></svg>)
-    case 'no': return (<svg {...box}><rect width="24" height="16" fill="#ba0c2f"/><rect x="6" width="4" height="16" fill="#fff"/><rect y="6" width="24" height="4" fill="#fff"/><rect x="7" width="2" height="16" fill="#00205b"/><rect y="7" width="24" height="2" fill="#00205b"/></svg>)
-    case 'en': return (<svg {...box}><rect width="24" height="16" fill="#012169"/><path d="M0 0l24 16M24 0L0 16" stroke="#fff" strokeWidth="3.2"/><path d="M0 0l24 16M24 0L0 16" stroke="#c8102e" strokeWidth="1.6"/><rect x="9.5" width="5" height="16" fill="#fff"/><rect y="5.5" width="24" height="5" fill="#fff"/><rect x="10.5" width="3" height="16" fill="#c8102e"/><rect y="6.5" width="24" height="3" fill="#c8102e"/></svg>)
-    case 'nl': return (<svg {...box}><rect width="24" height="5.33" fill="#ae1c28"/><rect y="5.33" width="24" height="5.33" fill="#fff"/><rect y="10.66" width="24" height="5.34" fill="#21468b"/></svg>)
-    case 'sv': return (<svg {...box}><rect width="24" height="16" fill="#006aa7"/><rect x="7" width="3" height="16" fill="#fecc00"/><rect y="6.5" width="24" height="3" fill="#fecc00"/></svg>)
-    case 'da': return (<svg {...box}><rect width="24" height="16" fill="#c8102e"/><rect x="7" width="3" height="16" fill="#fff"/><rect y="6.5" width="24" height="3" fill="#fff"/></svg>)
-    case 'pt': return (<svg {...box}><rect width="24" height="16" fill="#da291c"/><rect width="9.6" height="16" fill="#046a38"/><circle cx="9.6" cy="8" r="2.4" fill="#ffcc00" stroke="#fff" strokeWidth="0.4"/></svg>)
-    case 'ro': return (<svg {...box}><rect width="8" height="16" fill="#002b7f"/><rect x="8" width="8" height="16" fill="#fcd116"/><rect x="16" width="8" height="16" fill="#ce1126"/></svg>)
-    case 'cs': return (<svg {...box}><rect width="24" height="8" fill="#fff"/><rect y="8" width="24" height="8" fill="#d7141a"/><path d="M0 0 L12 8 L0 16 Z" fill="#11457e"/></svg>)
-    case 'sk': return (<svg {...box}><rect width="24" height="5.33" fill="#fff"/><rect y="5.33" width="24" height="5.33" fill="#0b4ea2"/><rect y="10.66" width="24" height="5.34" fill="#ee1c25"/><path d="M3.4 4 h4 v3.6 q0 2.2 -2 3 q-2 -0.8 -2 -3 z" fill="#fff" stroke="#ee1c25" strokeWidth="0.5"/></svg>)
-    case 'el': return (<svg {...box}><rect width="24" height="16" fill="#004c98"/><rect y="1.78" width="24" height="1.78" fill="#fff"/><rect y="5.33" width="24" height="1.78" fill="#fff"/><rect y="8.89" width="24" height="1.78" fill="#fff"/><rect y="12.44" width="24" height="1.78" fill="#fff"/><rect width="8.9" height="8.9" fill="#004c98"/><rect x="3.5" width="1.9" height="8.9" fill="#fff"/><rect y="3.5" width="8.9" height="1.9" fill="#fff"/></svg>)
-    default: return (<svg {...box}><rect width="24" height="16" fill="#6d8b5f"/></svg>)
-  }
-}
-
-// The Google "G" in its four brand colours, for the sign-in button.
-function GoogleG({ size = 18 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-      <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z" />
-      <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z" />
-      <path fill="#FBBC05" d="M11.69 28.18c-.44-1.32-.69-2.73-.69-4.18s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z" />
-      <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z" />
-    </svg>
-  )
-}
+import { BrandMark } from './components/BrandMark'
+import { HeroSprig } from './components/HeroSprig'
+import { PetAvatar } from './components/PetAvatar'
+import { PetPhotoStack } from './components/PetPhotoStack'
+import { PetIdentityCard } from './components/PetIdentityCard'
+import { Flag } from './components/Flag'
+import { GoogleG } from './components/GoogleG'
+import { Toast } from './components/Toast'
+import { LangToggle } from './components/LangToggle'
+import { Tab } from './components/Tab'
+import { QuickChoices } from './components/QuickChoices'
 
 function App() {
   const [pets, setPets] = useState([])
@@ -1399,33 +1218,6 @@ function App() {
       </main>
       </div>
       {toast && <Toast key={toast.key} message={toast.message} onDismiss={() => setToast(null)} />}
-    </div>
-  )
-}
-
-// A brief, self-dismissing confirmation that floats above the record. Announced
-// politely to assistive tech and dismissable early with the close button. It owns
-// its own auto-dismiss timer so it can pause while hovered or keyboard-focused —
-// otherwise the 3.2s timeout could yank the close button out from under a
-// keyboard user and drop their focus to <body>.
-function Toast({ message, onDismiss }) {
-  const [paused, setPaused] = useState(false)
-  const dismissRef = useRef(onDismiss)
-  dismissRef.current = onDismiss
-  useEffect(() => {
-    if (paused) return undefined
-    const id = setTimeout(() => dismissRef.current(), 3200)
-    return () => clearTimeout(id)
-  }, [paused])
-  return (
-    <div className="toast" role="status" aria-live="polite"
-      onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
-      <span className="toast-icon"><Check size={15} /></span>
-      <span className="toast-text">{message}</span>
-      <button className="toast-close" type="button" aria-label={t('Dismiss')} onClick={onDismiss}>
-        <X size={14} />
-      </button>
     </div>
   )
 }
@@ -4403,81 +4195,11 @@ function PetSwitcher({ pets, selectedPetId, onSelect, onAdd, onAddPhoto, canAdd 
   )
 }
 
-function LangToggle({ lang, onChange }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-
-  useEffect(() => {
-    if (!open) return undefined
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
-  }, [open])
-
-  const current = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0]
-
-  return (
-    <div className="lang-menu" ref={ref}>
-      <button type="button" className="lang-trigger" aria-haspopup="listbox" aria-expanded={open}
-              aria-label={`Language: ${current.label}`} onClick={() => setOpen((o) => !o)}>
-        <Flag code={current.code} size={20} />
-        <span>{current.code.toUpperCase()}</span>
-        <ChevronDown className="chev" size={15} />
-      </button>
-      {open && (
-        <div className="lang-list" role="listbox" aria-label="Language">
-          {LANGUAGES.map((l) => (
-            <button key={l.code} type="button" role="option" aria-selected={l.code === lang}
-                    className={l.code === lang ? 'lang-item active' : 'lang-item'}
-                    onClick={() => { onChange(l.code); setOpen(false) }}>
-              <Flag code={l.code} size={20} />
-              <span>{l.label}</span>
-              {l.code === lang && <Check className="check" size={15} />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Tab({ active, onClick, icon, label }) {
-  return (
-    <button className={active ? 'record-tab active' : 'record-tab'} type="button" onClick={onClick} aria-current={active ? 'page' : undefined}>
-      {icon}
-      <span>{label}</span>
-    </button>
-  )
-}
-
 function Signal({ label, value, tone }) {
   return (
     <div className={`signal ${tone}`}>
       <span>{label}</span>
       <strong>{value}</strong>
-    </div>
-  )
-}
-
-function QuickChoices({ label, value, options, onChange }) {
-  return (
-    <div className="choice-block">
-      <span>{label}</span>
-      <div className="choice-grid" role="group" aria-label={label}>
-        {options.map((option) => (
-          <button
-            key={option.value}
-            className={value === option.value ? 'choice-button active' : 'choice-button'}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
     </div>
   )
 }
