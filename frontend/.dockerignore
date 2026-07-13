@@ -2,3 +2,10 @@ node_modules
 dist
 .git
 npm-debug.log
+.env
+*.env
+.idea
+.vscode
+*.iml
+*.log
+coverage

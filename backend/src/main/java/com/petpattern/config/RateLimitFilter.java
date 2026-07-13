@@ -48,8 +48,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
             "/api/auth/reset-password", 10,
             "/api/ai/parse-daily-note", 30,
             // Unauthenticated + heavy (wipes + reseeds the demo pet) — cap it so it
-            // can't be used to hammer the DB in production.
+            // can't be used to hammer the DB in production. All three demo-seed
+            // endpoints (DevSeedController: dog/cat/rabbit) do the same wipe+reseed
+            // work, so all three share this exact-match bucket and limit.
             "/api/dev/seed", 5,
+            "/api/dev/seed-cat", 5,
+            "/api/dev/seed-rabbit", 5,
             // Burst guard on pet creation (the hard per-account cap lives in
             // PetController; this just blunts rapid-fire spam).
             "/api/pets", 10
