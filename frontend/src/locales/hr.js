@@ -875,5 +875,11 @@ export default {
   'Grooming': 'Njega',
   'Outing': 'Izlazak',
   'Other': 'Ostalo',
-  'Remove': 'Ukloni'
+  'Remove': 'Ukloni',
+
+  // Today simplification (Phase 3) — one-line log confirmation + collapsible
+  // secondary section
+  "Saved — that's {name}'s {n} check-ins this week.": 'Spremljeno — ovaj tjedan je to već {n}. zapis za {name}.',
+  "Saved — that's {name}'s first check-in this week.": 'Spremljeno — ovo je prvi zapis ovaj tjedan za {name}.',
+  'More about {name} today': 'Više o {name} danas'
 }

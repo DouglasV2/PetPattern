@@ -406,3 +406,54 @@
   }
 }
 
+/* Phase 3 (simplify Today): a one-line log confirmation, reusing the calm
+   "normal" sage treatment (see .state-panel.normal) rather than a new tone. */
+.today-confirmation {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border-left: 3px solid var(--sage);
+  background: var(--sage-soft);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+/* Collapsible secondary content: the signal/food/pattern grid, activity log,
+   recent memory and the caregiver line all move here so Today opens on the
+   decision + one insight, not eleven stacked sections. Native <details> is
+   keyboard-operable for free — these rules just make the affordance visible
+   and on-brand, with a clear focus ring on the summary. */
+.today-more {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.today-more summary {
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.today-more summary::-webkit-details-marker {
+  color: var(--teal);
+}
+
+.today-more[open] summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.today-more summary:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.today-more-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+

@@ -3,12 +3,19 @@ import { t } from '../../i18n'
 import { formatDate } from '../../lib/date'
 import { isDismissedStatus } from '../../lib/patterns'
 
+// Whether a pattern is real and "seen before" enough to justify the nudge.
+// Exported so TodayView's one-insight selector can ask the same question
+// before deciding whether to render this card at all — the guard lives in
+// exactly one place, never duplicated.
+export function seenBeforeQualifies(pattern) {
+  if (!pattern) return false
+  return (pattern.seenBefore === true || pattern.detectionCount > 1) && !isDismissedStatus(pattern.status)
+}
+
 // A quiet "this looks familiar" nudge — shown ONLY when a real pattern has been
 // seen more than once and isn't set aside. Never overclaims similarity.
 function SeenBeforeCard({ pet, pattern, onShowTimeline }) {
-  if (!pattern) return null
-  const qualifies = (pattern.seenBefore === true || pattern.detectionCount > 1) && !isDismissedStatus(pattern.status)
-  if (!qualifies) return null
+  if (!seenBeforeQualifies(pattern)) return null
   return (
     <section className="seen-before-card" aria-label={t('This looks familiar')}>
       <div className="seen-before-body">
