@@ -2,7 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import App from './App.jsx'
-import './styles.css'
+import './styles/index.css'
 
 // Error tracking is optional and env-driven: with no VITE_SENTRY_DSN set (dev),
 // Sentry is never initialised and nothing is sent. Enable it in prod by building

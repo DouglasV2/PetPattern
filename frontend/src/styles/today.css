@@ -1,0 +1,408 @@
+
+.today-spine {
+  display: grid;
+  gap: 1rem;
+}
+
+.today-copy {
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.state-panel {
+  display: grid;
+  gap: 0.35rem;
+  align-content: center;
+  padding: 1rem;
+}
+
+.state-panel span {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.state-panel strong {
+  font-size: 1.2rem;
+}
+
+.state-panel.normal {
+  background: var(--sage-soft);
+  border-left: 3px solid var(--sage);
+}
+
+.state-panel.watch {
+  background: var(--gold-soft);
+  border-left: 3px solid var(--gold);
+}
+
+.state-panel.changed {
+  background: var(--coral-soft);
+  border-left: 3px solid var(--coral);
+}
+
+/* Today's note — one calm, human line near the top of Today. Reads like a sticky
+   note left in the record: a small original glyph, a soft tone stripe, one
+   sentence. Never a metric, never a score. */
+.today-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  border-radius: var(--radius);
+  background: var(--paper);
+  animation: note-settle 0.3s ease-out both;
+}
+
+.today-note-mark {
+  display: inline-flex;
+  flex: none;
+  margin-top: 0.05rem;
+  color: var(--teal);
+}
+
+.today-note-body {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.today-note-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.today-note-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.today-note.tone-good { border-left-color: var(--sage); }
+.today-note.tone-good .today-note-mark { color: var(--sage); }
+.today-note.tone-watch { border-left-color: var(--gold); }
+.today-note.tone-watch .today-note-mark { color: var(--gold); }
+
+@keyframes note-settle {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* "Everything looked normal today" — a calm one-tap quiet-day log. Tinted a soft
+   sage so it reads as reassuring and low-effort, not a warning or a streak. */
+.secondary-button.quiet-day {
+  background: var(--sage-soft);
+  color: var(--teal);
+  border-color: var(--sage);
+}
+
+.secondary-button.quiet-day:hover {
+  border-color: var(--teal);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .today-note { animation: none; }
+}
+
+.home-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel {
+  padding: 1rem;
+}
+
+.panel-heading,
+.pattern-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel-heading h2 {
+  margin: 0;
+}
+
+/* A thin ruled line under each section title — the app reads like a page in a
+   health record rather than a stack of identical floating cards. */
+.panel-heading {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.panel-heading svg {
+  color: var(--teal);
+}
+
+.profile-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.profile-list div,
+.signal,
+.timeline-row {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.profile-list dt,
+.signal span,
+.timeline-row span,
+.timeline-row small {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.profile-list dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.signal-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.signal.calm {
+  background: var(--sage-soft);
+}
+
+.signal.watch {
+  background: var(--gold-soft);
+}
+
+.food-summary {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.food-summary span,
+.muted {
+  color: var(--muted);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* Quiet inline tags, not filled SaaS pills. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0.05rem 0.42rem;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.chip.alert {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.activity-quickadd .activity-chip-row,
+.activity-quickadd .activity-today-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.activity-today-row { margin-top: 0.6rem; }
+.activity-add-chip { cursor: pointer; }
+.activity-logged-chip { background: var(--sage-soft); }
+.chip-x {
+  margin-left: 0.35rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pattern-teaser strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.flow-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.choice-block {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.choice-block > span {
+  font-weight: 700;
+}
+
+.choice-grid,
+.toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.choice-button,
+.toggle-button {
+  min-width: 0;
+  background: #fff;
+  border-color: var(--line);
+  color: var(--ink);
+  padding: 0 0.65rem;
+}
+
+.choice-button.active,
+.toggle-button.active {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.two-fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.pattern-list,
+.timeline {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pattern-card p {
+  color: var(--ink);
+}
+
+.pattern-top {
+  justify-content: space-between;
+}
+
+/* Confidence reads as a quiet dot + label, not a colored metric pill. High is a
+   calm teal, not a loud coral. */
+.confidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  padding: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.confidence::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.confidence.high {
+  color: var(--teal);
+}
+
+.confidence.medium {
+  color: var(--gold);
+}
+
+.confidence.low {
+  color: var(--muted);
+}
+
+.evidence-list {
+  margin: 0.5rem 0 0.65rem;
+  padding-left: 1.15rem;
+  color: var(--muted);
+}
+
+.evidence-list li {
+  margin: 0.25rem 0;
+}
+
+.timeline-panel {
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 700px) {
+  h1 {
+    font-size: 2.15rem;
+  }
+
+  .start-shell {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    align-items: center;
+  }
+
+  .profile-panel,
+  .flow-panel,
+  .today-copy,
+  .state-panel,
+  .panel {
+    padding: 1.25rem;
+  }
+
+  .pet-tabs {
+    justify-content: flex-end;
+  }
+
+  .today-spine {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: stretch;
+  }
+
+  .home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .signal-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .choice-grid,
+  .toggle-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .two-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Tablet only: the record strip is horizontal and sticks just under the
+   single-row top bar. Bounded below 900px so it never overrides the desktop
+   spine's top:0 (that leak used to push the whole notebook column down ~62px). */
+@media (min-width: 700px) and (max-width: 899.98px) {
+  .record-nav {
+    top: 62px;
+  }
+}
+
+@media (min-width: 980px) {
+  /* Today stays a calm two-column record, not a wide four-across dashboard. */
+  .pattern-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+

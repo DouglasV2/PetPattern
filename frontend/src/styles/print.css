@@ -1,0 +1,66 @@
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  .top-bar,
+  .record-nav,
+  .no-print,
+  .vet-toolbar,
+  .vet-share,
+  .back-button,
+  .context-cta,
+  .error-box {
+    display: none !important;
+  }
+
+  body,
+  :root {
+    background: #fff;
+    color: #000;
+  }
+
+  .screen {
+    padding: 0;
+    gap: 0.5rem;
+  }
+
+  .flow-panel,
+  .vet-sheet,
+  .panel {
+    box-shadow: none;
+    border: none;
+    background: #fff;
+  }
+
+  /* The report prints as black text on white with a clear section rhythm. */
+  .vet-summary h1,
+  .vet-sheet,
+  .vet-sheet h2,
+  .vet-sheet h3,
+  .vet-sheet p,
+  .vet-sheet li,
+  .vet-sheet strong,
+  .vet-report-kicker {
+    color: #000 !important;
+  }
+
+  .vet-sheet .muted {
+    color: #444 !important;
+  }
+
+  /* Keep each section whole across page breaks, separated by a light rule. */
+  .vet-block,
+  .vet-report-head,
+  .detective-entry,
+  .story-row {
+    break-inside: avoid;
+  }
+
+  .vet-block + .vet-block {
+    border-top: 1px solid #ccc;
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+  }
+}
+

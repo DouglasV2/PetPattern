@@ -1,0 +1,50 @@
+/* ============================================================
+   Visible change tracking
+   Universal, owner-observed "how does this look over time" flow.
+   Calm and factual — never a clinical or diagnostic look.
+   ============================================================ */
+
+.visible-change {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.3rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+
+.visible-change .form-section-label {
+  margin: 0;
+}
+
+.visible-change .field-label {
+  margin: 0;
+}
+
+/* The safe-copy reassurance line — quiet, never alarming. */
+.vc-safe {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Care/environment callout in the AI suggestion preview — teal, so it reads as
+   context rather than a food trigger (which is gold). */
+.env-callout {
+  background: var(--teal-soft);
+}
+
+/* Visible-changes-over-time list in the vet summary. */
+.vet-visible-changes .vc-status {
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.vet-visible-changes .vc-photos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  white-space: nowrap;
+}
+

@@ -1,0 +1,96 @@
+/* ---- Today: warm hero + record cards --------------------------------------
+   The hero leads with the recurring question in the display serif, a quiet date
+   eyebrow, and a pressed-leaf sprig in the corner (the "health notebook garden"
+   accent). Cards keep their ruled notebook heading but sit on softer, rounder
+   paper, and the three overview cards line up in one row on wide screens. */
+.today-copy {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  border-radius: var(--radius-lg);
+}
+.today-copy-text { min-width: 0; }
+.today-copy .kicker {
+  margin: 0 0 0.3rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.today-copy h1 { margin-bottom: 0.4rem; }
+.today-copy-text > p:not(.kicker) { max-width: 44ch; margin-bottom: 0; }
+
+.hero-sprig { display: none; }
+
+.panel { border-radius: var(--radius-lg); }
+
+@media (min-width: 700px) {
+  .hero-sprig {
+    display: block;
+    flex: 0 0 auto;
+    align-self: flex-start;
+    margin: -0.35rem -0.4rem 0 auto;
+    color: var(--sage);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 980px) {
+  /* The three overview cards in one calm row (warm cards, not a dashboard). */
+  .home-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Symptom toggles ("Anything unusual?") are watch signals, not neutral choices:
+   an active one turns the palette's calm coral (its "changed" tone) — the same
+   language as the status strip — instead of the teal used for scale selections.
+   Toggle buttons are only ever symptom flags (vomiting, ear redness, hiding …). */
+.toggle-button.active {
+  background: var(--coral-soft);
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+/* ---- Patterns: line chart reads like GPT's "scratching over time" ----------
+   The tracked signal is a clear coral line over faint dotted gridlines, with a
+   small dot at each real log; food changes stay the quiet sage markers. */
+.chart-grid-line { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 1 4; opacity: 0.55; }
+.chart-line-path { stroke: var(--coral); stroke-width: 2; opacity: 1; }
+.chart-dot { fill: var(--coral); }
+
+/* ---- Vet summary: scannable header stats + ring gauge (GPT panel 4) --------
+   Three calm tiles — days tracked · entries · how full the record is — with the
+   big numbers set in the display serif. On-screen only; the printable sheet
+   below keeps the full detail. */
+.vet-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.1rem 0 0.3rem;
+}
+.vet-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.95rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  text-align: center;
+}
+.vet-stat strong {
+  font-family: var(--font-display);
+  font-weight: 560;
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--ink);
+}
+.vet-stat span { font-size: 0.74rem; color: var(--muted); }
+.vet-donut { width: 44px; height: 44px; }
+.vet-donut-track { fill: none; stroke: var(--surface); stroke-width: 4; }
+.vet-donut-arc { fill: none; stroke: var(--teal); stroke-width: 4; stroke-linecap: round; }
+.vet-donut-label { fill: var(--ink); font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }

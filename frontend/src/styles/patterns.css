@@ -1,0 +1,175 @@
+/* Pattern memory (Sprint 8) */
+.memory-line {
+  margin: 0 0 0.4rem;
+  font-weight: 800;
+  font-size: 0.86rem;
+  color: var(--teal);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0.05rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.status-chip.watch {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.status-chip.vet {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.status-chip.calm {
+  background: var(--sage-soft);
+  color: var(--sage);
+}
+
+.pattern-top {
+  flex-wrap: wrap;
+}
+
+.pattern-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.chip-button {
+  min-height: 34px;
+  padding: 0 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.chip-button:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.chip-button.subtle {
+  color: var(--muted);
+}
+
+/* Primary card action ("Add to vet summary") — a calm filled green, one per card. */
+.chip-button.primary-chip {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.chip-button.primary-chip:hover {
+  background: var(--sage);
+  border-color: var(--sage);
+  color: #fff;
+}
+
+/* Confirmation toast — a small pressed note that rises from the bottom, in the
+   same calm green as the primary card action. A quiet acknowledgement, not a
+   SaaS pop-up. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(92vw, 30rem);
+  padding: 0.6rem 0.5rem 0.6rem 0.75rem;
+  background: var(--teal);
+  color: #fff;
+  border-radius: 9px;
+  box-shadow: 0 6px 18px rgba(61, 99, 73, 0.26);
+  font-size: 0.9rem;
+  line-height: 1.3;
+  animation: toast-rise 0.24s ease-out;
+  /* Purely a confirmation — let taps fall through to controls beneath it, so it
+     never swallows a click on a button it happens to float over. The close
+     button re-enables its own pointer events below. */
+  pointer-events: none;
+}
+
+.toast-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.toast-text {
+  flex: 1 1 auto;
+}
+
+.toast-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+  /* Re-enable events on the one interactive child (container is pointer-events:none). */
+  pointer-events: auto;
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+@keyframes toast-rise {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}
+
+/* A calm "worth watching" tag that replaces the old High/Medium/Low confidence
+   metric — a reassurance, not a score. */
+.pattern-flag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0.05rem 0.5rem;
+  border-radius: 4px;
+  background: var(--sage-soft);
+  color: var(--sage);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.pattern-disclaimer {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+}
+
+.pattern-card.dismissed {
+  opacity: 0.72;
+}
+
+.section-divider {
+  margin-top: 1.25rem;
+}
+

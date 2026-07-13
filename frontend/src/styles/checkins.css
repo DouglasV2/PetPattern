@@ -1,0 +1,287 @@
+/* --- Sprint 5-7 additions ------------------------------------------------ */
+
+.ghost-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--teal);
+  font-weight: 800;
+  padding: 0 1rem;
+}
+
+.disclaimer {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.owner-explanation {
+  color: var(--ink);
+}
+
+/* Pattern timeline "story" */
+.story {
+  display: grid;
+  gap: 0;
+}
+
+.story-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+.story-rail {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.story-rail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+
+.story-row:first-child .story-rail::before {
+  top: 14px;
+}
+
+.story-row:last-child .story-rail::before {
+  bottom: calc(100% - 30px);
+}
+
+.story-dot {
+  position: relative;
+  z-index: 1;
+  margin-top: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--teal-soft);
+  color: var(--teal);
+  border: 1px solid var(--teal);
+}
+
+.story-body {
+  padding: 0 0 1rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.story-body strong {
+  font-size: 1rem;
+}
+
+.story-body p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.story-date {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.story-row.sev-calm .story-dot {
+  background: var(--sage-soft);
+  color: var(--sage);
+  border-color: var(--sage);
+}
+
+.story-row.sev-watch .story-dot {
+  background: var(--gold-soft);
+  color: var(--gold);
+  border-color: var(--gold);
+}
+
+.story-row.sev-alert .story-dot {
+  background: var(--coral-soft);
+  color: var(--coral);
+  border-color: var(--coral);
+}
+
+.story-row.sev-pattern .story-dot {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.story-row.sev-pattern .story-body strong {
+  color: var(--teal);
+}
+
+/* Free-text note block */
+.note-block {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.note-block .panel-heading {
+  margin-bottom: 0;
+}
+
+.note-block textarea {
+  min-height: 96px;
+}
+
+.ai-error {
+  color: #8e3425;
+  margin: 0;
+}
+
+.form-section-label {
+  margin: 0.25rem 0 0;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.suggestion {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border-radius: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.suggestion-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.suggestion p {
+  margin: 0;
+}
+
+.food-callout {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.warning-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.warning-list li {
+  margin: 0.2rem 0;
+}
+
+/* Vet summary */
+.vet-toolbar {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.day-range,
+.vet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.day-range .choice-button {
+  padding: 0 0.9rem;
+}
+
+/* The vet summary reads like a printable paper form: flat, generous margins,
+   quiet ruled sections — not a dashboard of cards. */
+.vet-sheet {
+  display: grid;
+  gap: 1.15rem;
+  padding: 1.4rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.vet-block {
+  display: grid;
+  gap: 0.35rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.vet-block:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.vet-block h3 {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.vet-block h2 {
+  margin: 0;
+}
+
+.vet-block p {
+  margin: 0;
+  color: var(--ink);
+}
+
+.vet-identity,
+.vet-range {
+  color: var(--muted) !important;
+  font-weight: 700;
+}
+
+.vet-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.vet-list li {
+  color: var(--ink);
+}
+
+.vet-list li p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+
+@media (min-width: 700px) {
+  .vet-toolbar {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+  }
+
+  .vet-actions {
+    justify-content: flex-end;
+  }
+}
+

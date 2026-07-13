@@ -1,0 +1,38 @@
+/* Entry point for the app's global styles. This file exists purely to
+   concatenate the partials below in the EXACT order they used to appear in
+   the single monolithic styles.css. That order is load-bearing: several
+   @media blocks (documented inline in the partials themselves, e.g.
+   pet-avatars.css, decisions.css, sidebar-cover.css) are deliberately
+   positioned late in the cascade so they win by source order over earlier
+   rules of equal specificity. Do NOT reorder, alphabetize, or lazily
+   import these — that can silently change desktop/tablet layout. See
+   base.css / shell.css for the original media-order gotcha this file
+   preserves. */
+
+@import "./fonts.css";
+@import "./tokens.css";
+@import "./base.css";
+@import "./shell.css";
+@import "./today.css";
+@import "./checkins.css";
+@import "./patterns.css";
+@import "./language.css";
+@import "./engagement.css";
+@import "./edit-delete.css";
+@import "./print.css";
+@import "./photos.css";
+@import "./food.css";
+@import "./recap.css";
+@import "./auth-extra.css";
+@import "./sharing.css";
+@import "./onboarding.css";
+@import "./evidence.css";
+@import "./account.css";
+@import "./pet-avatars.css";
+@import "./capacitor.css";
+@import "./decisions.css";
+@import "./detective.css";
+@import "./species.css";
+@import "./visible-change.css";
+@import "./sidebar-cover.css";
+@import "./panel-polish.css";

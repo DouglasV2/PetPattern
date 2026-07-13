@@ -1,0 +1,107 @@
+/* Auth */
+.logout-button {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.auth-demo {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.4rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  justify-items: start;
+}
+
+/* Core beta simplification */
+.reassure {
+  margin: -0.25rem 0 0;
+  color: var(--sage);
+  font-weight: 700;
+}
+
+/* Quiet-day shortcut at the top of the Daily Log: a calm way out for owners who
+   feel they must fill every field. Clearly secondary to the green "Save today". */
+.quiet-day {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.quiet-day-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 38px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--teal);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--teal);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quiet-day-button:hover {
+  background: var(--teal-soft);
+}
+
+.quiet-day-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.quiet-day-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.optional-details {
+  display: grid;
+  gap: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.5rem;
+}
+
+.optional-details > summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 0.2rem 0;
+  list-style: none;
+}
+
+.optional-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.optional-details > summary::before {
+  content: "+ ";
+  color: var(--teal);
+  font-weight: 800;
+}
+
+.optional-details[open] > summary::before {
+  content: "– ";
+}
+
+.context-cta {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  justify-items: start;
+}
+
+.context-cta .muted {
+  margin: 0;
+}
+

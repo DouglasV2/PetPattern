@@ -1,0 +1,75 @@
+/* Edit / delete (Sprint 12) */
+.timeline-row.editable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.timeline-main {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+}
+
+.icon-button:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.icon-button.danger:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+.food-history {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.food-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.food-history-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.food-history-main {
+  min-width: 0;
+}
+
+/* Accessibility: visible keyboard focus */
+:focus-visible {
+  outline: 3px solid var(--teal);
+  outline-offset: 2px;
+}
+

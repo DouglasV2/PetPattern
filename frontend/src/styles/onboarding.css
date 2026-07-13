@@ -1,0 +1,127 @@
+/* Onboarding (species-specific) */
+.onboard-shell {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 2.5rem 1.1rem 4rem;
+}
+
+.onboard-panel {
+  width: 100%;
+  max-width: 560px;
+  display: grid;
+  gap: 1rem;
+}
+
+.onboarding {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.onboarding h1 {
+  margin: 0;
+}
+
+/* Legacy onboarding species-choice styles removed. The redesigned species grid
+   (see "Multi-species support" below) is the single source of truth; the old
+   `.species-card span { font-size: 0.9rem }` rule was winning on specificity and
+   shrinking the new `.species-emoji` (1.9rem) and enlarging the `.species-support`
+   badge (0.68rem). `.species-choice` was unused. */
+
+.onboarding-demo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.onboarding-form {
+  margin-top: 0.3rem;
+}
+
+/* Only name + species are required. The rest is grouped and gently de-emphasised
+   so a new owner feels no pressure to fill it in now. */
+.optional-fields {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.2rem;
+  padding: 0.9rem 0 0.2rem 0.9rem;
+  border-top: 1px solid var(--line);
+  border-left: 2px solid var(--line);
+}
+
+.optional-fields .field-label,
+.optional-fields .choice-block > span {
+  color: var(--muted);
+}
+
+.optional-fields-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Weight field: label on the left, a small kg/lbs switch on the right. */
+.weight-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.unit-toggle {
+  display: inline-flex;
+  gap: 0.15rem;
+  padding: 0.12rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.unit-btn {
+  min-height: 26px;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.unit-btn.active {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.onboarding-done {
+  text-align: center;
+  justify-items: center;
+  gap: 0.7rem;
+  padding: 1rem 0;
+}
+
+.onboarding-done .action-row {
+  justify-content: center;
+}
+
+.brand-mark.big {
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius);
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.add-pet-tab {
+  border-style: dashed;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+

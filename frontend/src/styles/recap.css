@@ -1,0 +1,61 @@
+/* Recap (Sprint 17) */
+.recap-card .panel-heading {
+  margin-bottom: 0.5rem;
+}
+
+.recap-headline {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+}
+
+.recap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.6rem;
+}
+
+.recap-stat {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.recap-stat strong {
+  font-size: 1.5rem;
+  color: var(--teal);
+}
+
+.recap-stat span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.recap-trend p {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.recap-milestones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.recap-milestones li {
+  line-height: 1.45;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--line);
+}
+
+.recap-did {
+  margin: 0;
+}
+

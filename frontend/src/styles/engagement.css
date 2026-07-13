@@ -1,0 +1,247 @@
+/* Today moments (Sprint 14) */
+.moment {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.moment.good {
+  background: var(--sage-soft);
+  color: var(--ink);
+}
+
+.moment.watch {
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.nudge-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Weekly insight (Today) — a calm, single-observation strip below retention. */
+.weekly-insight {
+  display: grid;
+  gap: 0.35rem;
+  border-left: 3px solid var(--line-strong);
+}
+.weekly-insight.tone-watch { border-left-color: var(--gold); background: var(--gold-soft); }
+.weekly-insight.tone-good  { border-left-color: var(--sage); background: var(--sage-soft); }
+.weekly-insight.tone-calm  { border-left-color: var(--line-strong); background: var(--paper-2); }
+.weekly-insight-eyebrow { margin: 0; }
+.weekly-insight-headline { margin: 0; font-size: 1.05rem; }
+.weekly-insight-body { margin: 0; font-size: 0.95rem; }
+.weekly-insight-support { margin: 0.15rem 0 0; font-size: 0.85rem; }
+
+/* Retention (Sprint 11) */
+.retention-strip {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.retention-stats {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* Not dashboard metric tiles — just two quiet notes on the record. */
+.retention-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  color: var(--muted);
+}
+
+.retention-stat svg {
+  opacity: 0.6;
+}
+
+.retention-stat div {
+  display: grid;
+  line-height: 1.1;
+}
+
+.retention-stat strong {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.retention-stats {
+  gap: 1.4rem;
+}
+
+.retention-stat span {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.retention-nudge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.retention-nudge span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.retention-nudge.todo {
+  background: var(--gold-soft);
+  color: var(--ink);
+}
+
+.retention-nudge.done {
+  background: var(--sage-soft);
+  color: var(--ink);
+}
+
+.reminder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chip-button.active-chip {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.reminder-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.reminder-time input {
+  width: auto;
+  padding: 0.4rem 0.5rem;
+}
+
+.reminder-note {
+  font-size: 0.85rem;
+  flex-basis: 100%;
+}
+
+.start-steps {
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.start-steps li {
+  line-height: 1.5;
+}
+
+@media (min-width: 700px) {
+  .retention-strip {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+
+  /* While the baseline is building, keep everything in one calm column. */
+  .retention-strip.building {
+    grid-template-columns: 1fr;
+  }
+
+  .retention-strip .reminder {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 7-day baseline hook (calm, not gamified) */
+.baseline-hook {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.baseline-head {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  color: var(--teal);
+}
+
+.baseline-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.baseline-copy strong {
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+.baseline-copy .muted {
+  font-size: 0.82rem;
+}
+
+.baseline-track {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  padding-left: 1.6rem;
+}
+
+.baseline-dots {
+  display: inline-flex;
+  gap: 0.32rem;
+}
+
+.baseline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: transparent;
+}
+
+.baseline-dot.on {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.baseline-count {
+  font-size: 0.8rem;
+}
+
+/* First-screen supporting lines — quiet, never a hero block */
+.start-sub {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin-top: -0.25rem;
+}
+
+.start-disclaimer {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 0.4rem;
+}
+

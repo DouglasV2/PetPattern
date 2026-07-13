@@ -1,0 +1,337 @@
+/* ============================================================
+   Revamp additions — auth hero, evidence strip, find-a-day
+   ============================================================ */
+
+/* Auth: the value proposition is the headline; "Welcome back" is a quiet form
+   label, not a marketing hero. */
+.auth-hero {
+  font-size: 2rem;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+
+.form-title {
+  margin: 0.4rem 0 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+/* "Evidence over time" — a compact strip of recent days, tinted by how that day's
+   one signal read. Reads like a margin note in a record, not a fitness chart. */
+.evidence {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.25rem 0;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+
+.evidence-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.evidence-empty {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.evidence-strip {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  padding-bottom: 3px;
+}
+
+.evidence-cell {
+  flex: 1 1 0;
+  min-width: 6px;
+  height: 22px;
+  border-radius: 2px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  position: relative;
+}
+
+.evidence-cell.none {
+  background: repeating-linear-gradient(-45deg, transparent, transparent 2px, var(--line) 2px, var(--line) 3px);
+  opacity: 0.7;
+}
+
+.evidence-cell.calm { background: var(--sage-soft); border-color: var(--sage); }
+.evidence-cell.watch { background: var(--gold-soft); border-color: var(--gold); }
+.evidence-cell.changed { background: var(--coral-soft); border-color: var(--coral); }
+
+/* A day with a food change gets a small ink tick beneath the cell. */
+.evidence-cell.food::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ink);
+  transform: translateX(-50%);
+}
+
+.evidence-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.7rem;
+  font-size: 0.72rem;
+}
+
+.evidence-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.ev-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.ev-dot.calm { background: var(--sage-soft); border: 1px solid var(--sage); }
+.ev-dot.watch { background: var(--gold-soft); border: 1px solid var(--gold); }
+.ev-dot.changed { background: var(--coral-soft); border: 1px solid var(--coral); }
+
+.ev-tick {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: inline-block;
+}
+
+/* Pattern chart: a quiet scratching line with food-change dots, or a 2-week tone
+   strip — framed like a small figure inside the card. Built with plain SVG. */
+.pattern-chart {
+  margin: 0.65rem 0 0.2rem;
+  padding: 0.75rem 0.85rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.pattern-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.pattern-chart-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.pattern-chart-legend {
+  display: inline-flex;
+  gap: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.pattern-chart-legend span,
+.cell-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.chart-key.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sage);
+  display: inline-block;
+}
+
+.chart-key.line {
+  width: 15px;
+  border-top: 2px solid var(--muted);
+  display: inline-block;
+}
+
+.pattern-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-line-path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.68;
+}
+
+.chart-food-line {
+  stroke: var(--sage);
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
+.chart-food-dot {
+  fill: var(--sage);
+}
+
+.pattern-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.cell-days {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 0.3rem;
+  font-size: 0.66rem;
+  color: var(--muted);
+}
+
+.cell-days span {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.cell-strip {
+  display: flex;
+  gap: 3px;
+}
+
+.cell-bar {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 40px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  display: grid;
+  place-items: center;
+}
+
+.cell-bar.none {
+  background: repeating-linear-gradient(-45deg, transparent, transparent 3px, var(--line) 3px, var(--line) 4px);
+  opacity: 0.6;
+}
+
+.cell-bar.calm { background: var(--sage-soft); border-color: var(--sage); color: var(--sage); }
+.cell-bar.watch { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
+.cell-bar.changed { background: var(--coral-soft); border-color: var(--coral); color: var(--coral); }
+
+.cell-legend {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 0.45rem;
+  font-size: 0.78rem;
+}
+
+.cell-key {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.cell-key.calm { background: var(--sage-soft); border: 1px solid var(--sage); }
+.cell-key.watch { background: var(--gold-soft); border: 1px solid var(--gold); }
+.cell-key.changed { background: var(--coral-soft); border: 1px solid var(--coral); }
+
+.chart-empty {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+/* Find a day — a small date lookup tucked into Recent memory. */
+.find-day {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.15rem 0 0.85rem;
+  padding: 0.7rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+
+.find-day-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.find-day-head svg {
+  color: var(--teal);
+}
+
+.find-day-input {
+  margin-left: auto;
+  width: auto;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Keyword search over the recent record — grows to fill the row; the date
+   picker stays compact beside it (wraps under on narrow phones). */
+.find-day-search {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.find-day-hint {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.find-day-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.find-day-result .timeline-main {
+  display: grid;
+  gap: 0.15rem;
+  background: transparent;
+  padding: 0;
+}
+

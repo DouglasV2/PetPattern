@@ -1,0 +1,337 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f4efe3;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 2.1rem;
+  font-weight: 540;
+  font-variation-settings: "opsz" 60;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+h2 {
+  margin-bottom: 0.45rem;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.center-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.loading-panel,
+.start-panel,
+.profile-panel,
+.panel,
+.flow-panel,
+.state-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow-card);
+}
+
+.loading-panel {
+  padding: 1.25rem;
+}
+
+.start-shell {
+  min-height: 100vh;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.start-panel,
+.profile-panel {
+  padding: 1rem;
+}
+
+.start-panel {
+  display: grid;
+  align-content: center;
+  width: 100%;
+  max-width: 440px;
+  justify-self: center;
+  padding: 2rem 1.9rem;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.google-button {
+  width: 100%;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.google-button:hover {
+  background: var(--surface);
+}
+
+.brand-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+/* On phones the header action buttons collapse to icons so the brand row
+   never overflows — verbose locales (e.g. Greek "Λογαριασμός"/"Αποσύνδεση")
+   otherwise pushed the row past a 375px viewport. Icons keep their title. */
+@media (max-width: 560px) {
+  .brand-line .text-button .btn-label {
+    display: none;
+  }
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--teal);
+  color: #fff;
+}
+
+/* A quiet context label above a heading — a record's section note, not a teal
+   SaaS "eyebrow". Sentence case, muted, unobtrusive. */
+.kicker {
+  margin: 1rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.lead {
+  max-width: 58ch;
+  font-size: 1rem;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.primary-button,
+.secondary-button,
+.text-button,
+.back-button,
+.choice-button,
+.toggle-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.primary-button {
+  background: var(--teal);
+  color: #fff;
+  padding: 0 1rem;
+}
+
+.secondary-button {
+  background: var(--teal-soft);
+  color: var(--teal);
+  padding: 0 1rem;
+}
+
+.wide {
+  width: 100%;
+}
+
+.text-button {
+  width: fit-content;
+  background: transparent;
+  color: var(--teal);
+  padding: 0;
+  min-height: 32px;
+}
+
+.text-button.placeholder {
+  color: var(--muted);
+}
+
+.back-button {
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0 0.8rem;
+}
+
+.stack-form,
+.quick-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0.85rem 0.9rem;
+  outline: none;
+}
+
+textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.field-label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 800;
+}
+
+/* Friendly date entry: Today / Yesterday one-tap chips + an "Other day" chip that
+   still opens the OS calendar. Matches the check-in choice chips. */
+.date-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-weight: 700;
+}
+
+.date-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 40px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.date-chip:hover {
+  border-color: var(--line-strong);
+}
+
+.date-chip.active {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.date-chip-cal svg {
+  opacity: 0.7;
+}
+
+.date-chip-cal.active svg {
+  opacity: 1;
+  color: var(--teal);
+}
+
+/* The native date input sits transparently over the "Other day" chip, so a tap
+   anywhere on it opens the OS date picker; the chip label shows the chosen day. */
+.date-chip-cal input[type="date"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.error-box {
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  background: var(--coral-soft);
+  border: 1px solid rgba(199, 91, 70, 0.24);
+  color: #8e3425;
+}
+
+/* Neutral confirmation (e.g. "if an account exists, we've sent instructions"). */
+.auth-notice {
+  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  background: rgba(58, 122, 106, 0.08);
+  border: 1px solid rgba(58, 122, 106, 0.2);
+  color: #2f5d52;
+}
+

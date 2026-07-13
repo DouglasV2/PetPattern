@@ -28,7 +28,7 @@ draws the glyph in `currentColor`, so it inherits whatever the `.brand-mark`
 container sets (white on the teal chip, teal on the soft variant) while the
 changed pad keeps its fixed coral.
 
-## Palette (already in `styles.css :root`)
+## Palette (already in `styles/tokens.css :root`)
 
 ```css
 --teal:  #2f766d;  /* primary — trust, calm */

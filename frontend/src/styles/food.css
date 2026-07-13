@@ -1,0 +1,80 @@
+/* Food trials (Sprint 16) */
+.trial-strip .panel-heading {
+  margin-bottom: 0.5rem;
+}
+
+.trial-strip-line {
+  margin: 0 0 0.5rem;
+}
+
+.trial-progress {
+  height: 8px;
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.trial-progress span {
+  display: block;
+  height: 100%;
+  background: var(--sage);
+  border-radius: 6px;
+}
+
+.trial-card {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.trial-card h2 {
+  text-transform: capitalize;
+}
+
+.trial-windows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.5rem;
+}
+
+.trial-window {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.6rem;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.trial-window.good {
+  background: var(--sage-soft);
+  border-color: var(--sage);
+}
+
+.trial-window.watch {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+}
+
+.trial-window-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--muted);
+  color: var(--muted);
+}
+
+.trial-window strong {
+  font-size: 1.3rem;
+}
+
+.trial-verdict {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.trial-adherence {
+  margin: 0;
+}
+

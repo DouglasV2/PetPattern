@@ -1,0 +1,405 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+/* Mobile: a compact horizontal top bar. On desktop this whole element becomes
+   the dark-green account sidebar (see the 900px block). */
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-2);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+/* Sidebar-only pieces are hidden in the compact mobile bar; on mobile the
+   rail-group wrapper dissolves so pets + account controls sit in the bar row. */
+.brand-tagline,
+.rail-label,
+.rail-owner {
+  display: none;
+}
+
+.rail-group {
+  display: contents;
+}
+
+/* Mobile/tablet: pets live in a compact dropdown (a row of tabs overflows once
+   an owner has more than a few). Shown as a vertical list on the desktop spine,
+   where .pet-switcher is hidden instead (see the 900px block). */
+.pet-tabs {
+  display: none;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pet-switcher {
+  position: relative;
+  display: inline-flex;
+}
+
+.pet-switcher-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: 58vw;
+  min-height: 34px;
+  padding: 0 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pet-switcher-trigger .chev {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.pet-switcher-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pet-switcher-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  min-width: 190px;
+  max-width: min(280px, 86vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: var(--shadow-pop);
+  display: grid;
+  gap: 0.1rem;
+}
+
+.pet-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 38px;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pet-switcher-item:hover {
+  background: var(--surface);
+}
+
+.pet-switcher-item.active {
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.pet-switcher-item .check {
+  margin-left: auto;
+  color: var(--teal);
+}
+
+.pet-switcher-photo-action {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 50px;
+  padding: 0.55rem 0.6rem 0.65rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 7px 7px 0 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pet-switcher-photo-action:hover {
+  background: var(--surface);
+}
+
+.pet-switcher-photo-action:disabled {
+  cursor: progress;
+}
+
+.pet-switcher-photo-action svg {
+  margin-left: auto;
+  flex: none;
+  color: var(--teal);
+}
+
+.pet-switcher-photo-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.pet-switcher-photo-copy strong {
+  color: var(--ink);
+  font-size: 0.88rem;
+  line-height: 1.15;
+}
+
+.pet-switcher-photo-copy span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.pet-switcher-item.add {
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 7px 7px;
+  color: var(--teal);
+  font-weight: 700;
+}
+
+/* Pet selector: quiet text tabs, not bordered white pills. */
+.pet-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 30px;
+  padding: 0.2rem 0.5rem;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pet-tab.active {
+  color: var(--ink);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+/* ---- Record spine navigation ---------------------------------------------
+   The section index IS the spine of the pet's record: on desktop a narrow
+   vertical list of record sections beside the open record page; on phones a
+   compact record strip. Deliberately not a dashboard tab bar — no pills, no
+   floating segmented control, no icons, no full underline. The active section
+   carries only a small teal record marker. */
+.record-body {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.record-nav {
+  display: flex;
+  gap: 1.15rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: sticky;
+  top: 96px;
+  z-index: 2;
+  padding: 0.3rem 1rem 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-2);
+}
+
+.record-tab {
+  flex: 0 0 auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0.5rem 0.1rem;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.record-tab:hover {
+  color: var(--ink);
+}
+
+.record-tab.active {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Active marker (phone): a small teal record dot above the section — never an
+   underline, never a pill. */
+.record-tab.active::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.record-tab:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.screen {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+/* Nav icons show only in the desktop notebook index; the mobile strip is text. */
+.record-tab svg {
+  display: none;
+}
+
+.record-nav-head {
+  display: none;
+}
+
+/* Desktop: three columns — dark-green account sidebar | notebook index | the
+   open record page. */
+@media (min-width: 900px) {
+  .app-shell {
+    display: grid;
+    grid-template-columns: 252px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .top-bar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    /* Left-align the pet + account groups to the spine's content edge. Without
+       this they shrink-wrap and center, so the narrower account block reads as
+       indented from the pets block above it. */
+    align-items: flex-start;
+    gap: 1.3rem;
+    padding: 1.5rem 1.2rem;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-ink);
+    border-right: 1px solid var(--sidebar-line);
+    border-bottom: none;
+  }
+
+  .top-bar .brand-line { flex-wrap: nowrap; align-items: flex-start; gap: 0.6rem; }
+  .top-bar strong { color: var(--sidebar-ink); font-size: 1.12rem; }
+  .top-bar .brand-mark { background: rgba(242, 237, 224, 0.12); color: var(--sidebar-ink); }
+  .top-bar .brand-tagline { display: block; color: var(--sidebar-muted); font-size: 0.76rem; line-height: 1.35; margin-top: 0.2rem; }
+
+  .top-bar .rail-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .top-bar .rail-label { display: block; color: var(--sidebar-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin: 0 0 0.1rem; }
+  .top-bar .rail-account { margin-top: auto; }
+  .top-bar .rail-owner { display: block; color: var(--sidebar-ink); font-weight: 600; font-size: 0.9rem; }
+
+  .top-bar .pet-switcher { display: none; }
+  .top-bar .pet-tabs { display: flex; flex-direction: column; gap: 0.3rem; overflow: visible; }
+  .top-bar .pet-tab { width: 100%; justify-content: flex-start; padding: 0.4rem 0.55rem; color: var(--sidebar-muted); border-radius: var(--radius-sm); }
+  .top-bar .pet-tab.active { background: rgba(242, 237, 224, 0.11); color: var(--sidebar-ink); box-shadow: inset 2px 0 0 var(--gold); }
+  .top-bar .add-pet-tab { color: var(--sidebar-muted); border: 1px dashed var(--sidebar-line); }
+
+  .top-bar .lang-trigger { color: var(--sidebar-ink); background: rgba(242, 237, 224, 0.07); border-color: var(--sidebar-line); }
+  .top-bar .lang-trigger .chev { color: var(--sidebar-muted); }
+  /* The trigger now sits at the spine's left edge, so open the menu rightward —
+     a right-anchored menu would spill off the screen's left edge. */
+  .top-bar .lang-list { left: 0; right: auto; }
+  .top-bar .text-button { color: var(--sidebar-ink); justify-content: flex-start; padding: 0.25rem 0; min-height: 0; }
+  .top-bar .text-button:hover { color: #fff; }
+  .top-bar .btn-label { display: inline; }
+
+  .record-body {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    align-items: start;
+    max-width: none;
+    margin: 0;
+  }
+
+  .record-nav {
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: visible;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    padding: 1.5rem 0.6rem 1rem 0.9rem;
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+    background: var(--paper-2);
+  }
+
+  .record-nav-head {
+    display: block;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin: 0 0 0.6rem;
+    padding-left: 0.5rem;
+  }
+
+  .record-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    text-align: left;
+    min-height: 0;
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    color: var(--muted);
+  }
+
+  .record-tab svg { display: inline-block; flex: 0 0 auto; opacity: 0.7; }
+  .record-tab span { overflow: hidden; text-overflow: ellipsis; }
+
+  /* Active = the currently open record section: a soft green tab, not a pill or
+     a bare underline. */
+  .record-tab.active {
+    background: var(--teal-soft);
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .record-tab.active svg { opacity: 1; color: var(--teal); }
+  .record-tab.active::before { display: none; }
+
+  .record-tab:hover:not(.active) {
+    color: var(--ink);
+    background: rgba(44, 42, 32, 0.045);
+  }
+}

@@ -1,0 +1,117 @@
+/* Registration acceptance + legal + account */
+.accept-terms {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 0.86rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.accept-terms input {
+  margin-top: 0.2rem;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.legal-footer {
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.legal-footer a,
+.accept-terms a {
+  color: var(--teal);
+}
+
+.legal-panel {
+  max-width: 620px;
+}
+
+.legal-doc {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  margin-top: 0.6rem;
+}
+
+.legal-doc h1 {
+  font-size: 1.3rem;
+  margin: 0 0 0.5rem;
+}
+
+.legal-doc p {
+  color: var(--ink);
+  line-height: 1.55;
+  margin: 0 0 0.7rem;
+}
+
+.legal-updated {
+  font-size: 0.8rem;
+  margin-top: 1rem;
+}
+
+.account-section {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.account-section h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.account-section .muted {
+  margin: 0;
+}
+
+.danger-zone h2 {
+  color: var(--coral);
+}
+
+.ghost-button.danger {
+  color: var(--coral);
+  border-color: var(--coral-soft);
+}
+
+.ghost-button.danger:hover {
+  background: var(--coral-soft);
+}
+
+.chip-button.danger {
+  color: var(--coral);
+  border-color: var(--coral-soft);
+}
+
+.chip-button.danger:hover {
+  border-color: var(--coral);
+  color: var(--coral);
+}
+
+/* Per-pet delete list in the account screen. */
+.account-pet-list {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  width: 100%;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.account-pet-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  font-weight: 700;
+}
+

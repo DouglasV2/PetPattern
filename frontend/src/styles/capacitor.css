@@ -1,0 +1,66 @@
+/* Capacitor/mobile shell hardening: respect notches/home indicators and avoid
+   iOS form zoom. These rules are safe on the web because env() resolves to 0. */
+body {
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+.center-shell,
+.start-shell {
+  min-height: 100dvh;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.top-bar {
+  padding-top: calc(0.55rem + env(safe-area-inset-top));
+}
+
+.screen {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 899.98px) {
+  .record-nav {
+    top: calc(96px + env(safe-area-inset-top));
+  }
+
+  button,
+  .text-button,
+  .chip-button,
+  .ghost-button,
+  .lang-trigger,
+  .pet-switcher-trigger,
+  .unit-btn {
+    min-height: 40px;
+  }
+
+  /* Icon-only row actions get the 40px height from the button floor above; match
+     the width so the destructive edit/delete targets aren't a cramped 34px. */
+  .icon-button {
+    width: 40px;
+  }
+}
+
+/* Tablet has a single-row top bar, so re-assert the flush 62px sticky offset that
+   the phone value above (96px, sized for the two-row phone bar) otherwise shadows
+   at 700–899px by source order. */
+@media (min-width: 700px) and (max-width: 899.98px) {
+  .record-nav {
+    top: calc(62px + env(safe-area-inset-top));
+  }
+}
+
+@media (min-width: 900px) {
+  .top-bar,
+  .record-nav {
+    padding-top: 1.5rem;
+  }
+}
+
