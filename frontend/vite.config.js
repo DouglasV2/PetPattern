@@ -11,5 +11,13 @@ export default defineConfig({
       // published IPv4 port.
       '/api': 'http://127.0.0.1:8317'
     }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.js',
+    // Vitest's CSS processing isn't needed for these tests (jsdom doesn't apply
+    // layout/paint anyway) and just slows the run down.
+    css: false
   }
 })
