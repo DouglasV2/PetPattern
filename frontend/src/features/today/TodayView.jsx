@@ -9,6 +9,7 @@ import { isStarterSpecies, speciesProfile } from '../../speciesProfiles'
 import { HeroSprig } from '../../components/HeroSprig'
 import { ActivityQuickAdd } from './ActivityQuickAdd'
 import { BackfillCard } from './BackfillCard'
+import { PatternMemoryProgress } from './PatternMemoryProgress'
 import { RecentTimeline } from './RecentTimeline'
 import { RetentionStrip } from './RetentionStrip'
 import { SeenBeforeCard, seenBeforeQualifies } from './SeenBeforeCard'
@@ -74,7 +75,9 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
         </p>
       )}
 
-      <RetentionStrip pet={pet} retention={overview?.retention} checkInCount={checkIns.length} onLogToday={onLogToday} onQuickLog={onQuickLog} />
+      <PatternMemoryProgress pet={pet} progress={overview?.patternMemory} />
+
+      <RetentionStrip pet={pet} retention={overview?.retention} onLogToday={onLogToday} onQuickLog={onQuickLog} />
 
       {showWeeklyInsight ? (
         <WeeklyInsightCard insight={overview.weeklyInsight} />

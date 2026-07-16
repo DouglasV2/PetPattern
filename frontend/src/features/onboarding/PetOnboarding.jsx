@@ -68,6 +68,12 @@ function PetOnboarding({ onCreate, onFinish, onDemo, onCatDemo, onRabbitDemo, on
         <span className="brand-mark big species-emoji" aria-hidden="true">{speciesProfile(createdPet.species).emoji}</span>
         <h1>{t('{name} is all set.', { name: createdPet.name })}</h1>
         <p className="lead">{t('Log your first check-in and PetPattern starts learning what’s normal for {name}.', { name: createdPet.name })}</p>
+        <ul className="onboarding-explainer muted">
+          <li>{t('Log a quick check-in each day — even a calm "same as usual" counts. Normal days are what "different" gets measured against.')}</li>
+          <li>{t("After about a week of notes, PetPattern has enough for {name}'s first weekly overview.", { name: createdPet.name })}</li>
+          <li>{t('It only points out a change when the same thing repeats — never from a single odd day, and never as a diagnosis.')}</li>
+        </ul>
+        <p className="muted">{t("Not a diagnosis. Not a vet chatbot. Just a clearer memory for your pet's health.")}</p>
         <div className="action-row">
           <button className="primary-button" type="button" onClick={() => onFinish(createdPet, 'check-in')}>
             <ClipboardList size={18} /> {t('Log today')}

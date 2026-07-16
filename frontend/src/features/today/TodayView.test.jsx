@@ -127,6 +127,52 @@ describe('<TodayView/>', () => {
     })
   })
 
+  describe('pattern-memory progress de-dup (Phase 2)', () => {
+    it('renders PatternMemoryProgress exactly once, in the always-visible payoff area (not inside details.today-more)', () => {
+      const progress = {
+        usefulLogs: 3,
+        foodLogsRecorded: 0,
+        patternsActive: 0,
+        weeklyOverviewReady: false,
+        stage: 'baseline_building',
+        nextStageAt: 7,
+        logsToNextStage: 4
+      }
+      const props = baseProps({
+        checkIns: [makeCheckIn(0)],
+        overview: { retention: { loggedToday: true, daysSinceLastCheckIn: 0, loggedDaysLast30: 1 }, patternMemory: progress }
+      })
+      const { container } = render(<TodayView {...props} />)
+
+      const strips = container.querySelectorAll('.pattern-memory-progress')
+      expect(strips.length).toBe(1)
+      const details = container.querySelector('details.today-more')
+      expect(details.querySelector('.pattern-memory-progress')).not.toBeInTheDocument()
+    })
+
+    it('no longer renders the removed RetentionStrip baseline-hook/retention-stats block', () => {
+      const props = baseProps({
+        checkIns: [makeCheckIn(0), makeCheckIn(1)],
+        overview: { retention: { loggedToday: true, daysSinceLastCheckIn: 0, loggedDaysLast30: 2 } }
+      })
+      const { container } = render(<TodayView {...props} />)
+
+      expect(container.querySelector('.baseline-hook')).not.toBeInTheDocument()
+      expect(container.querySelector('.retention-stats')).not.toBeInTheDocument()
+    })
+
+    it('still shows exactly one weekly check-ins confirmation node', () => {
+      const checkIns = [0, 1, 2, 3].map((n) => makeCheckIn(n))
+      const props = baseProps({
+        checkIns,
+        overview: { retention: { loggedToday: true, daysSinceLastCheckIn: 0, loggedDaysLast30: 4 } }
+      })
+      render(<TodayView {...props} />)
+
+      expect(screen.getAllByText(/check-ins this week|first check-in this week/).length).toBe(1)
+    })
+  })
+
   describe('collapsible secondary section', () => {
     it('renders a collapsed <details class="today-more"> that still contains the recent timeline', () => {
       const props = baseProps({ checkIns: [makeCheckIn(0), makeCheckIn(1)] })

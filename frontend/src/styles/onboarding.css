@@ -110,6 +110,20 @@
   justify-content: center;
 }
 
+/* Compact explainer between the "all set" message and the action buttons —
+   left-aligned so the three short lines read like notes, not a centered
+   headline. */
+.onboarding-explainer {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 420px;
+}
+
 .brand-mark.big {
   width: 54px;
   height: 54px;

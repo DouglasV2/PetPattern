@@ -881,5 +881,45 @@ export default {
   // secondary section
   "Saved — that's {name}'s {n} check-ins this week.": 'Spremljeno — ovaj tjedan je to već {n}. zapis za {name}.',
   "Saved — that's {name}'s first check-in this week.": 'Spremljeno — ovo je prvi zapis ovaj tjedan za {name}.',
-  'More about {name} today': 'Više o {name} danas'
+  'More about {name} today': 'Više o {name} danas',
+  'Logged today.': 'Zabilježeno danas.',
+
+  // Pattern memory (Phase 2) — honest first-week progress on Today +
+  // onboarding explainer
+  "Start {name}'s baseline": 'Započni osnovu za {name}',
+  'Nothing is logged yet. Your first check-in — even a calm "same as usual" — becomes day one of {name}\'s baseline.':
+    'Još ništa nije zabilježeno. Tvoj prvi zapis — čak i miran "sve kao i inače" — postaje prvi dan osnove za {name}.',
+  "One check-in starts {name}'s baseline.": 'Jedan zapis pokreće osnovu za {name}.',
+  "Today is saved as part of {name}'s baseline": 'Današnji dan spremljen je kao dio osnove za {name}',
+  "PetPattern is learning what an ordinary day looks like for {name}. It waits until there are seven days on record before it compares anything — {logsToNextStage} more to go. No repeated change is visible yet, and that's expected this early.":
+    'PetPattern uči kako izgleda običan dan za {name}. Čeka sedam zabilježenih dana prije nego što bilo što uspoređuje — još {logsToNextStage} do toga. Nijedna ponovljena promjena još nije vidljiva, i to je u ovoj fazi sasvim očekivano.',
+  '{logsToNextStage} more check-ins and PetPattern has enough for a first weekly overview.':
+    'Još {logsToNextStage} zapisa i PetPattern ima dovoljno za prvi tjedni pregled.',
+  'PetPattern now has enough entries for a first weekly overview':
+    'PetPattern sada ima dovoljno zapisa za prvi tjedni pregled',
+  "Seven days are on record, so PetPattern can put together {name}'s first weekly overview and start noticing when a recent day differs from the usual ones. It still won't call a single odd day a pattern.":
+    'Zabilježeno je sedam dana, pa PetPattern može složiti prvi tjedni pregled za {name} i početi uočavati kad se neki noviji dan razlikuje od uobičajenih. I dalje neće jedan neobičan dan proglasiti obrascem.',
+  "About two more weeks of logged days lets PetPattern compare {name}'s recent days against a month-long baseline.":
+    'Još otprilike dva tjedna zabilježenih dana omogućit će PetPatternu da usporedi novije dane za {name} s mjesečnom osnovom.',
+  "Two weeks of {name}'s days are on record": 'Zabilježena su dva tjedna dana za {name}',
+  "That's most of what the trend comparison needs for a dog — it looks at how {name}'s recent days compare with their usual range over about a month. A few more logged days and it has enough.":
+    'To je većina onoga što je psu potrebno za usporedbu trenda — gleda kako se noviji dani za {name} uspoređuju s uobičajenim rasponom tijekom otprilike mjesec dana. Još nekoliko zabilježenih dana i bit će dovoljno.',
+  'Log food changes too — with about three weeks on record and the same food seen twice, PetPattern can line a protein up against how {name} did afterward.':
+    'Bilježi i promjene hrane — uz otprilike tri tjedna zapisa i istu hranu zabilježenu dvaput, PetPattern može usporediti protein s tim kako se {name} osjećao/la nakon toga.',
+  "Enough logs to line food up against {name}'s signals": 'Dovoljno zapisa da se hrana uspoređuje sa signalima za {name}',
+  'Three weeks of check-ins and at least two food changes are on record. PetPattern can now compare how {name} did after the same protein more than once — it only suggests a food link when the same protein is followed by a rougher stretch twice, never from a single change.':
+    'Zabilježena su tri tjedna zapisa i barem dvije promjene hrane. PetPattern sada može usporediti kako se {name} osjećao/la nakon iste vrste proteina više puta — vezu s hranom predlaže samo kad nakon istog proteina dvaput slijedi teže razdoblje, nikad na temelju jedne promjene.',
+  '{done} of {total} days logged': '{done} od {total} zabilježenih dana',
+  '{n} days logged': '{n} zabilježenih dana',
+  '{n} possible pattern noticed': 'Uočen {n} mogući obrazac',
+  '{n} possible patterns noticed': 'Uočeno {n} mogućih obrazaca',
+  'First weekly overview ready': 'Prvi tjedni pregled spreman',
+  'Days that are the same as usual are just as useful — they are what "different" gets measured against.':
+    'Dani koji su isti kao i inače jednako su korisni — prema njima se mjeri to što je "drugačije".',
+  'Log a quick check-in each day — even a calm "same as usual" counts. Normal days are what "different" gets measured against.':
+    'Bilježi brzi zapis svaki dan — čak se i miran "sve kao i inače" računa. Prema običnim danima mjeri se to što je "drugačije".',
+  "After about a week of notes, PetPattern has enough for {name}'s first weekly overview.":
+    'Nakon otprilike tjedan dana zapisa, PetPattern ima dovoljno za prvi tjedni pregled za {name}.',
+  'It only points out a change when the same thing repeats — never from a single odd day, and never as a diagnosis.':
+    'Promjenu ističe samo kad se isto ponovi — nikad na temelju jednog neobičnog dana, i nikad kao dijagnoza.'
 }
