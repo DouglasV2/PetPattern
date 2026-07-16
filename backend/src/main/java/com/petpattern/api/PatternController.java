@@ -1,9 +1,11 @@
 package com.petpattern.api;
 
+import com.petpattern.analytics.AnalyticsService;
 import com.petpattern.api.dto.PatternResponse;
 import com.petpattern.api.dto.PatternStatusRequest;
 import com.petpattern.api.dto.PatternTimelineDto;
 import com.petpattern.auth.PetAccess;
+import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.patterns.PatternTimelineService;
 import com.petpattern.patterns.PatternType;
@@ -23,18 +25,22 @@ public class PatternController {
     private final PatternMemoryService patternMemoryService;
     private final PatternTimelineService timelineService;
     private final PetAccess petAccess;
+    private final AnalyticsService analytics;
 
     public PatternController(PatternMemoryService patternMemoryService,
                             PatternTimelineService timelineService,
-                            PetAccess petAccess) {
+                            PetAccess petAccess,
+                            AnalyticsService analytics) {
         this.patternMemoryService = patternMemoryService;
         this.timelineService = timelineService;
         this.petAccess = petAccess;
+        this.analytics = analytics;
     }
 
     @GetMapping
     public List<PatternResponse> patterns(@PathVariable UUID petId) {
         petAccess.requireOwnedPet(petId);
+        analytics.recordCurrent(AnalyticsEventType.PATTERN_VIEWED);
         return patternMemoryService.listPatterns(petId);
     }
 

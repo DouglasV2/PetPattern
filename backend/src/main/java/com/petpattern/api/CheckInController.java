@@ -1,7 +1,9 @@
 package com.petpattern.api;
 
+import com.petpattern.analytics.AnalyticsService;
 import com.petpattern.api.dto.CheckInRequest;
 import com.petpattern.api.dto.CheckInResponse;
+import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.Pet;
 import com.petpattern.domain.StoolState;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -24,10 +27,13 @@ public class CheckInController {
 
     private final PetAccess petAccess;
     private final DailyCheckInRepository checkInRepository;
+    private final AnalyticsService analytics;
 
-    public CheckInController(PetAccess petAccess, DailyCheckInRepository checkInRepository) {
+    public CheckInController(PetAccess petAccess, DailyCheckInRepository checkInRepository,
+                            AnalyticsService analytics) {
         this.petAccess = petAccess;
         this.checkInRepository = checkInRepository;
+        this.analytics = analytics;
     }
 
     @GetMapping
@@ -61,16 +67,20 @@ public class CheckInController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Copy.t("A check-in can't be in the future"));
         }
 
+        CheckInResponse response;
         try {
-            return CheckInResponse.from(persist(pet, request));
+            response = CheckInResponse.from(persist(pet, request));
         } catch (DataIntegrityViolationException race) {
             // Two writes for the same (pet, date) landed at once — a double-tapped
             // "Save" or a retry on a flaky connection — and collided on the
             // uk_pet_checkin_date unique constraint. The winning row is now
             // committed, so run once more: this time we find it and update instead
             // of inserting a duplicate.
-            return CheckInResponse.from(persist(pet, request));
+            response = CheckInResponse.from(persist(pet, request));
         }
+        analytics.recordCurrent(AnalyticsEventType.CHECKIN_CREATED,
+                pet.getSpecies() == null ? Map.of() : Map.of("species", pet.getSpecies().name()));
+        return response;
     }
 
     /** Find-or-create the day's check-in, apply the request, and save. */

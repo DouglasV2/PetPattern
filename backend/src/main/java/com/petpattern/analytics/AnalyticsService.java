@@ -1,0 +1,160 @@
+package com.petpattern.analytics;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.petpattern.auth.OwnerContext;
+import com.petpattern.domain.AnalyticsEvent;
+import com.petpattern.domain.AnalyticsEventType;
+import com.petpattern.domain.Owner;
+import com.petpattern.domain.Species;
+import com.petpattern.repository.AnalyticsEventRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Base64;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Records product-analytics events with privacy built in. It stores a one-way pseudonymous
+ * {@code ref} (never the owner id), an allow-listed {@link AnalyticsEventType}, and only
+ * allow-listed categorical meta — no name, note, symptom, email, or health content can pass
+ * through. Recording is fail-safe: it never throws into the calling request.
+ */
+@Service
+public class AnalyticsService {
+
+    private static final Logger log = LoggerFactory.getLogger(AnalyticsService.class);
+
+    /** Bump when the stored shape or meaning changes; lets reporting reconcile old rows. */
+    public static final int SCHEMA_VERSION = 1;
+
+    private static final Set<String> PLATFORMS = Set.of("web", "android", "ios");
+    private static final Set<String> CHECKIN_MODES = Set.of("quick", "full", "changed", "same_as_yesterday");
+
+    private final AnalyticsEventRepository repository;
+    private final ObjectMapper objectMapper;
+    private final boolean enabled;
+    private final String refSalt;
+
+    public AnalyticsService(AnalyticsEventRepository repository,
+                            ObjectMapper objectMapper,
+                            @Value("${petpattern.analytics.enabled:true}") boolean enabled,
+                            @Value("${petpattern.analytics.ref-salt:dev-analytics-salt}") String refSalt) {
+        this.repository = repository;
+        this.objectMapper = objectMapper;
+        this.enabled = enabled;
+        this.refSalt = refSalt;
+    }
+
+    /** Record a web event for the currently signed-in owner (no-op if signed out). */
+    public void recordCurrent(AnalyticsEventType type) {
+        recordCurrent(type, Map.of());
+    }
+
+    public void recordCurrent(AnalyticsEventType type, Map<String, String> meta) {
+        Owner owner = OwnerContext.get();
+        if (owner == null) {
+            return;
+        }
+        record(owner.getId(), type, "web", null, meta);
+    }
+
+    /**
+     * Core recording path. Derives the pseudonym, applies duplicate-milestone prevention,
+     * filters meta to the allow-list, and stores a UTC-stamped row. Any failure is swallowed
+     * — analytics must never break a request.
+     */
+    public void record(UUID ownerId, AnalyticsEventType type, String platform, String appVersion,
+                       Map<String, String> meta) {
+        if (!enabled || ownerId == null || type == null) {
+            return;
+        }
+        try {
+            String ref = pseudonym(ownerId);
+            if (type.isOncePerRef() && repository.existsByRefAndType(ref, type.wire())) {
+                return;
+            }
+            Instant now = Instant.now();
+            AnalyticsEvent event = new AnalyticsEvent();
+            event.setRef(ref);
+            event.setType(type.wire());
+            event.setOccurredAt(now);
+            event.setOccurredOn(now.atZone(ZoneOffset.UTC).toLocalDate());
+            event.setPlatform(PLATFORMS.contains(platform) ? platform : "web");
+            event.setAppVersion(clip(appVersion, 20));
+            event.setSchemaVersion(SCHEMA_VERSION);
+            event.setMeta(filterMeta(meta));
+            repository.save(event);
+        } catch (Exception ex) {
+            log.debug("Analytics event dropped (non-fatal)", ex);
+        }
+    }
+
+    /** A stable, one-way pseudonym for an owner. Not reversible without the id and salt. */
+    String pseudonym(UUID ownerId) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest((ownerId + ":" + refSalt).getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+        } catch (Exception ex) {
+            // Never used in practice (SHA-256 is always available); degrade without crashing.
+            return "unknown";
+        }
+    }
+
+    /**
+     * Keep only allow-listed categorical keys with allow-listed values, so no free text or
+     * health content is ever stored. Returns compact JSON, or null when nothing survives.
+     */
+    String filterMeta(Map<String, String> meta) {
+        if (meta == null || meta.isEmpty()) {
+            return null;
+        }
+        Map<String, String> safe = new LinkedHashMap<>();
+        String species = meta.get("species");
+        if (species != null && isSpecies(species)) {
+            safe.put("species", species.trim().toUpperCase(java.util.Locale.ROOT));
+        }
+        String mode = meta.get("mode");
+        if (mode != null && CHECKIN_MODES.contains(mode.trim().toLowerCase(java.util.Locale.ROOT))) {
+            safe.put("mode", mode.trim().toLowerCase(java.util.Locale.ROOT));
+        }
+        if (safe.isEmpty()) {
+            return null;
+        }
+        try {
+            String json = objectMapper.writeValueAsString(safe);
+            return clip(json, 500);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private static boolean isSpecies(String value) {
+        try {
+            Species.valueOf(value.trim().toUpperCase(java.util.Locale.ROOT));
+            return true;
+        } catch (IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    private static String clip(String value, int max) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        return trimmed.length() <= max ? trimmed : trimmed.substring(0, max);
+    }
+}

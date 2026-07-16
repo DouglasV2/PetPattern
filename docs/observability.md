@@ -101,9 +101,40 @@ custom-event proxy). The goal is the **activation/retention funnel**, not medica
 | `export_clicked` | "Export my data" is clicked |
 | `account_deleted` | an account is deleted |
 
-**No event carries a pet name, species, note, symptom/sign, count, email, or any
+**No event carries a pet name, note, symptom/sign, count, email, or any
 health content** — only the name above and a timestamp. To add an event you must
 extend the allow-list in `analytics.js`, which keeps accidental fields out.
+
+### 3b. Internal analytics store + retention (backend)
+
+The frontend beacon above ships events off-site but keeps no history, so **D1/D7/D30
+retention is unmeasurable from it alone**. The backend now records the same seven
+touchpoints server-side into an internal store (`analytics_event`, Flyway **V14**) so the
+activation funnel and retention are measurable **without any third-party** and **without
+storing identity**.
+
+- **Pseudonymous ref.** Each row is keyed by a one-way `SHA-256(owner id + ref-salt)` — never
+  the owner id or email. It is stable per owner (so retention works) but not reversible
+  without both the id and the secret salt. On account deletion the row survives (no FK); it is
+  pseudonymous, non-identifying aggregate data, disclosed in the privacy policy.
+- **What is stored:** ref, allow-listed event `type`, UTC timestamp + calendar day, platform
+  (`web`/`android`/`ios`), optional app version, schema version, and small **allow-listed
+  categorical meta** (only `species` ∈ the Species enum, `mode` ∈ quick/full/changed/…).
+  Anything else — names, notes, symptoms, emails, free text — is dropped in `AnalyticsService`.
+- **Recording is fail-safe:** it never throws into the request, and is a no-op when disabled or
+  signed out.
+- **Ingest** `POST /api/analytics/events` (authenticated) exists for platform-tagged client
+  events (e.g. the mobile apps); the web funnel is recorded server-side and needs no client call.
+- **Reporting** `GET /api/analytics/report` returns the funnel (distinct users per event) and
+  **timezone-safe D1/D7/D30 retention** (UTC cohort by first-seen day; only cohorts old enough
+  for day N to have elapsed are counted). It is **admin-guarded**: 404 when no token is
+  configured, 403 without the `X-Analytics-Token` header, and never echoes a ref or identity.
+
+| Variable | Where | Default | Meaning |
+|---|---|---|---|
+| `PETPATTERN_ANALYTICS_ENABLED` | backend | `true` | Master switch for server-side recording. |
+| `PETPATTERN_ANALYTICS_REF_SALT` | backend | dev placeholder | Seeds the one-way pseudonym. Set a strong value in prod; changing it resets retention history. |
+| `PETPATTERN_ANALYTICS_ADMIN_TOKEN` | backend | empty | Bearer token for the report endpoint (`X-Analytics-Token`). Empty = report disabled (404). |
 
 ---
 
@@ -114,4 +145,5 @@ extend the allow-list in `analytics.js`, which keeps accidental fields out.
 | Reset email | disabled → link logged | `PETPATTERN_MAIL_ENABLED=true` + `SMTP_*` |
 | Backend Sentry | off (empty `SENTRY_DSN`) | set `SENTRY_DSN` |
 | Frontend Sentry | off (empty `VITE_SENTRY_DSN`) | set `VITE_SENTRY_DSN`, rebuild frontend |
-| Analytics | off (empty `VITE_ANALYTICS_URL`) | set `VITE_ANALYTICS_URL`, rebuild frontend |
+| Analytics beacon (frontend) | off (empty `VITE_ANALYTICS_URL`) | set `VITE_ANALYTICS_URL`, rebuild frontend |
+| Internal analytics store (backend) | on; report disabled | set `PETPATTERN_ANALYTICS_REF_SALT` + `PETPATTERN_ANALYTICS_ADMIN_TOKEN` |

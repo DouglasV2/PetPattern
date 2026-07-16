@@ -45,6 +45,12 @@ services:
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
       GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:7317/api/auth/google/callback}
+      # Internal, privacy-safe product analytics (funnel + D1/D7/D30 retention). On by
+      # default; the report endpoint stays disabled (404) until an admin token is set.
+      # Dev uses a fixed token so the report is testable; prod sets strong secrets.
+      PETPATTERN_ANALYTICS_ENABLED: ${PETPATTERN_ANALYTICS_ENABLED:-true}
+      PETPATTERN_ANALYTICS_REF_SALT: ${PETPATTERN_ANALYTICS_REF_SALT:-dev-analytics-salt}
+      PETPATTERN_ANALYTICS_ADMIN_TOKEN: ${PETPATTERN_ANALYTICS_ADMIN_TOKEN:-dev-analytics-token}
     ports:
       - "8317:8080"
     depends_on:

@@ -5,10 +5,12 @@ import com.petpattern.api.dto.LoginRequest;
 import com.petpattern.api.dto.OwnerResponse;
 import com.petpattern.api.dto.RegisterRequest;
 import com.petpattern.api.dto.ResetPasswordRequest;
+import com.petpattern.analytics.AnalyticsService;
 import com.petpattern.auth.AuthService;
 import com.petpattern.auth.OwnerContext;
 import com.petpattern.auth.PasswordResetService;
 import com.petpattern.i18n.Copy;
+import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.domain.Owner;
 import jakarta.validation.Valid;
 
@@ -25,10 +27,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final AnalyticsService analytics;
 
-    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService,
+                         AnalyticsService analytics) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
+        this.analytics = analytics;
     }
 
     @PostMapping("/register")
@@ -36,6 +41,8 @@ public class AuthController {
                                                   @RequestHeader(value = "X-PetPattern-Client", required = false) String client) {
         Owner owner = authService.register(request.email(), request.password(), request.displayName(), request.acceptedTerms());
         String token = authService.issueSession(owner);
+        // The new owner has no OwnerContext on this request yet, so record with the id directly.
+        analytics.record(owner.getId(), AnalyticsEventType.REGISTERED, "web", null, Map.of());
         ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, authService.sessionCookie(token).toString());
         if (isMobileClient(client)) {

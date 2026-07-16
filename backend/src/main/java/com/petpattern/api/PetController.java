@@ -1,9 +1,11 @@
 package com.petpattern.api;
 
 import com.petpattern.account.AccountService;
+import com.petpattern.analytics.AnalyticsService;
 import com.petpattern.api.dto.*;
 import com.petpattern.auth.PetAccess;
 import com.petpattern.domain.ActivityLog;
+import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.domain.AppetiteLevel;
 import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.FoodKind;
@@ -60,6 +62,7 @@ public class PetController {
     private final PetPhotoRepository photoRepository;
     private final PetAccess petAccess;
     private final AccountService accountService;
+    private final AnalyticsService analytics;
 
     // Generous cap so one account can't be used to spam/troll thousands of pets.
     // A real multi-pet household or foster is well under this; override with
@@ -77,7 +80,8 @@ public class PetController {
                          PetCaregiverRepository caregiverRepository,
                          PetPhotoRepository photoRepository,
                          PetAccess petAccess,
-                         AccountService accountService) {
+                         AccountService accountService,
+                         AnalyticsService analytics) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
@@ -88,6 +92,7 @@ public class PetController {
         this.photoRepository = photoRepository;
         this.petAccess = petAccess;
         this.accountService = accountService;
+        this.analytics = analytics;
     }
 
     @GetMapping
@@ -314,7 +319,10 @@ public class PetController {
         pet.setBirthDate(request.birthDate());
         pet.setSex(request.sex() == null ? Sex.UNKNOWN : request.sex());
         pet.setCurrentWeightKg(request.currentWeightKg());
-        return PetResponse.from(petRepository.save(pet));
+        Pet saved = petRepository.save(pet);
+        analytics.recordCurrent(AnalyticsEventType.PET_CREATED,
+                saved.getSpecies() == null ? Map.of() : Map.of("species", saved.getSpecies().name()));
+        return PetResponse.from(saved);
     }
 
     /**

@@ -405,7 +405,7 @@ Empirical 20-user load test + DB-optimization review + multi-agent security audi
 
 ## Beta hardening — branch `feature/beta-hardening` (IN PROGRESS — HANDOFF for a new chat)
 
-Continuation of the 6-phase "senior-engineer beta + mobile hardening" brief. Branch off `main@f3fcac4`, **not merged, not pushed, `main` untouched**. Requested order: **5 → 3 → 2 → 1 → 6 → 4**. DONE so far: audit, security preflight, Phase 5, Phase 3, Phase 2, **Phase 1**. **▶ NEXT: Phase 6** (analytics/retention), then Phase 4 (mobile/notifications), then the final Croatian production-readiness report.
+Continuation of the 6-phase "senior-engineer beta + mobile hardening" brief. Branch off `main@f3fcac4`, **not merged, not pushed, `main` untouched**. Requested order: **5 → 3 → 2 → 1 → 6 → 4**. DONE so far: audit, security preflight, Phase 5, Phase 3, Phase 2, **Phase 1**, **Phase 6**. **▶ NEXT: Phase 4** (mobile/notifications), then the final Croatian production-readiness report.
 
 ### Environment & gotchas (READ FIRST)
 - **No local Maven/Java** — backend builds/tests via Docker: `docker compose build backend` runs `mvn clean package` (full suite; a failing test fails the build). Fast single test: `docker run --rm -v "$(pwd)/backend:/app" -v maven-repo:/root/.m2 -w /app maven:3.9.9-eclipse-temurin-21 mvn -q test -Dtest=SomeTest` (Git Bash; prefix `MSYS_NO_PATHCONV=1` if the `-w` path mangles).
@@ -423,6 +423,26 @@ Continuation of the 6-phase "senior-engineer beta + mobile hardening" brief. Bra
 - **Phase 3 — simplify Today** (`81a4749`) — primary action high → confirmation → progress → ONE insight (weekly→seen-before→note) → collapsible `<details>` "More about {name} today" holding the rest. Verified live. Nothing removed.
 - **Phase 2 — first-week payoff** (`96f16ea`,`96310b0`,`42a6e38`) — honest milestones pinned to real engine gates (1→7 global→14 dog-trend→21+2-food dog-food-trigger; cats/starter terminal at 7): `MilestoneCalculator` (pure) + `PatternMemoryProgress` DTO (12th overview field) + `PatternMemoryProgress.jsx` + RetentionStrip de-dup + onboarding explainer. 57 FE tests + backend suite green. Adversarial honesty review: gamification/diagnosis LOW.
 - **Phase 1 — species-specific pattern logic** — `SpeciesRuleSet` registry (Spring-collected `Map<Species,SpeciesRuleSet>`; a new species is one `@Component`, zero engine edits) replaces the dog/cat/starter if-else. `DogRuleSet`/`CatRuleSet` are byte-identical adapters over the existing analyzers (dog regression verified clean). The 8 starter species get data-grounded rules built ONLY from real `speciesProfiles.js` signals: rabbit/GP GI-stasis (URGENT) + intake/dental/behaviour; hamster wet-tail (URGENT) + lump/weight; bird breathing + sick-posture (URGENT) + feather/quiet; reptile feeding-refusal + thermal-context (INFO); turtle enclosure-context (INFO) + shell; fish spot-fin/swimming + water-context (INFO); other-small-pet + the preserved generic `REPEATED_OBSERVATION`. New orthogonal `Severity{INFO,WATCH,URGENT}` (URGENT only from a plain, countable **same-day co-occurrence pinned to the last 7 days** — never inference, never names a condition in owner copy) surfaced on `PatternResponse`, `InsightService` ("urgent"), the timeline (urgent banner + event tier), and a vet-summary "URGENT SIGNS NOTED" block. `PatternCandidate` gains `severity`+`urgentNote` via a 10-arg convenience ctor (all old call sites untouched, WATCH/null); severity leads the engine sort so an urgent sign is "the most important possible pattern". 4 switch `default` arms + urgent-window pinning (the 2 "important" review fixes). ~60 HR strings. **Design corrections forced by the code:** turtle collects no temperature/humidity → its context rule uses `water_enclosure`; rules match the exact option strings the real UI stores (verified `StarterGuidedFields.jsx`). Rabbit demo seed corrected to real option strings + memory re-keyed to `RABBIT_INTAKE_DROP` so the demo shows the urgent sign + the "seen 3×" payoff honestly. **Verified: backend 137 tests green, FE 57 green, live end-to-end (rabbit urgent path EN+HR, Today insight, timeline banner, vet URGENT block, dog regression clean).** No-AI-voice review applied 3 confirmed voice fixes; the full 5-lens adversarial pass was cut short by an API session limit and the remaining lenses (correctness/medical-safety/HR/backward-compat) were covered by direct self-review + the live checks. Files: +21 new backend classes + 7 new test files, ~15 touched (+ frontend TimelineView/VetSheet/checkins.css/hr.js).
+
+### ✅ Phase 6 — privacy-safe analytics + retention (DONE)
+
+Made D1/D7/D30 measurable internally, with privacy built in. `AnalyticsEvent` (Flyway **V14**)
++ `AnalyticsEventType` (7-event allow-list, `oncePerRef` milestones vs repeatable activity) +
+`AnalyticsEventRepository`. `AnalyticsService` records a one-way **pseudonymous ref**
+(`SHA-256(ownerId + ref-salt)` — never the id/email), applies duplicate-milestone prevention,
+filters meta to an allow-list (only categorical `species`/`mode`; free text/PII dropped), stamps
+the UTC day, and is **fail-safe** (never throws into a request). The seven web touchpoints record
+**server-side** (register/pet/checkin/pattern-view/vet-view/export/delete) so the funnel is
+reliable; `POST /api/analytics/events` (authenticated) ingests platform-tagged client events for
+mobile. `AnalyticsReportService` computes the funnel + **timezone-safe D1/D7/D30 retention**
+(UTC cohort by first-seen day; only elapsed cohorts counted). `GET /api/analytics/report` is
+**admin-guarded** (404 when no token; 403 without/with a wrong `X-Analytics-Token`; aggregate-only,
+no refs/identity). Config: `PETPATTERN_ANALYTICS_ENABLED/REF_SALT/ADMIN_TOKEN` (dev + prod compose,
+`.env.example`). Privacy policy (EN+HR) + `docs/observability.md` updated to disclose it.
+**Verified: 146 backend tests green; live — V14 applies, all 7 funnel events record, ingest
+202/400/401, report 403/JSON, retention shape correct, no PII in the report.** Tests:
+`AnalyticsServiceTest` (pseudonym stability/salt-dependence, meta allow-list), `AnalyticsReportServiceTest`
+(deterministic D1/D7/D30), `AnalyticsEventTypeTest`.
 
 ### ✅ Phase 1 — deepen species-specific pattern logic (DONE — implemented per the approved design below)
 

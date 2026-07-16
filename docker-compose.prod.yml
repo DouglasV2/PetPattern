@@ -79,6 +79,12 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       PETPATTERN_AI_MODEL: ${PETPATTERN_AI_MODEL:-gemini-2.5-flash-lite}
+      # Internal, privacy-safe analytics (funnel + D1/D7/D30 retention). Set a strong
+      # ref-salt (the retention pseudonym seed). The report endpoint stays disabled (404)
+      # until you set an admin token; keep it secret and rotate as needed.
+      PETPATTERN_ANALYTICS_ENABLED: ${PETPATTERN_ANALYTICS_ENABLED:-true}
+      PETPATTERN_ANALYTICS_REF_SALT: ${PETPATTERN_ANALYTICS_REF_SALT:?set PETPATTERN_ANALYTICS_REF_SALT in .env}
+      PETPATTERN_ANALYTICS_ADMIN_TOKEN: ${PETPATTERN_ANALYTICS_ADMIN_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
