@@ -212,6 +212,7 @@
 
 .baseline-dots {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 0.32rem;
 }
 

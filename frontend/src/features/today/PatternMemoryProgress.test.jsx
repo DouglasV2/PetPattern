@@ -122,6 +122,24 @@ describe('<PatternMemoryProgress/>', () => {
     expect(screen.getByText('2 possible patterns noticed')).toBeInTheDocument()
   })
 
+  it('trend_baseline (dog, 21 logs but <2 food logs): meter full, yet the "log food" next-step is still shown — not a dead end', () => {
+    const progress = {
+      usefulLogs: 21,
+      foodLogsRecorded: 0,
+      patternsActive: 0,
+      weeklyOverviewReady: true,
+      stage: 'trend_baseline',
+      nextStageAt: 21,
+      logsToNextStage: 0
+    }
+    render(<PatternMemoryProgress pet={pet} progress={progress} />)
+    // Count-agnostic headline (not a stale "Two weeks…" over a full 21/21 meter).
+    expect(screen.getByText("Building up what's usual for Bella")).toBeInTheDocument()
+    // Non-terminal stage: the actionable food-logging next-step MUST render even
+    // though logsToNextStage is 0 — the gate keys off nextStageAt, not logsToNextStage.
+    expect(screen.getByText(/Log food changes too/)).toBeInTheDocument()
+  })
+
   it('renders the calm caption in every stage', () => {
     const stages = [
       { stage: 'baseline_start', nextStageAt: 1, logsToNextStage: 1, usefulLogs: 0 },
