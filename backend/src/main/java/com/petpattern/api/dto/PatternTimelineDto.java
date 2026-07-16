@@ -24,6 +24,8 @@ public record PatternTimelineDto(
         List<PatternTimelineEventDto> events,
         boolean empty,
         String emptyMessage,
-        String medicalDisclaimer
+        String medicalDisclaimer,
+        String severity,
+        String urgentNote
 ) {
 }

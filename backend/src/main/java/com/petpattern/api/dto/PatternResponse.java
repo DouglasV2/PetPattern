@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 public record PatternResponse(
@@ -27,7 +28,9 @@ public record PatternResponse(
         LocalDate lastDetectedAt,
         boolean seenBefore,
         boolean currentlyDetected,
-        Integer daysSinceLastSeen
+        Integer daysSinceLastSeen,
+        String severity,
+        String urgentNote
 ) {
     /** Currently-detected candidate, optionally enriched with its remembered observation. */
     public static PatternResponse from(PatternCandidate candidate, PatternObservation observation) {
@@ -52,7 +55,9 @@ public record PatternResponse(
                 last,
                 count > 1,
                 true,
-                null
+                null,
+                candidate.severity().name().toLowerCase(Locale.ROOT),
+                candidate.urgentNote()
         );
     }
 
@@ -78,7 +83,11 @@ public record PatternResponse(
                 observation.getLastDetectedDate(),
                 observation.getDetectionCount() > 1,
                 false,
-                daysSince
+                daysSince,
+                // A settled pattern is no longer being detected, so it is never surfaced
+                // as an active urgent sign: a neutral severity, no urgent note.
+                "watch",
+                null
         );
     }
 }

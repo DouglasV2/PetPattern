@@ -1,5 +1,8 @@
 // Croatian (Hrvatski) — human, calm, non-clinical. Keys are the English source.
 export default {
+  // Phase 1 — urgent-care tier
+  'Worth acting on soon': 'Vrijedi reagirati uskoro',
+  'Urgent signs noted': 'Zabilježeni hitni znakovi',
   // Brand / shell
   'PetPattern': 'PetPattern',
   'Private health memory for dogs': 'Privatna zdravstvena memorija za pse',

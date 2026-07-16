@@ -138,7 +138,9 @@ public class PatternTimelineService {
                 events,
                 empty,
                 empty ? emptyMessage() : null,
-                medicalDisclaimer()
+                medicalDisclaimer(),
+                candidate.severity().name().toLowerCase(java.util.Locale.ROOT),
+                candidate.urgentNote()
         );
     }
 
@@ -163,10 +165,11 @@ public class PatternTimelineService {
             case STOOL_INSTABILITY -> new Window(latestDate.minusDays(16), latestDate);
             case WATER_DROP -> new Window(latestDate.minusDays(10), latestDate);
             case RECURRING_EAR_REDNESS -> new Window(latestDate.minusDays(16), latestDate);
-            // Cat patterns: a shared recent window is enough for the "what changed" view.
+            // Cat and starter patterns: a shared recent window is enough for the "what changed" view.
             case APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING,
                  REPEATED_OBSERVATION ->
                     new Window(latestDate.minusDays(20), latestDate);
+            default -> new Window(latestDate.minusDays(20), latestDate);
         };
     }
 
@@ -362,12 +365,15 @@ public class PatternTimelineService {
     }
 
     private PatternTimelineEventDto patternDetectedEvent(PatternCandidate candidate, LocalDate date) {
+        boolean urgent = candidate.severity() == Severity.URGENT;
         return new PatternTimelineEventDto(
                 date,
                 "PATTERN_DETECTED",
                 candidate.title(),
-                Copy.t("This is where the days above start to look like a pattern — a good thing to raise with your vet."),
-                "pattern",
+                urgent
+                        ? Copy.t("This is where the days above line up into something worth acting on soon.")
+                        : Copy.t("This is where the days above start to look like a pattern — a good thing to raise with your vet."),
+                urgent ? "urgent" : "pattern",
                 "PATTERN",
                 null
         );
@@ -400,6 +406,9 @@ public class PatternTimelineService {
                     + "if it continues. This is not a diagnosis.", name);
             case REPEATED_OBSERVATION -> Copy.t("You logged this change on more than one day. Looking at the days "
                     + "around it can help you and your vet. This is not a diagnosis.", name);
+            // Starter-species rules already build a cautious, owner-facing summary; reuse it
+            // so the "what changed" view stays consistent and this switch stays exhaustive-safe.
+            default -> candidate.summary();
         };
     }
 
@@ -419,7 +428,9 @@ public class PatternTimelineService {
                 List.of(),
                 true,
                 emptyMessage(),
-                medicalDisclaimer()
+                medicalDisclaimer(),
+                "watch",
+                null
         );
     }
 

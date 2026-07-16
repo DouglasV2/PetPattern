@@ -778,5 +778,198 @@ public final class Copy {
         put("An activity type is required", "Vrsta aktivnosti je obavezna");
         put("An activity can't be in the future", "Aktivnost ne može biti u budućnosti");
         put("Activity not found", "Aktivnost nije pronađena");
+
+        // Phase 1 — starter-species pattern rules + urgent-care tier
+        // Shared urgent-tier boundary + vet handoff (name dropped: no declension).
+        put("This is not a diagnosis and PetPattern cannot tell you the cause.",
+                "Ovo nije dijagnoza i PetPattern ti ne može reći uzrok.");
+        put("PetPattern cannot examine {0} — if this is happening now, "
+                        + "please call your vet right away.",
+                "PetPattern ne može pregledati tvog ljubimca — ako se ovo događa sada, javi se veterinaru bez odgode.");
+        // Evidence line (number, not name → keep {0}; no gendered participle).
+        put("Days you logged this: {0}",
+                "Broj dana sa zabilježenom promjenom: {0}");
+
+        // Rabbit
+        put("Eating less and changed droppings on the same day",
+                "Jede manje i promijenjen izmet istog dana");
+        put("You recorded {0} eating less and passing fewer, smaller, or changed "
+                        + "droppings on the same day. In rabbits, eating less together with fewer "
+                        + "droppings is a well-known warning sign. ",
+                "Istog dana zabilježeno je da jede manje i da izlučuje manje, sitnije ili promijenjene fekalije. Kod zečeva je smanjeno jedenje zajedno s manje izmeta dobro poznat znak upozorenja. ");
+        put("In rabbits, eating less together with fewer or changed droppings is the "
+                        + "kind of change many rabbit vets say not to wait on. ",
+                "Kod zečeva je smanjeno jedenje uz manje ili promijenjen izmet promjena s kojom mnogi veterinari za zečeve savjetuju da se ne čeka. ");
+        put("Eating less on more than one day",
+                "Manje jede više od jednog dana");
+        put("{0} has been eating less or refusing hay on more than one day recently. "
+                        + "In rabbits, keeping food and hay moving matters, so this is worth watching. ",
+                "U zadnje vrijeme jede manje ili odbija sijeno više od jednog dana. Kod zečeva je važno da hrana i sijeno stalno prolaze kroz probavu, pa ovo vrijedi pratiti. ");
+        put("Chewing changes on more than one day",
+                "Promjene u žvakanju više od jednog dana");
+        put("{0} was logged with chewing changes or drooling on more than one day. "
+                        + "In rabbits, dental comfort affects eating, so this is worth watching. ",
+                "Zabilježene su promjene u žvakanju ili slinjenje više od jednog dana. Kod zečeva stanje zubi utječe na jedenje, pa ovo vrijedi pratiti. ");
+        put("Lower energy and hiding more on the same day",
+                "Manje energije i više skrivanja istog dana");
+        put("{0} was logged as lower energy and hiding more on the same day, on more "
+                        + "than one day. This is worth keeping an eye on. ",
+                "Zabilježeno je manje energije i više skrivanja istog dana, i to više od jednog dana. Ovo vrijedi pratiti. ");
+
+        // Guinea pig
+        put("You recorded {0} eating less and passing fewer, smaller, or changed "
+                        + "droppings on the same day. In guinea pigs, eating less together with fewer "
+                        + "droppings is a well-known warning sign. ",
+                "Istog dana zabilježeno je da jede manje i da izlučuje manje, sitnije ili promijenjene fekalije. Kod zamoraca je smanjeno jedenje zajedno s manje izmeta dobro poznat znak upozorenja. ");
+        put("In guinea pigs, eating less together with fewer or changed droppings is the "
+                        + "kind of change many exotic vets say not to wait on. ",
+                "Kod zamoraca je smanjeno jedenje uz manje ili promijenjen izmet promjena s kojom mnogi veterinari za egzotične životinje savjetuju da se ne čeka. ");
+        put("Weight change logged on more than one day",
+                "Promjena težine zabilježena više od jednog dana");
+        put("You logged a change in {0}'s weight on more than one day. Guinea pigs hide "
+                        + "weight loss well, so a regular weigh-in — especially alongside any eating "
+                        + "changes — is worth keeping up. ",
+                "Zabilježena je promjena težine više od jednog dana. Zamorci dobro skrivaju gubitak težine, pa redovito vaganje — pogotovo uz promjene u jedenju — vrijedi zadržati. ");
+        put("{0} was logged with chewing changes or drooling on more than one day. "
+                        + "In guinea pigs, dental comfort affects eating, so this is worth watching. ",
+                "Zabilježene su promjene u žvakanju ili slinjenje više od jednog dana. Kod zamoraca stanje zubi utječe na jedenje, pa ovo vrijedi pratiti. ");
+
+        // Hamster
+        put("Watery droppings with low energy on the same day",
+                "Vodenast izmet uz manje energije istog dana");
+        put("You recorded {0} with watery droppings and being less active or eating less "
+                        + "on the same day. In hamsters, watery droppings together with low energy is "
+                        + "a well-known warning sign that can worsen quickly. ",
+                "Istog dana zabilježen je vodenast izmet uz manju aktivnost ili slabije jedenje. Kod hrčaka je vodenast izmet zajedno s manjkom energije dobro poznat znak upozorenja koji se može brzo pogoršati. ");
+        put("In hamsters, watery droppings with low energy is the kind of change many "
+                        + "exotic vets say not to wait on. ",
+                "Kod hrčaka je vodenast izmet uz manjak energije promjena s kojom mnogi veterinari za egzotične životinje savjetuju da se ne čeka. ");
+        put("Less active and eating less on the same day",
+                "Manja aktivnost i slabije jedenje istog dana");
+        put("{0} was logged as less active and eating less on the same day, on more than "
+                        + "one day. Hamsters tend to hide when they feel off, so this is worth keeping an eye on. ",
+                "Zabilježena je manja aktivnost i slabije jedenje istog dana, i to više od jednog dana. Hrčci se znaju povući kad im nije dobro, pa ovo vrijedi pratiti. ");
+        put("You logged a change in {0}'s weight on more than one day. Hamsters hide "
+                        + "weight loss well, so this is worth keeping an eye on. ",
+                "Zabilježena je promjena težine više od jednog dana. Hrčci dobro skrivaju gubitak težine, pa ovo vrijedi pratiti. ");
+        put("A lump or skin change you noticed",
+                "Primijećena kvržica ili promjena kože");
+        put("You logged a swelling or skin change on {0}. Lumps are common in hamsters and "
+                        + "many are harmless, but if it is growing or changing it is worth having your "
+                        + "vet look. ",
+                "Zabilježena je oteklina ili promjena kože. Kvržice su česte kod hrčaka i mnoge su bezopasne, no ako raste ili se mijenja vrijedi da je pregleda veterinar. ");
+
+        // Bird
+        put("A change in breathing you noticed",
+                "Primijećena promjena disanja");
+        put("You logged a change in {0}'s breathing. Birds tend to hide illness and show "
+                        + "breathing changes late, so any noticed change in breathing is worth taking "
+                        + "seriously. ",
+                "Zabilježena je promjena u disanju. Ptice često skrivaju bolest i promjene disanja pokazuju kasno, pa svaku primijećenu promjenu disanja vrijedi shvatiti ozbiljno. ");
+        put("In birds, a change in breathing is the kind of sign many avian vets say not "
+                        + "to wait on. ",
+                "Kod ptica je promjena disanja znak s kojim mnogi veterinari za ptice savjetuju da se ne čeka. ");
+        put("Sitting low and quiet or eating less on the same day",
+                "Sjedi nisko i tiho ili jede manje istog dana");
+        put("You recorded {0} sitting lower on the perch and being less active or eating "
+                        + "less on the same day. Birds tend to hide illness and show it late, so this "
+                        + "combination is worth taking seriously. ",
+                "Istog dana zabilježeno je sjedenje niže na prečki uz manju aktivnost ili slabije jedenje. Ptice često skrivaju bolest i pokazuju je kasno, pa ovu kombinaciju vrijedi shvatiti ozbiljno. ");
+        put("In birds, sitting low together with being quiet or off food is the kind of "
+                        + "sign many avian vets say not to wait on. ",
+                "Kod ptica je nisko sjedenje zajedno s tišinom ili odbijanjem hrane znak s kojim mnogi veterinari za ptice savjetuju da se ne čeka. ");
+        put("Feather changes on more than one day",
+                "Promjene perja više od jednog dana");
+        put("You logged feather changes or plucking on {0} on more than one day. This can "
+                        + "have many causes, from skin to stress, so it is worth watching and "
+                        + "mentioning to your vet. ",
+                "Zabilježene su promjene perja ili čupanje perja više od jednog dana. To može imati mnogo uzroka, od kože do stresa, pa vrijedi pratiti i spomenuti veterinaru. ");
+        put("Quieter and less active or eating less on the same day",
+                "Manje glasanja i manja aktivnost ili slabije jedenje istog dana");
+        put("{0} was logged as quieter and less active or eating less on the same day, on "
+                        + "more than one day. In birds a change in voice can be an early sign, so this "
+                        + "is worth keeping an eye on. ",
+                "Zabilježeno je manje glasanja i manja aktivnost ili slabije jedenje istog dana, i to više od jednog dana. Kod ptica promjena glasa može biti rani znak, pa ovo vrijedi pratiti. ");
+
+        // Reptile
+        put("Eating less on several days",
+                "Manje jede kroz nekoliko dana");
+        put("{0} has eaten less or refused food on several days. In reptiles this can be "
+                        + "normal — with season, temperature or brumation — but a longer stretch is "
+                        + "worth watching, and checking the enclosure first. ",
+                "Kroz nekoliko dana jede manje ili odbija hranu. Kod gmazova to može biti normalno — ovisno o godišnjem dobu, temperaturi ili brumaciji — no duže razdoblje vrijedi pratiti, a najprije provjeriti terarij. ");
+        put("Avoiding basking and less active on the same day",
+                "Izbjegavanje sunčanja i manja aktivnost istog dana");
+        put("{0} was logged avoiding basking and being less active on the same day, on "
+                        + "more than one day. It is worth checking enclosure temperatures and "
+                        + "watching this. ",
+                "Zabilježeno je izbjegavanje sunčanja i manja aktivnost istog dana, i to više od jednog dana. Vrijedi provjeriti temperature u terariju i pratiti ovo. ");
+        put("An enclosure change around a behaviour change",
+                "Promjena u terariju uz promjenu ponašanja");
+        put("A change in enclosure temperature or humidity was logged around the same time "
+                        + "as a change in {0}'s feeding or basking. Reptile behaviour is very sensitive "
+                        + "to the environment, so this is useful context to check first. ",
+                "Promjena temperature ili vlage u terariju zabilježena je otprilike u isto vrijeme kad i promjena u jedenju ili sunčanju. Ponašanje gmazova jako ovisi o okolišu, pa je ovo koristan podatak koji vrijedi prvo provjeriti. ");
+
+        // Turtle
+        put("{0} has eaten less or refused food on several days. In turtles this can shift "
+                        + "with season and water temperature, but a longer stretch is worth watching, "
+                        + "and checking the enclosure first. ",
+                "Kroz nekoliko dana jede manje ili odbija hranu. Kod kornjača se to može mijenjati s godišnjim dobom i temperaturom vode, no duže razdoblje vrijedi pratiti, a najprije provjeriti nastambu. ");
+        put("A shell change you noticed",
+                "Primijećena promjena na oklopu");
+        put("You logged a mark or soft spot on {0}'s shell. Shell changes can develop "
+                        + "slowly, so if it is changing or feels soft it is worth having your vet "
+                        + "look. ",
+                "Zabilježena je oznaka ili meko mjesto na oklopu. Promjene na oklopu mogu se razvijati polako, pa ako se mijenja ili je mekano vrijedi da to pregleda veterinar. ");
+        put("{0} was logged avoiding basking and being less active on the same day, on "
+                        + "more than one day. It is worth checking the enclosure and water, and "
+                        + "watching this. ",
+                "Zabilježeno je izbjegavanje sunčanja i manja aktivnost istog dana, i to više od jednog dana. Vrijedi provjeriti nastambu i vodu i pratiti ovo. ");
+        put("A water or enclosure change around a behaviour change",
+                "Promjena vode ili nastambe uz promjenu ponašanja");
+        put("A change in {0}'s water or enclosure was logged around the same time as a "
+                        + "change in feeding or basking. Turtle behaviour is very sensitive to water "
+                        + "and habitat, so this is useful context to check first. ",
+                "Promjena vode ili nastambe zabilježena je otprilike u isto vrijeme kad i promjena u jedenju ili sunčanju. Ponašanje kornjača jako ovisi o vodi i staništu, pa je ovo koristan podatak koji vrijedi prvo provjeriti. ");
+
+        // Fish (aquarium)
+        put("Spots or fin changes on more than one day",
+                "Točkice ili promjene peraja više od jednog dana");
+        put("You logged spots, fin or scale changes on {0} on more than one day. This is "
+                        + "worth watching, and checking water quality is a good first step. ",
+                "Zabilježene su točkice, promjene peraja ili ljusaka više od jednog dana. Ovo vrijedi pratiti, a dobar prvi korak je provjera kvalitete vode. ");
+        put("Unusual swimming on more than one day",
+                "Neuobičajeno plivanje više od jednog dana");
+        put("{0} was logged swimming unusually, hiding or being less active on more than "
+                        + "one day. This is worth watching, and checking water quality first. ",
+                "Zabilježeno je neuobičajeno plivanje, skrivanje ili manja aktivnost više od jednog dana. Ovo vrijedi pratiti, a najprije provjeriti kvalitetu vode. ");
+        put("{0} has been eating less or refusing food on more than one day. This is worth "
+                        + "watching, and checking water quality is a good first step. ",
+                "Više od jednog dana jede manje ili odbija hranu. Ovo vrijedi pratiti, a dobar prvi korak je provjera kvalitete vode. ");
+        put("A water change around a behaviour change",
+                "Promjena vode uz promjenu ponašanja");
+        put("A water or tank change was logged around the same time as a change in {0}'s "
+                        + "swimming or eating. Aquarium health is mostly water quality, so this is "
+                        + "useful context to check first. ",
+                "Promjena vode ili akvarija zabilježena je otprilike u isto vrijeme kad i promjena u plivanju ili jedenju. Zdravlje u akvariju najviše ovisi o kvaliteti vode, pa je ovo koristan podatak koji vrijedi prvo provjeriti. ");
+
+        // Other small pet (species unknown → nothing urgent)
+        put("Eating less and less active on the same day",
+                "Slabije jedenje i manja aktivnost istog dana");
+        put("{0} was logged as eating less and being less active on the same day, on more "
+                        + "than one day. In a small pet this is worth keeping an eye on. ",
+                "Zabilježeno je slabije jedenje i manja aktivnost istog dana, i to više od jednog dana. Kod malog ljubimca ovo vrijedi pratiti. ");
+        put("Droppings changed on more than one day",
+                "Promjena izmeta više od jednog dana");
+        put("You logged changed, watery or fewer droppings for {0} on more than one day. "
+                        + "This is worth watching, especially if it continues or appears with eating "
+                        + "changes. ",
+                "Zabilježen je promijenjen, vodenast ili rjeđi izmet više od jednog dana. Ovo vrijedi pratiti, osobito ako se nastavi ili se pojavi uz promjene u jedenju. ");
+
+        // Timeline (urgent counterpart) + vet-summary urgent section header
+        put("This is where the days above line up into something worth acting on soon.",
+                "Ovdje se dani iznad slažu u nešto na što je uskoro vrijedno reagirati.");
+        put("URGENT SIGNS NOTED", "ZABILJEŽENI HITNI ZNAKOVI");
     }
 }

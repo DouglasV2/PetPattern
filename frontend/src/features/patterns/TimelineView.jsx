@@ -58,6 +58,16 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
       <h1>{timeline?.title ?? t('What happened before it?')}</h1>
       <p className="lead">{timeline?.subtitle ?? t("PetPattern looks at the days before {name}'s signals changed.", { name: pet.name })}</p>
 
+      {timeline?.severity === 'urgent' && timeline?.urgentNote && (
+        <div className="urgent-banner sev-urgent" role="note">
+          <AlertTriangle size={18} className="urgent-banner-icon" />
+          <div>
+            <strong>{t('Worth acting on soon')}</strong>
+            <p>{timeline.urgentNote}</p>
+          </div>
+        </div>
+      )}
+
       {headline && (
         <article className="panel pattern-card">
           <div className="pattern-top">

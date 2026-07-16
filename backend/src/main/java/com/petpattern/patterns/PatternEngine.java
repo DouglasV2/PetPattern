@@ -14,34 +14,46 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Detects patterns for one pet by dispatching to that species' {@link SpeciesRuleSet}.
+ *
+ * <p>Rule sets are Spring components auto-collected here into a {@code Species -> rule set}
+ * map, so adding a species is a new {@code @Component} with no edits to this class. The
+ * {@code < 7} check-in gate and the ordering are kept from the original engine; the ordering
+ * now leads with {@link Severity} (an urgent sign surfaces as "the most important possible
+ * pattern") before confidence and a stable type tie-break.
+ */
 @Service
 public class PatternEngine {
 
     private final PetRepository petRepository;
     private final DailyCheckInRepository checkInRepository;
     private final FoodLogRepository foodLogRepository;
-    private final SymptomTrendAnalyzer symptomTrendAnalyzer;
-    private final FoodExposureAnalyzer foodExposureAnalyzer;
-    private final CatSymptomAnalyzer catSymptomAnalyzer;
-    private final ObservationPatternAnalyzer observationPatternAnalyzer;
+    private final Map<Species, SpeciesRuleSet> ruleSetsBySpecies;
+    private final SpeciesRuleSet genericRuleSet;
 
     public PatternEngine(PetRepository petRepository,
                          DailyCheckInRepository checkInRepository,
                          FoodLogRepository foodLogRepository,
-                         SymptomTrendAnalyzer symptomTrendAnalyzer,
-                         FoodExposureAnalyzer foodExposureAnalyzer,
-                         CatSymptomAnalyzer catSymptomAnalyzer,
-                         ObservationPatternAnalyzer observationPatternAnalyzer) {
+                         List<SpeciesRuleSet> ruleSets,
+                         GenericStarterRuleSet genericRuleSet) {
         this.petRepository = petRepository;
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
-        this.symptomTrendAnalyzer = symptomTrendAnalyzer;
-        this.foodExposureAnalyzer = foodExposureAnalyzer;
-        this.catSymptomAnalyzer = catSymptomAnalyzer;
-        this.observationPatternAnalyzer = observationPatternAnalyzer;
+        Map<Species, SpeciesRuleSet> map = new EnumMap<>(Species.class);
+        for (SpeciesRuleSet ruleSet : ruleSets) {
+            Species species = ruleSet.species();
+            if (species != null) {
+                map.put(species, ruleSet);
+            }
+        }
+        this.ruleSetsBySpecies = map;
+        this.genericRuleSet = genericRuleSet;
     }
 
     public List<PatternCandidate> analyze(UUID petId) {
@@ -56,32 +68,26 @@ public class PatternEngine {
             return List.of();
         }
 
-        List<PatternCandidate> candidates = new ArrayList<>();
-        if (pet.getSpecies() == Species.CAT) {
-            // Cat rules: cautious, litter/appetite/water/hiding/vomiting focused.
-            catSymptomAnalyzer.appetiteLow(pet, checkIns).ifPresent(candidates::add);
-            catSymptomAnalyzer.waterChange(pet, checkIns).ifPresent(candidates::add);
-            catSymptomAnalyzer.litterBoxChange(pet, checkIns).ifPresent(candidates::add);
-            catSymptomAnalyzer.hidingIncreased(pet, checkIns).ifPresent(candidates::add);
-            catSymptomAnalyzer.repeatedVomiting(pet, checkIns).ifPresent(candidates::add);
-        } else if (pet.getSpecies() == Species.DOG) {
-            // Dog rules.
-            symptomTrendAnalyzer.itchingAboveBaseline(pet, checkIns).ifPresent(candidates::add);
-            symptomTrendAnalyzer.stoolInstability(pet, checkIns).ifPresent(candidates::add);
-            symptomTrendAnalyzer.waterDrop(pet, checkIns).ifPresent(candidates::add);
-            symptomTrendAnalyzer.recurringEarRedness(pet, checkIns).ifPresent(candidates::add);
-            foodExposureAnalyzer.possibleFoodTrigger(pet, checkIns, foodLogs).ifPresent(candidates::add);
-        } else {
-            // Starter species (rabbit, bird, reptile, …): species-neutral repeated
-            // observations from the flexible model. Never runs dog/cat rules on
-            // their data (which would misread empty dog/cat columns).
-            candidates.addAll(observationPatternAnalyzer.analyze(pet, checkIns));
-        }
+        RuleContext ctx = new RuleContext(pet, checkIns, foodLogs);
+        SpeciesRuleSet ruleSet = ruleSetsBySpecies.getOrDefault(pet.getSpecies(), genericRuleSet);
+        List<PatternCandidate> candidates = new ArrayList<>(ruleSet.evaluate(ctx));
 
-        candidates.sort(Comparator
-                .comparing((PatternCandidate candidate) -> confidenceRank(candidate.confidence())).reversed()
+        Comparator<PatternCandidate> bySeverity =
+                Comparator.comparingInt(candidate -> severityRank(candidate.severity()));
+        Comparator<PatternCandidate> byConfidence =
+                Comparator.comparingInt(candidate -> confidenceRank(candidate.confidence()));
+        candidates.sort(bySeverity.reversed()
+                .thenComparing(byConfidence.reversed())
                 .thenComparing(candidate -> candidate.type().name()));
         return candidates;
+    }
+
+    private int severityRank(Severity severity) {
+        return switch (severity) {
+            case URGENT -> 3;
+            case WATCH -> 2;
+            case INFO -> 1;
+        };
     }
 
     private int confidenceRank(PatternConfidence confidence) {

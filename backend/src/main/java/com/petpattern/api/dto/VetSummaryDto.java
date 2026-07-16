@@ -103,7 +103,9 @@ public record VetSummaryDto(
             String type,
             String title,
             String confidence,
-            String summary
+            String summary,
+            String severity,
+            String urgentNote
     ) {
     }
 

@@ -1,4 +1,4 @@
-import { ChevronRight, ImagePlus } from 'lucide-react'
+import { AlertTriangle, ChevronRight, ImagePlus } from 'lucide-react'
 import { t } from '../../i18n'
 import { isStarterSpecies } from '../../speciesProfiles'
 import { starterObservationRows, titleCase } from '../../lib/checkins'
@@ -16,6 +16,7 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
   const dog = species ? species === 'DOG' : /dog/i.test(identity?.species || '')
   const starter = species ? isStarterSpecies(species) : !(cat || dog)
   const observationRows = starter ? starterObservationRows(checkIns) : []
+  const urgentPatterns = (summary.patterns || []).filter((p) => p.severity === 'urgent')
   return (
     <div className="vet-sheet">
       <section className="vet-block vet-report-head">
@@ -158,6 +159,20 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
           <p className="muted">{t('No free-text notes in this period.')}</p>
         )}
       </VetBlock>
+
+      {urgentPatterns.length > 0 && (
+        <VetBlock title={t('Urgent signs noted')}>
+          {urgentPatterns.map((p, index) => (
+            <div className="urgent-banner sev-urgent" role="note" key={`urgent-${index}`}>
+              <AlertTriangle size={18} className="urgent-banner-icon" />
+              <div>
+                <strong>{p.title}</strong>
+                {p.urgentNote && <p>{p.urgentNote}</p>}
+              </div>
+            </div>
+          ))}
+        </VetBlock>
+      )}
 
       <p className="disclaimer">{summary.disclaimer}</p>
     </div>

@@ -399,17 +399,20 @@ public class DevSeedController {
 
             List<Map<String, String>> signals = new ArrayList<>();
             if (windowEarly || windowRecent) {
-                signals.add(obsSignal("appetite_hay", "Appetite / hay", i == 41 ? "refused" : "less", i == 41 ? "moderate" : "mild"));
-                signals.add(obsSignal("poop", "Poop", (i == 14 || i == 42) ? "softer" : "less", "mild"));
+                // Values are the exact speciesProfiles.js option strings the real UI stores,
+                // so the species rules (RABBIT_GI_STASIS_RISK / RABBIT_INTAKE_DROP) fire on
+                // the demo just as they would on a real rabbit owner's logs.
+                signals.add(obsSignal("appetite_hay", "Appetite / hay", i == 41 ? "Refused food" : "Eating less", i == 41 ? "moderate" : "mild"));
+                signals.add(obsSignal("poop", "Poop", (i == 14 || i == 42) ? "Softer" : "Less", "mild"));
             }
             if (windowEarly || i == 40) {
-                signals.add(obsSignal("hiding", "Hiding", "more", "mild"));
+                signals.add(obsSignal("hiding", "Hiding", "More", "mild"));
             }
             if (i == 13 || i == 41) {
-                signals.add(obsSignal("water", "Water", "higher", "mild"));
+                signals.add(obsSignal("water", "Water", "More", "mild"));
             }
             if (i == 44) {
-                signals.add(obsSignal("weight", "Weight", "changed", "mild"));
+                signals.add(obsSignal("weight", "Weight", "Noticed change", "mild"));
             }
             // A visible-change note (owner-observed, safe copy — not a diagnosis) the owner
             // can track over time. Logged on two days so it shows as a small progression and
@@ -441,10 +444,12 @@ public class DevSeedController {
         // Pattern memory keyed like the live analyzer (petId:REPEATED_OBSERVATION:key)
         // so the current detection merges with this recurrence history.
         LocalDate today = LocalDate.now();
-        createObservation(pet, PatternType.REPEATED_OBSERVATION, "REPEATED_OBSERVATION:appetite_hay",
+        // Keyed to the RABBIT_INTAKE_DROP rule (not the old generic key) so the "seen 3x"
+        // memory payoff attaches to the richer species rule that now claims appetite_hay.
+        createObservation(pet, PatternType.STARTER_INTAKE_CHANGE, "RABBIT_INTAKE_DROP",
                 today.minusDays(30), today, 3, "MEDIUM",
-                "Recurring change: Appetite / hay",
-                "Appetite, hay and poop changes were logged in more than one tracked period. "
+                "Eating less on more than one day",
+                "Appetite and hay intake were logged as lower in more than one tracked period. "
                         + "This is not a diagnosis, but it may be worth discussing with your vet.");
         createObservation(pet, PatternType.REPEATED_OBSERVATION, "REPEATED_OBSERVATION:poop",
                 today.minusDays(26), today, 2, "LOW",

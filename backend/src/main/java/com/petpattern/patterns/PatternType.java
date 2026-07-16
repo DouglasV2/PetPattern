@@ -15,5 +15,14 @@ public enum PatternType {
     REPEATED_VOMITING,
     // Species-neutral (starter species): an owner-observed signal from the flexible
     // observations model that repeated across more than one day. Non-diagnostic.
-    REPEATED_OBSERVATION
+    REPEATED_OBSERVATION,
+    // Starter-species coarse categories. The specific rule identity is the frozen
+    // ruleId inside the candidate id (petId:ruleId); this enum is only the small,
+    // switchable/stored coarse type each rule reports as. Additive — see RuleTag.
+    STARTER_URGENT_SIGN,
+    STARTER_INTAKE_CHANGE,
+    STARTER_OUTPUT_CHANGE,
+    STARTER_BODY_CONDITION,
+    STARTER_BEHAVIOR_CHANGE,
+    STARTER_ENV_CONTEXT
 }

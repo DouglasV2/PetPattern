@@ -341,7 +341,8 @@ public class VetSummaryService {
     private List<VetSummaryDto.PatternSummary> patternSummaries(List<PatternCandidate> patterns) {
         return patterns.stream()
                 .map(c -> new VetSummaryDto.PatternSummary(
-                        c.type().name(), c.title(), c.confidence().name(), c.summary()))
+                        c.type().name(), c.title(), c.confidence().name(), c.summary(),
+                        c.severity().name().toLowerCase(java.util.Locale.ROOT), c.urgentNote()))
                 .toList();
     }
 
@@ -472,6 +473,9 @@ public class VetSummaryService {
                 case HIDING_INCREASED -> Copy.t("{0} has been hiding more than usual, which the owner wants to review.", pet.getName());
                 case REPEATED_VOMITING -> Copy.t("{0} vomited on more than one recent day, which the owner wants to review.", pet.getName());
                 case REPEATED_OBSERVATION -> Copy.t("A recurring change the owner logged that they want to review.");
+                // Starter-species rules already build a cautious owner-facing summary; reuse it
+                // so the concern line stays specific and this switch stays exhaustive-safe.
+                default -> top.summary();
             };
         }
         if (stoolSummary.softDays() + stoolSummary.diarrheaDays() > 0
@@ -618,6 +622,21 @@ public class VetSummaryService {
             }
         }
         out.append("\n");
+
+        List<VetSummaryDto.PatternSummary> urgent = patterns.stream()
+                .filter(p -> "urgent".equals(p.severity()))
+                .toList();
+        if (!urgent.isEmpty()) {
+            out.append(Copy.t("URGENT SIGNS NOTED")).append('\n');
+            for (VetSummaryDto.PatternSummary pattern : urgent) {
+                out.append("- ").append(pattern.title());
+                if (pattern.urgentNote() != null && !pattern.urgentNote().isBlank()) {
+                    out.append(": ").append(pattern.urgentNote());
+                }
+                out.append("\n");
+            }
+            out.append("\n");
+        }
 
         out.append(Copy.t("DISCLAIMER")).append('\n');
         out.append(disclaimer()).append("\n");

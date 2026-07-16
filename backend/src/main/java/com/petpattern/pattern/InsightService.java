@@ -5,6 +5,7 @@ import com.petpattern.domain.Pet;
 import com.petpattern.i18n.Copy;
 import com.petpattern.patterns.PatternCandidate;
 import com.petpattern.patterns.PatternEngine;
+import com.petpattern.patterns.Severity;
 import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.PetRepository;
 import org.springframework.http.HttpStatus;
@@ -71,11 +72,15 @@ public class InsightService {
     }
 
     private String severity(PatternCandidate candidate) {
+        // An urgent sign leads regardless of type; otherwise the food-trigger keeps its
+        // "pattern" token and everything else is "watch". The default arm keeps this
+        // exhaustive-safe as new starter pattern types are added.
+        if (candidate.severity() == Severity.URGENT) {
+            return "urgent";
+        }
         return switch (candidate.type()) {
             case POSSIBLE_FOOD_TRIGGER -> "pattern";
-            case ITCHING_ABOVE_BASELINE, STOOL_INSTABILITY, WATER_DROP, RECURRING_EAR_REDNESS,
-                 APPETITE_LOW, WATER_CHANGE, LITTER_BOX_CHANGE, HIDING_INCREASED, REPEATED_VOMITING,
-                 REPEATED_OBSERVATION -> "watch";
+            default -> "watch";
         };
     }
 }
