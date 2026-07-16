@@ -3,6 +3,11 @@ export default {
   // Phase 1 — urgent-care tier
   'Worth acting on soon': 'Vrijedi reagirati uskoro',
   'Urgent signs noted': 'Zabilježeni hitni znakovi',
+  // Phase 4 — native daily reminder
+  'Daily reminder': 'Dnevni podsjetnik',
+  'Reminder on': 'Podsjetnik uključen',
+  'A daily reminder at your chosen time.': 'Dnevni podsjetnik u vrijeme koje odabereš.',
+  'Allow notifications to get a daily reminder.': 'Dopusti obavijesti za dnevni podsjetnik.',
   // Brand / shell
   'PetPattern': 'PetPattern',
   'Private health memory for dogs': 'Privatna zdravstvena memorija za pse',

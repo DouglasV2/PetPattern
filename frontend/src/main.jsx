@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import App from './App.jsx'
+import { initMobile } from './lib/mobile'
 import './styles/index.css'
 
 // Error tracking is optional and env-driven: with no VITE_SENTRY_DSN set (dev),
@@ -38,6 +39,9 @@ if (dsn) {
     }
   })
 }
+
+// Native shell setup (status bar + deep-link routing). A no-op on the web.
+initMobile()
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>

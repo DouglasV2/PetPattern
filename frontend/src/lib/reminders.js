@@ -1,4 +1,5 @@
 import { t } from '../i18n'
+import { shouldRemind, localDateKey, reminderBody } from './reminderSchedule'
 
 export function nudgeText(pet, daysSince) {
   if (daysSince == null) return t("Start {name}'s memory with a quick check-in.", { name: pet.name })
@@ -25,24 +26,30 @@ export function saveReminder(key, pref) {
 }
 
 export function maybeNotify(pet, pref, loggedToday, key) {
-  if (loggedToday || !pref.enabled) return
-  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
-  if (!/^\d{2}:\d{2}$/.test(pref.time)) return // ignore a cleared/invalid time
-  const now = new Date()
-  const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  if (hhmm < pref.time) return
-  const today = now.toISOString().slice(0, 10)
   const notifiedKey = `${key}.notified`
+  let lastNotified = null
   try {
-    if (localStorage.getItem(notifiedKey) === today) return
+    lastNotified = localStorage.getItem(notifiedKey)
   } catch (err) {
+    return // storage blocked — can't de-dup safely, so don't risk a repeat nudge
+  }
+  const permission = typeof Notification === 'undefined' ? 'unsupported' : Notification.permission
+  const now = new Date()
+  if (!shouldRemind({
+    enabled: pref.enabled,
+    time: pref.time,
+    permission,
+    loggedToday,
+    lastNotifiedDate: lastNotified,
+    now
+  })) {
     return
   }
   // Construct first; only mark the day as done if the notification actually
   // fired, so a browser that throws here doesn't silently swallow the reminder.
   try {
-    new Notification('PetPattern', { body: t("Time for {name}'s daily check-in.", { name: pet.name }) })
-    try { localStorage.setItem(notifiedKey, today) } catch (err) { /* ignore blocked storage */ }
+    new Notification('PetPattern', { body: reminderBody(pet.name, t) })
+    try { localStorage.setItem(notifiedKey, localDateKey(now)) } catch (err) { /* ignore blocked storage */ }
   } catch (err) {
     // some browsers require a service worker for Notification construction; ignore
   }

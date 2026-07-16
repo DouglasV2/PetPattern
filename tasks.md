@@ -405,7 +405,7 @@ Empirical 20-user load test + DB-optimization review + multi-agent security audi
 
 ## Beta hardening — branch `feature/beta-hardening` (IN PROGRESS — HANDOFF for a new chat)
 
-Continuation of the 6-phase "senior-engineer beta + mobile hardening" brief. Branch off `main@f3fcac4`, **not merged, not pushed, `main` untouched**. Requested order: **5 → 3 → 2 → 1 → 6 → 4**. DONE so far: audit, security preflight, Phase 5, Phase 3, Phase 2, **Phase 1**, **Phase 6**. **▶ NEXT: Phase 4** (mobile/notifications), then the final Croatian production-readiness report.
+Continuation of the 6-phase "senior-engineer beta + mobile hardening" brief. Branch off `main@f3fcac4`, **not merged, not pushed, `main` untouched**. Requested order: **5 → 3 → 2 → 1 → 6 → 4**. DONE so far: audit, security preflight, Phase 5, Phase 3, Phase 2, **Phase 1**, **Phase 6**, **Phase 4**. **▶ NEXT: the final Croatian production-readiness report** (full regression + 16-section report).
 
 ### Environment & gotchas (READ FIRST)
 - **No local Maven/Java** — backend builds/tests via Docker: `docker compose build backend` runs `mvn clean package` (full suite; a failing test fails the build). Fast single test: `docker run --rm -v "$(pwd)/backend:/app" -v maven-repo:/root/.m2 -w /app maven:3.9.9-eclipse-temurin-21 mvn -q test -Dtest=SomeTest` (Git Bash; prefix `MSYS_NO_PATHCONV=1` if the `-w` path mangles).
@@ -423,6 +423,25 @@ Continuation of the 6-phase "senior-engineer beta + mobile hardening" brief. Bra
 - **Phase 3 — simplify Today** (`81a4749`) — primary action high → confirmation → progress → ONE insight (weekly→seen-before→note) → collapsible `<details>` "More about {name} today" holding the rest. Verified live. Nothing removed.
 - **Phase 2 — first-week payoff** (`96f16ea`,`96310b0`,`42a6e38`) — honest milestones pinned to real engine gates (1→7 global→14 dog-trend→21+2-food dog-food-trigger; cats/starter terminal at 7): `MilestoneCalculator` (pure) + `PatternMemoryProgress` DTO (12th overview field) + `PatternMemoryProgress.jsx` + RetentionStrip de-dup + onboarding explainer. 57 FE tests + backend suite green. Adversarial honesty review: gamification/diagnosis LOW.
 - **Phase 1 — species-specific pattern logic** — `SpeciesRuleSet` registry (Spring-collected `Map<Species,SpeciesRuleSet>`; a new species is one `@Component`, zero engine edits) replaces the dog/cat/starter if-else. `DogRuleSet`/`CatRuleSet` are byte-identical adapters over the existing analyzers (dog regression verified clean). The 8 starter species get data-grounded rules built ONLY from real `speciesProfiles.js` signals: rabbit/GP GI-stasis (URGENT) + intake/dental/behaviour; hamster wet-tail (URGENT) + lump/weight; bird breathing + sick-posture (URGENT) + feather/quiet; reptile feeding-refusal + thermal-context (INFO); turtle enclosure-context (INFO) + shell; fish spot-fin/swimming + water-context (INFO); other-small-pet + the preserved generic `REPEATED_OBSERVATION`. New orthogonal `Severity{INFO,WATCH,URGENT}` (URGENT only from a plain, countable **same-day co-occurrence pinned to the last 7 days** — never inference, never names a condition in owner copy) surfaced on `PatternResponse`, `InsightService` ("urgent"), the timeline (urgent banner + event tier), and a vet-summary "URGENT SIGNS NOTED" block. `PatternCandidate` gains `severity`+`urgentNote` via a 10-arg convenience ctor (all old call sites untouched, WATCH/null); severity leads the engine sort so an urgent sign is "the most important possible pattern". 4 switch `default` arms + urgent-window pinning (the 2 "important" review fixes). ~60 HR strings. **Design corrections forced by the code:** turtle collects no temperature/humidity → its context rule uses `water_enclosure`; rules match the exact option strings the real UI stores (verified `StarterGuidedFields.jsx`). Rabbit demo seed corrected to real option strings + memory re-keyed to `RABBIT_INTAKE_DROP` so the demo shows the urgent sign + the "seen 3×" payoff honestly. **Verified: backend 137 tests green, FE 57 green, live end-to-end (rabbit urgent path EN+HR, Today insight, timeline banner, vet URGENT block, dog regression clean).** No-AI-voice review applied 3 confirmed voice fixes; the full 5-lens adversarial pass was cut short by an API session limit and the remaining lenses (correctness/medical-safety/HR/backward-compat) were covered by direct self-review + the live checks. Files: +21 new backend classes + 7 new test files, ~15 touched (+ frontend TimelineView/VetSheet/checkins.css/hr.js).
+
+### ✅ Phase 4 — mobile (Capacitor) + native notifications (DONE — per the design's verifiable scope)
+
+Turned the deps-only Capacitor state into a real native foundation, delivering config + docs +
+**tested** scheduling logic, honestly marked verified vs generated (no device/emulator here).
+- **Tested (verified):** `reminderSchedule.js` — pure, timezone-safe decision logic (`shouldRemind`
+  guards + `nextReminderAt` + neutral `reminderBody`), unit-tested (`reminderSchedule.test.js`, 8
+  cases). `reminders.js` refactored onto it (fixes the old UTC/local dedup mix). Frontend 65 tests
+  green, build green.
+- **Generated (not runnable here):** `capacitor.config.json` (appId/appName/webDir=dist + plugin
+  config); `nativeNotifications.js` (opt-in daily local notification via the runtime
+  `Capacitor.Plugins.LocalNotifications` — no new npm dep, lockfile untouched; guarded, neutral
+  lock-screen text, never fires when off/unpermitted/logged); `mobile.js` (deep-link routing for
+  `#reset=`/`#shared=` + status bar); `ReminderControl` layers native scheduling over the web path
+  without changing web behaviour; `initMobile()` wired in `main.jsx`.
+- **Already in place (verified):** `VITE_API_BASE` + `X-Session-Token` mobile auth (`api.js`);
+  safe-area/notch/tap-target CSS (`capacitor.css`, `env()`→0 on web).
+- Google sign-in stays a web-redirect flow (documented). `docs/mobile.md`: build steps, plugin
+  install, API base, deep links, and the verified/generated table. EN+HR reminder copy.
 
 ### ✅ Phase 6 — privacy-safe analytics + retention (DONE)
 

@@ -1,0 +1,19 @@
+{
+  "appId": "app.petpattern.mobile",
+  "appName": "PetPattern",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#2f6f6a"
+    },
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#fbf7f0",
+      "showSpinner": false
+    }
+  }
+}
