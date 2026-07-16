@@ -21,7 +21,7 @@ const STAGE_COPY = {
     next: "About two more weeks of logged days lets PetPattern compare {name}'s recent days against a month-long baseline."
   },
   trend_baseline: {
-    headline: "Two weeks of {name}'s days are on record",
+    headline: "Building up what's usual for {name}",
     body: "That's most of what the trend comparison needs for a dog — it looks at how {name}'s recent days compare with their usual range over about a month. A few more logged days and it has enough.",
     next: 'Log food changes too — with about three weeks on record and the same food seen twice, PetPattern can line a protein up against how {name} did afterward.'
   },
@@ -77,7 +77,7 @@ function PatternMemoryProgress({ pet, progress }) {
         </div>
       )}
 
-      {logsToNextStage > 0 && <p className="muted pattern-memory-next">{t(copy.next, vars)}</p>}
+      {nextStageAt > 0 && <p className="muted pattern-memory-next">{t(copy.next, vars)}</p>}
 
       <p className="muted pattern-memory-caption">
         {t('Days that are the same as usual are just as useful — they are what "different" gets measured against.')}
