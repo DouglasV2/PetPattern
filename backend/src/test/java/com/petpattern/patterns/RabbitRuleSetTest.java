@@ -132,6 +132,19 @@ class RabbitRuleSetTest {
     }
 
     @Test
+    void anUnfiredRuleDoesNotClaimItsKeyFromTheGenericPass() {
+        // RABBIT_INTAKE_DROP matches within(14) days; two "Eating less" days ~16-19 days ago are
+        // outside its window (so it does NOT fire) but inside the generic 21-day pass. The key
+        // must not be claimed by the unfired rule, so the recurrence still surfaces generically.
+        List<PatternCandidate> found = evaluate(
+                day(19, sig("appetite_hay", "Eating less")),
+                day(16, sig("appetite_hay", "Eating less")));
+        assertTrue(rule(found, "RABBIT_INTAKE_DROP").isEmpty(), "the intake rule is outside its 14-day window");
+        assertTrue(found.stream().anyMatch(c -> c.id().endsWith(":REPEATED_OBSERVATION:appetite_hay")),
+                "an unfired rule must not claim its key, so the generic pass still surfaces the recurrence");
+    }
+
+    @Test
     void malformedJsonIsToleratedWithoutCrashing() {
         DailyCheckIn broken = new DailyCheckIn();
         broken.setCheckInDate(LocalDate.now().minusDays(1));

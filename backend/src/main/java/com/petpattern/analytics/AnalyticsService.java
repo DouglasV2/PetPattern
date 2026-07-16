@@ -38,6 +38,9 @@ public class AnalyticsService {
 
     private static final Set<String> PLATFORMS = Set.of("web", "android", "ios");
     private static final Set<String> CHECKIN_MODES = Set.of("quick", "full", "changed", "same_as_yesterday");
+    // appVersion is client-supplied; constrain it to a version shape so it can never become a
+    // free-text (e.g. email) sink, keeping the "allow-listed values only" guarantee airtight.
+    private static final java.util.regex.Pattern APP_VERSION = java.util.regex.Pattern.compile("^[0-9A-Za-z.+_-]{1,20}$");
 
     private final AnalyticsEventRepository repository;
     private final ObjectMapper objectMapper;
@@ -89,7 +92,7 @@ public class AnalyticsService {
             event.setOccurredAt(now);
             event.setOccurredOn(now.atZone(ZoneOffset.UTC).toLocalDate());
             event.setPlatform(PLATFORMS.contains(platform) ? platform : "web");
-            event.setAppVersion(clip(appVersion, 20));
+            event.setAppVersion(safeAppVersion(appVersion));
             event.setSchemaVersion(SCHEMA_VERSION);
             event.setMeta(filterMeta(meta));
             repository.save(event);
@@ -136,6 +139,12 @@ public class AnalyticsService {
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    /** Store the app version only if it looks like a version string, else null. */
+    private static String safeAppVersion(String appVersion) {
+        String clipped = clip(appVersion, 20);
+        return (clipped != null && APP_VERSION.matcher(clipped).matches()) ? clipped : null;
     }
 
     private static boolean isSpecies(String value) {

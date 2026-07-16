@@ -137,7 +137,14 @@ function App() {
   const topPattern = overview?.patterns?.[0] ?? patterns.find((pattern) => !isDismissedStatus(pattern.status))
 
   useEffect(() => {
-    const onHashChange = () => setView(hashView())
+    const onHashChange = () => {
+      // A #reset= link can arrive at runtime (a native deep link sets the hash after
+      // mount), so capture the token here too — not only at mount. Held in state so the
+      // reset view survives the URL being stripped, exactly like the load-time capture.
+      const token = resetTokenFromHash()
+      if (token) setResetToken(token)
+      setView(hashView())
+    }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])

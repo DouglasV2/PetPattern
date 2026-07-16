@@ -19,7 +19,6 @@ public class HamsterRuleSet implements SpeciesRuleSet {
     private static final Set<String> DROPPINGS_WATERY = SignalWindow.values("Watery");
     private static final Set<String> APPETITE_REDUCED = SignalWindow.values("Eating less", "Refused food");
     private static final Set<String> ACTIVITY_LOW = SignalWindow.values("Less active");
-    private static final Set<String> FUR_SKIN_CHANGE = SignalWindow.values("Change noticed");
     private static final Set<String> WEIGHT_CHANGED = SignalWindow.values("Noticed change");
 
     private final StarterRuleEngine engine;
@@ -98,8 +97,10 @@ public class HamsterRuleSet implements SpeciesRuleSet {
                         Severity.WATCH,
                         Set.of(),
                         1,
-                        window -> window.within(21).visibleChangeDays("SWELLING", Set.of())
-                                .union(window.within(21).daysMatching("fur_skin", FUR_SKIN_CHANGE)),
+                        // A logged swelling (the universal visible-change SWELLING flow). Plain
+                        // fur/skin "change noticed" days stay with the generic REPEATED_OBSERVATION
+                        // pass so one signal is never reported as two cards.
+                        window -> window.within(21).visibleChangeDays("SWELLING", Set.of()),
                         StarterRule.WATCH_CONFIDENCE,
                         (pet, days) -> StarterRule.RuleCopy.of(
                                 Copy.t("A lump or skin change you noticed"),

@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 /**
@@ -49,6 +50,11 @@ public class AnalyticsController {
         Owner owner = petAccess.currentOwner();
         AnalyticsEventType type = AnalyticsEventType.fromWire(request.type())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown event type"));
+        // Milestones (registration, deletion) are recorded server-side and are authoritative;
+        // a client must not be able to self-report them (false churn / pre-empting the real one).
+        if (type.isOncePerRef()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That event is recorded automatically");
+        }
         analyticsService.record(owner.getId(), type, request.platform(), request.appVersion(),
                 request.meta() == null ? Map.of() : request.meta());
         return ResponseEntity.accepted().build();
@@ -64,7 +70,9 @@ public class AnalyticsController {
         if (!constantTimeEquals(adminToken, token)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
-        return reportService.report(LocalDate.now());
+        // UTC to match the UTC-bucketed occurred_on, so retention day math is correct
+        // regardless of the JVM default zone.
+        return reportService.report(LocalDate.now(ZoneOffset.UTC));
     }
 
     private static boolean constantTimeEquals(String expected, String provided) {

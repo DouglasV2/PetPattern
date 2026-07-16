@@ -796,7 +796,7 @@ public final class Copy {
         put("You recorded {0} eating less and passing fewer, smaller, or changed "
                         + "droppings on the same day. In rabbits, eating less together with fewer "
                         + "droppings is a well-known warning sign. ",
-                "Istog dana zabilježeno je da jede manje i da izlučuje manje, sitnije ili promijenjene fekalije. Kod zečeva je smanjeno jedenje zajedno s manje izmeta dobro poznat znak upozorenja. ");
+                "Istog dana zabilježeno je da jede manje i da izlučuje manje, sitnije ili promijenjene kuglice izmeta. Kod zečeva je smanjeno jedenje zajedno s manje izmeta dobro poznat znak upozorenja. ");
         put("In rabbits, eating less together with fewer or changed droppings is the "
                         + "kind of change many rabbit vets say not to wait on. ",
                 "Kod zečeva je smanjeno jedenje uz manje ili promijenjen izmet promjena s kojom mnogi veterinari za zečeve savjetuju da se ne čeka. ");
@@ -820,7 +820,7 @@ public final class Copy {
         put("You recorded {0} eating less and passing fewer, smaller, or changed "
                         + "droppings on the same day. In guinea pigs, eating less together with fewer "
                         + "droppings is a well-known warning sign. ",
-                "Istog dana zabilježeno je da jede manje i da izlučuje manje, sitnije ili promijenjene fekalije. Kod zamoraca je smanjeno jedenje zajedno s manje izmeta dobro poznat znak upozorenja. ");
+                "Istog dana zabilježeno je da jede manje i da izlučuje manje, sitnije ili promijenjene kuglice izmeta. Kod zamoraca je smanjeno jedenje zajedno s manje izmeta dobro poznat znak upozorenja. ");
         put("In guinea pigs, eating less together with fewer or changed droppings is the "
                         + "kind of change many exotic vets say not to wait on. ",
                 "Kod zamoraca je smanjeno jedenje uz manje ili promijenjen izmet promjena s kojom mnogi veterinari za egzotične životinje savjetuju da se ne čeka. ");

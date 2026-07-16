@@ -47,9 +47,13 @@ public class StarterRuleEngine {
         List<PatternCandidate> out = new ArrayList<>();
         Set<String> claimed = new HashSet<>();
         for (StarterRule rule : rules) {
-            claimed.addAll(rule.claimedKeys());
             RuleHit hit = rule.match().apply(window);
             if (hit.fired(rule.minDays())) {
+                // Claim the rule's keys only when it actually reports. A rule with a narrower
+                // window than the generic 21-day pass might not fire on days the generic still
+                // sees; claiming unconditionally would then suppress the generic candidate too
+                // and the recurrence would surface nowhere.
+                claimed.addAll(rule.claimedKeys());
                 out.add(toCandidate(ctx.pet(), rule, hit));
             }
         }
