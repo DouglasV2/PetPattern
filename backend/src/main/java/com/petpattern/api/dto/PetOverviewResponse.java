@@ -13,6 +13,7 @@ public record PetOverviewResponse(
         RetentionSummary retention,
         String goodNews,
         String watchOut,
-        WeeklyInsight weeklyInsight
+        WeeklyInsight weeklyInsight,
+        PatternMemoryProgress patternMemory
 ) {
 }

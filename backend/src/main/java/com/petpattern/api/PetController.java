@@ -18,6 +18,7 @@ import com.petpattern.domain.Sex;
 import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
+import com.petpattern.patterns.MilestoneCalculator;
 import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.patterns.WeeklyInsightService;
 import com.petpattern.repository.ActivityLogRepository;
@@ -140,6 +141,13 @@ public class PetController {
         List<ActivityLog> recentActivities =
                 activityLogRepository.findByPetAndOccurredDateGreaterThanEqualOrderByOccurredDateAsc(pet, today.minusDays(30));
 
+        // Mirrors the pattern engine's own 120-day trailing window (PatternEngine.analyze),
+        // so "useful logs" honestly reflects what the engine actually considered.
+        int usefulLogs = checkInRepository
+                .findByPetAndCheckInDateGreaterThanEqualOrderByCheckInDateAsc(pet, today.minusDays(120)).size();
+        int foodLogsRecorded = foodLogRepository
+                .findByPetAndDateStartedGreaterThanEqualOrderByDateStartedAsc(pet, today.minusDays(120)).size();
+
         String status = todayStatus(latestCheckIn, patterns);
         return new PetOverviewResponse(
                 PetResponse.from(pet),
@@ -152,7 +160,8 @@ public class PetController {
                 retention(pet),
                 goodNews(pet, recentCheckIns),
                 watchOut(pet, recentFoodLogs),
-                weeklyInsightService.generate(pet, recentCheckIns, recentActivities)
+                weeklyInsightService.generate(pet, recentCheckIns, recentActivities),
+                MilestoneCalculator.buildStage(pet.getSpecies(), usefulLogs, foodLogsRecorded, patterns.size())
         );
     }
 
