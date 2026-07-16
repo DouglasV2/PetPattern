@@ -12,7 +12,7 @@
 
 Ovo je nastavak šestofaznog "senior-engineer beta + mobile hardening" zadatka. U ranijim chatovima završene su faze 5 (razdvajanje frontend monolita), 3 (pojednostavljenje ekrana "Danas") i 2 (isplativost prvog tjedna), plus audit i sigurnosni preflight. U ovoj sjednici implementirane su i verificirane **Faza 1** (pravila po vrstama + hitni sloj), **Faza 6** (privatna analitika + retencija) i **Faza 4** (mobilni temelj + obavijesti).
 
-Rezultat: backend testni paket **146 testova zeleno**, frontend **65 testova zeleno**, sve tri nove faze verificirane uživo od kraja do kraja. Grana je stabilna i spremna za preuzimanje/deploy uz ručne korake iz odjeljka 14.
+Rezultat: backend testni paket **147 testova zeleno**, frontend **65 testova zeleno**, sve tri nove faze verificirane uživo od kraja do kraja. Grana je stabilna i spremna za preuzimanje/deploy uz ručne korake iz odjeljka 14.
 
 ## 2. Grana i commitovi (ova sjednica)
 
@@ -59,12 +59,12 @@ Iz stanja "samo dependencije" u pravi nativni temelj: **konfiguracija + dokument
 
 ## 7. Testiranje i verifikacija
 
-- **Backend:** `docker compose build backend` (pokreće `mvn clean package`, cijeli paket) → **146 testova, 0 grešaka**. Novi testovi: SignalWindow, Rabbit/Hamster/Bird RuleSet, StarterRules, PatternResponseSeverity, CatSymptomAnalyzer, FoodExposureAnalyzer, Analytics(Service/Report/EventType).
+- **Backend:** `docker compose build backend` (pokreće `mvn clean package`, cijeli paket) → **147 testova, 0 grešaka**. Novi testovi: SignalWindow, Rabbit/Hamster/Bird RuleSet, StarterRules, PatternResponseSeverity, CatSymptomAnalyzer, FoodExposureAnalyzer, Analytics(Service/Report/EventType).
 - **Frontend:** `npm run build` zeleno; `npm test` (Vitest) → **65 testova zeleno** (uklj. novih 8 za `reminderSchedule`).
 - **Uživo (curl + preglednik):**
   - Zec "Poppy": hitni GI-staza obrazac vodi na "Danas" → listu obrazaca → **hitni baner na vremenskoj crti** → "HITNI ZNAKOVI" u vet sažetku, na EN i HR. Regresija za psa (Bella) čista.
   - Analitika: V14 se primjenjuje, svih 7 funnel događaja se bilježi, ingest 202/400/401, izvještaj 403/JSON, oblik retencije ispravan, **nema PII-a u izvještaju**.
-- **Adversarijalni pregled (Faza 1):** peterolensni pregled prekinut je limitom API sesije; dovršila se lensa "no-AI-voice" (primijenjena 3 potvrđena ispravka glasa), ostale lense pokrivene su izravnim samopregledom + prolaznim testovima + verifikacijom uživo.
+- **Adversarijalni pregled (8 lensi, Faza 1/6/4, find → verify):** 12 potvrđenih nalaza (1 HIGH), 1 opovrgnut (jednosignalni URGENT za pticu je namjeran izuzetak za vitalni znak). Svi potvrđeni ispravljeni (commit `99235cb`) i verificirani: HIGH bug u `StarterRuleEngine` (ključ se preuzimao prije provjere je li pravilo okinulo → gubitak ponavljajućeg signala u uskom prozoru; + regresijski test); hamster lump samo visible_change; analitika (UTC retencija, ingest odbija milestone događaje, `appVersion` validiran da ne bude PII sink); pravila privatnosti (zadržavanje nakon brisanja + `species`); nativni `#reset=` deep-link; HR "fekalije"→"kuglice izmeta".
 
 ## 8. Migracije baze
 
@@ -131,7 +131,7 @@ curl -H "X-Analytics-Token: dev-analytics-token" http://127.0.0.1:8317/api/analy
 
 ## 15. Poznati nedostaci / follow-ups
 
-- Adversarijalni peterolensni pregled Faze 1 nije u cijelosti dovršen (limit sesije); može se ponovno pokrenuti kad se limit resetira.
+- Adversarijalni pregled (8 lensi, Faza 1/6/4) je dovršen; svih 12 potvrđenih nalaza ispravljeno (commit `99235cb`). Dva svjesno NISU mijenjana: nisko "on the same day, on more than one day" (gramatički ispravno; lockstep izmjena HR ključeva ne isplati se uz rizik fallbacka na engleski) i pred-postojeći manjak HR ključeva za visible-change nizove (nije uvedeno ovim diffom — zaseban i18n zadatak).
 - Retencija je mjerljiva čim postoji višednevni podatak; svježa demo-instalacija prikazuje kohorte 0 za D1/D7/D30 (točno ponašanje, dokazano unit testom).
 - Naslijeđeni frontend beacon (`analytics.js` prema `VITE_ANALYTICS_URL`) ostaje kao zaseban, opcionalan sink.
 - Nativni mobilni buildovi nisu provjerljivi ovdje (nema uređaja).
@@ -143,10 +143,10 @@ curl -H "X-Analytics-Token: dev-analytics-token" http://127.0.0.1:8317/api/analy
 | Faza 5 — razdvajanje monolita | ZAVRŠENO | ranije, na grani |
 | Faza 3 — Danas | ZAVRŠENO | ranije, na grani |
 | Faza 2 — isplativost 1. tjedna | ZAVRŠENO | ranije, na grani |
-| Faza 1 — pravila po vrstama + hitni sloj | ZAVRŠENO | 146 backend testova + uživo EN/HR + regresija psa |
+| Faza 1 — pravila po vrstama + hitni sloj | ZAVRŠENO | 147 backend testova + uživo EN/HR + regresija psa |
 | Faza 6 — analitika + retencija | ZAVRŠENO | uživo funnel/ingest/izvještaj + unit-testirana retencija |
 | Faza 4 — mobilni temelj + obavijesti | DJELOMIČNO | logika testirana; nativni buildovi nisu provjerljivi (nema uređaja) |
 | Migracije od nule (V1–V14) | ZAVRŠENO | 14 migracija primijenjeno na čistom volumenu; sve faze rade |
-| Adversarijalni pregled Faze 1 (5 lensi) | DJELOMIČNO | 1 lensa dovršena + primijenjena; ostalo samopregledom (limit sesije) |
+| Adversarijalni pregled (Faza 1/6/4, 8 lensi) | ZAVRŠENO | 12 nalaza ispravljeno (1 HIGH), 1 opovrgnut; commit `99235cb` |
 
-**Zaključak:** **PASS za beta.** Sve implementirane faze su i testirane (backend 146 / frontend 65 testova zeleno, verifikacija uživo EN+HR, čista instalacija od nule prolazi). Dvije stavke su DJELOMIČNE isključivo iz okolišnih razloga: nativni mobilni buildovi (nema uređaja/emulatora — isporučeni su konfiguracija, dokumentacija i testirana logika) i dovršetak peterolensnog adversarijalnog pregleda Faze 1 (limit API sesije — pokriveno izravnim samopregledom + testovima + verifikacijom). Grana `feature/beta-hardening` je stabilna, bootabilna od nule i spremna za preuzimanje/deploy uz ručne korake iz odjeljka 14.
+**Zaključak:** **PASS za beta.** Sve implementirane faze su i testirane (backend **147** / frontend **65** testova zeleno, verifikacija uživo EN+HR, čista instalacija od nule prolazi), a osamostavni adversarijalni pregled (8 lensi) dovršen je s 12 ispravljenih nalaza. Jedina DJELOMIČNA stavka su nativni mobilni buildovi — isključivo iz okolišnog razloga (nema uređaja/emulatora; isporučeni su konfiguracija, dokumentacija i testirana logika). Grana `feature/beta-hardening` je stabilna, bootabilna od nule i spremna za preuzimanje/deploy uz ručne korake iz odjeljka 14.
