@@ -268,13 +268,46 @@ class ImmediateObservationServiceTest {
         assertTrue(analyzeHistorical(rabbit, threeDays).isEmpty(),
                 "the historical engine stays blocked below seven check-ins even though an urgent sign is present");
 
-        // With enough history, the historical layer is allowed to speak (independent criteria met).
+        // Even ABOVE the ≥7 gate, a SINGLE urgent record is still not a recurring pattern. The gate
+        // opening must not turn one urgent day into a persisted pattern just because older normal
+        // logs exist — that separation is the release blocker this test guards.
         List<DailyCheckIn> eightDays = new ArrayList<>(threeDays);
         for (int daysAgo = 6; daysAgo <= 10; daysAgo++) {
             eightDays.add(starterDay(daysAgo, sig("water", "Normal")));
         }
-        assertFalse(analyzeHistorical(rabbit, eightDays).isEmpty(),
-                "with adequate history the historical layer can surface a pattern");
+        assertTrue(analyzeHistorical(rabbit, eightDays).stream()
+                        .noneMatch(c -> c.id().endsWith(":RABBIT_GI_STASIS_RISK")),
+                "a lone urgent record must never be persisted as a recurring pattern, even with ≥7 logs");
+    }
+
+    /**
+     * Release blocker (WP7): seven ordinary check-ins plus ONE urgent record. The immediate layer
+     * must react to the urgent record, but the historical engine must NOT persist it as a recurring
+     * pattern — one urgent day is not repetition across separate records.
+     */
+    @Test
+    void sevenNormalPlusOneUrgentSurfacesImmediateButNoPersistedRecurringPattern() {
+        Pet rabbit = pet(Species.RABBIT, "Bun");
+        List<DailyCheckIn> records = new ArrayList<>();
+        // Seven ordinary days — nothing changes, so nothing is worth persisting on its own.
+        for (int daysAgo = 7; daysAgo >= 1; daysAgo--) {
+            records.add(starterDay(daysAgo, sig("water", "Normal")));
+        }
+        // One urgent GI-stasis day (today).
+        records.add(starterDay(0, sig("appetite_hay", "Eating less"), sig("poop", "Less")));
+
+        // (1) The immediate observation exists.
+        assertTrue(service.evaluate(rabbit, records, List.of()).stream()
+                        .anyMatch(o -> o.id().endsWith(":RABBIT_GI_STASIS_RISK")),
+                "one urgent record must surface in the immediate layer right away");
+
+        // (2) No persisted recurring pattern exists — not the urgent rule, and no URGENT candidate
+        //     at all reaches the historical/persistence path.
+        List<PatternCandidate> historical = analyzeHistorical(rabbit, records);
+        assertTrue(historical.stream().noneMatch(c -> c.id().endsWith(":RABBIT_GI_STASIS_RISK")),
+                "a single urgent record is not a recurring pattern and must not be persisted");
+        assertTrue(historical.stream().noneMatch(c -> c.severity() == Severity.URGENT),
+                "no urgent candidate may ever reach the persisted historical layer");
     }
 
     private static boolean hasRule(List<ImmediateObservationDto> observations, String ruleId) {

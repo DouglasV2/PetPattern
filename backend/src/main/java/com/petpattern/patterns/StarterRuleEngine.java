@@ -48,6 +48,17 @@ public class StarterRuleEngine {
         List<PatternCandidate> out = new ArrayList<>();
         Set<String> claimed = new HashSet<>();
         for (StarterRule rule : rules) {
+            // Urgent starter rules belong to the IMMEDIATE layer (runImmediate): they fire on a
+            // single record so an owner can act now. They must NEVER be persisted as a historical
+            // pattern — a recurring pattern requires genuine repetition across separate records, and
+            // one urgent day is not a pattern. Skipping them here is what stops a lone urgent record
+            // from becoming a stored recurring pattern just because the pet already has seven older
+            // normal check-ins, and it prevents double-messaging (immediate + persisted) for the same
+            // event. Genuine recurrence of the SAME (non-urgent) signs still surfaces via the generic
+            // REPEATED_OBSERVATION pass below, which does require multiple days.
+            if (rule.severity() == Severity.URGENT) {
+                continue;
+            }
             RuleHit hit = rule.match().apply(window);
             if (hit.fired(rule.minDays())) {
                 // Claim the rule's keys only when it actually reports. A rule with a narrower

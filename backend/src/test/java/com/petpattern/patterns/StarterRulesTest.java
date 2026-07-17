@@ -52,13 +52,17 @@ class StarterRulesTest {
     }
 
     @Test
-    void guineaPigGiStasisIsUrgentSameDayOnly() {
-        List<PatternCandidate> found = guineaPig.evaluate(new RuleContext(pet(Species.GUINEA_PIG),
-                List.of(day(2, sig("appetite_hay", "Eating less") + "," + sig("poop", "Softer"))), List.of()));
-        Optional<PatternCandidate> gi = rule(found, "GUINEA_PIG_GI_STASIS_RISK");
-        assertTrue(gi.isPresent(), "eating less + changed droppings same day is urgent for a guinea pig too");
-        assertEquals(Severity.URGENT, gi.get().severity());
-        assertNotNull(gi.get().urgentNote());
+    void guineaPigGiStasisIsUrgentImmediateOnlyNeverPersisted() {
+        RuleContext ctx = new RuleContext(pet(Species.GUINEA_PIG),
+                List.of(day(0, sig("appetite_hay", "Eating less") + "," + sig("poop", "Softer"))), List.of());
+        // Immediate layer: eating less + changed droppings the same day is urgent for a guinea pig.
+        Optional<PatternCandidate> immediate = rule(guineaPig.immediateObservations(ctx), "GUINEA_PIG_GI_STASIS_RISK");
+        assertTrue(immediate.isPresent(), "eating less + changed droppings same day is urgent for a guinea pig too");
+        assertEquals(Severity.URGENT, immediate.get().severity());
+        assertNotNull(immediate.get().urgentNote());
+        // Historical layer: one urgent record is not a recurring pattern and must never be persisted.
+        assertTrue(rule(guineaPig.evaluate(ctx), "GUINEA_PIG_GI_STASIS_RISK").isEmpty(),
+                "a single urgent day must never become a persisted historical pattern");
     }
 
     @Test
