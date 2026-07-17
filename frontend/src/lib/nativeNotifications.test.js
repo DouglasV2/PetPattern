@@ -40,7 +40,9 @@ describe('syncNativeReminder', () => {
     expect(scheduled.schedule.every).toBe('day')
     expect(scheduled.extra.petId).toBe('pet-a')
     expect(scheduled.extra.kind).toBe('daily-checkin-reminder')
-    expect(scheduled.body).toContain('Bella') // only the owner-chosen name, no health detail
+    // Neutral body: no pet name, no health detail — safe on a lock screen.
+    expect(scheduled.body).not.toContain('Bella')
+    expect(scheduled.body).toContain("save today's PetPattern check-in")
   })
 
   it('only cancels (never schedules) when the reminder is disabled', async () => {

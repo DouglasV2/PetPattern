@@ -6,6 +6,7 @@ import { loadReminder, saveReminder, maybeNotify } from '../../lib/reminders'
 import {
   nativeRemindersAvailable,
   ensureNativePermission,
+  checkNativePermission,
   syncNativeReminder,
   cancelNativeReminder
 } from '../../lib/nativeNotifications'
@@ -23,6 +24,38 @@ function ReminderControl({ pet, loggedToday }) {
 
   useEffect(() => { setPref(loadReminder(storageKey)) }, [storageKey])
   useEffect(() => { saveReminder(storageKey, pref) }, [storageKey, pref])
+
+  // Native lifecycle: on mount (i.e. app start) and on every app resume, read the REAL OS
+  // permission without ever prompting. This is what lets a saved reminder resume scheduling after a
+  // cold restart (permission still granted feeds the scheduling effect below), re-checks after the
+  // person may have changed it in system settings, and — critically — drops the control out of a
+  // stale "on" state if the permission was revoked, so the UI never claims a reminder that the OS
+  // will never deliver.
+  useEffect(() => {
+    if (!native) return undefined
+    let cancelled = false
+    async function refreshPermission() {
+      const result = await checkNativePermission()
+      if (cancelled) return
+      setPermission(result)
+      if (result === 'denied') {
+        setPref((prev) => (prev.enabled ? { ...prev, enabled: false } : prev))
+      }
+    }
+    refreshPermission()
+    const app = globalThis.Capacitor?.Plugins?.App
+    let resumeHandle
+    if (app?.addListener) {
+      try { resumeHandle = app.addListener('resume', refreshPermission) } catch (err) { /* ignore */ }
+    }
+    return () => {
+      cancelled = true
+      try {
+        if (resumeHandle && typeof resumeHandle.remove === 'function') resumeHandle.remove()
+        else if (typeof resumeHandle?.then === 'function') resumeHandle.then((h) => h?.remove?.()).catch(() => {})
+      } catch (err) { /* ignore */ }
+    }
+  }, [native])
 
   // Web: check once a minute while the app is open (a native platform skips this entirely
   // so a foreground webview notification never doubles the scheduled native one).

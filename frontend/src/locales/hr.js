@@ -683,7 +683,7 @@ export default {
   'Browser nudge on': 'Podsjetnik u pregledniku uključen',
   'Works while PetPattern is open — not an email reminder yet.':
     'Radi dok je PetPattern otvoren — još nije email podsjetnik.',
-  "Time for {name}'s daily check-in.": 'Vrijeme za dnevni check-in za {name}.',
+  "Would you like to save today's PetPattern check-in?": 'Želite li spremiti današnji PetPattern check-in?',
 
   // Google sign-in
   'Continue with Google': 'Nastavi s Googleom',

@@ -36,6 +36,26 @@ export async function ensureNativePermission() {
 }
 
 /**
+ * Read the CURRENT native permission WITHOUT ever prompting — used on app start / when the reminder
+ * control mounts to rehydrate state after a cold restart, so a still-granted permission lets the
+ * saved reminder be re-scheduled and a since-revoked one drops the UI out of its "on" state instead
+ * of silently doing nothing. Returns 'granted' | 'denied' | 'prompt' | 'unsupported'.
+ */
+export async function checkNativePermission() {
+  const plugin = localNotifications()
+  if (!plugin) return 'unsupported'
+  try {
+    const current = await plugin.checkPermissions?.()
+    const display = current?.display
+    if (display === 'granted') return 'granted'
+    if (display === 'denied') return 'denied'
+    return 'prompt'
+  } catch (err) {
+    return 'unsupported'
+  }
+}
+
+/**
  * Schedule (or clear) THIS pet's daily reminder to match the owner's preference. Uses a per-pet
  * stable id so multiple pets don't clobber each other, always cancels that pet's previous one
  * first (never stacks), skips today's occurrence when the pet was already logged today, and

@@ -76,9 +76,10 @@ export function reminderNotificationId(petId) {
 }
 
 /**
- * Neutral reminder text — a nudge to log, never any health detail, so it is safe on a lock
- * screen. Only the pet's own name appears (chosen by the owner, not health content).
+ * Neutral reminder text. The pet name is deliberately NOT included (the {@code petName} arg is
+ * kept only so callers can pass what they have): the body carries no pet name and no health detail,
+ * so nothing identifiable or sensitive can ever surface on a lock screen.
  */
 export function reminderBody(petName, translate) {
-  return translate("Time for {name}'s daily check-in.", { name: petName })
+  return translate("Would you like to save today's PetPattern check-in?")
 }
