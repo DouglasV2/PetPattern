@@ -42,6 +42,11 @@ public class RabbitRuleSet implements SpeciesRuleSet {
         return engine.run(ctx, rules);
     }
 
+    @Override
+    public List<PatternCandidate> immediateObservations(RuleContext ctx) {
+        return engine.runImmediate(ctx, rules);
+    }
+
     private static List<StarterRule> buildRules() {
         return List.of(
                 new StarterRule(

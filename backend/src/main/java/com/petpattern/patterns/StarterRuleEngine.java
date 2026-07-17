@@ -6,6 +6,7 @@ import com.petpattern.i18n.Copy;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -65,6 +66,56 @@ public class StarterRuleEngine {
             out.add(generic);
         }
         return out;
+    }
+
+    /**
+     * The immediate safety pass for starter species: run ONLY this species' {@link Severity#URGENT}
+     * rules, ungated by check-in count, and emit a candidate only while the urgent sign is still
+     * {@link ImmediateObservations#isCurrent current} — recent vs today (each rule's own
+     * {@code within(n)} window) AND on/near the pet's latest entry. It deliberately never runs the
+     * generic REPEATED_OBSERVATION recurrence pass; recurrence is the historical layer's job.
+     *
+     * <p>Candidate ids are namespaced {@code now:} so they can never be written as, or confused
+     * with, a persisted {@code pattern_observations} key.
+     */
+    public List<PatternCandidate> runImmediate(RuleContext ctx, List<StarterRule> rules) {
+        LocalDate latestEntry = ImmediateObservations.latestEntry(ctx.checkIns());
+        if (latestEntry == null) {
+            return List.of();
+        }
+        SignalWindow window = SignalWindow.build(
+                baselineCalculator.recentDays(ctx.checkIns(), MAX_WINDOW_DAYS), mapper);
+        List<PatternCandidate> out = new ArrayList<>();
+        for (StarterRule rule : rules) {
+            if (rule.severity() != Severity.URGENT) {
+                continue;
+            }
+            RuleHit hit = rule.match().apply(window);
+            if (hit.fired(rule.minDays()) && ImmediateObservations.isCurrent(hit.latestDay(), latestEntry)) {
+                out.add(toImmediateCandidate(ctx.pet(), rule, hit));
+            }
+        }
+        return out;
+    }
+
+    private PatternCandidate toImmediateCandidate(Pet pet, StarterRule rule, RuleHit hit) {
+        int days = hit.days();
+        StarterRule.RuleCopy copy = rule.copy().apply(pet, days);
+        String id = "now:" + pet.getId() + ":" + rule.ruleId();
+        List<String> evidence = List.of(Copy.t("Days you logged this: {0}", days));
+        return new PatternCandidate(
+                id,
+                pet.getId(),
+                rule.tag().patternType(),
+                rule.confidence().apply(days),
+                copy.title(),
+                copy.summary(),
+                evidence,
+                Instant.now(),
+                null,
+                hit.checkInIds(),
+                rule.severity(),
+                copy.urgentNote());
     }
 
     private PatternCandidate toCandidate(Pet pet, StarterRule rule, RuleHit hit) {

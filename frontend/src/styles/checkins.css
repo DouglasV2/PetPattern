@@ -167,6 +167,26 @@
   line-height: 1.45;
 }
 
+/* Immediate safety layer on Today (Layer A): the same coral urgent-banner treatment,
+   stacked and given a little breathing room, with the vet-handoff line emphasised. */
+.immediate-observations {
+  margin: 0 0 0.4rem;
+}
+
+.immediate-observations .urgent-banner {
+  margin-bottom: 0.7rem;
+}
+
+.immediate-observations .urgent-banner:last-child {
+  margin-bottom: 0;
+}
+
+.immediate-observations .immediate-vet-note {
+  margin-top: 0.45rem;
+  color: var(--coral);
+  font-weight: 600;
+}
+
 /* Free-text note block */
 .note-block {
   display: grid;

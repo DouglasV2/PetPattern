@@ -20,6 +20,7 @@ import com.petpattern.domain.Sex;
 import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
+import com.petpattern.patterns.ImmediateObservationService;
 import com.petpattern.patterns.MilestoneCalculator;
 import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.patterns.WeeklyInsightService;
@@ -56,6 +57,7 @@ public class PetController {
     private final DailyCheckInRepository checkInRepository;
     private final FoodLogRepository foodLogRepository;
     private final PatternMemoryService patternMemoryService;
+    private final ImmediateObservationService immediateObservationService;
     private final WeeklyInsightService weeklyInsightService;
     private final ActivityLogRepository activityLogRepository;
     private final PetCaregiverRepository caregiverRepository;
@@ -75,6 +77,7 @@ public class PetController {
                          DailyCheckInRepository checkInRepository,
                          FoodLogRepository foodLogRepository,
                          PatternMemoryService patternMemoryService,
+                         ImmediateObservationService immediateObservationService,
                          WeeklyInsightService weeklyInsightService,
                          ActivityLogRepository activityLogRepository,
                          PetCaregiverRepository caregiverRepository,
@@ -86,6 +89,7 @@ public class PetController {
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.patternMemoryService = patternMemoryService;
+        this.immediateObservationService = immediateObservationService;
         this.weeklyInsightService = weeklyInsightService;
         this.activityLogRepository = activityLogRepository;
         this.caregiverRepository = caregiverRepository;
@@ -153,6 +157,12 @@ public class PetController {
         int foodLogsRecorded = foodLogRepository
                 .findByPetAndDateStartedGreaterThanEqualOrderByDateStartedAsc(pet, today.minusDays(120)).size();
 
+        // Immediate safety layer (Layer A): urgent signs from the latest entry, with NO
+        // seven-check-in gate. Reuses the already-loaded recent window, so no extra query, and is
+        // kept separate from `patterns` (Layer B, the historical pattern-memory list) on purpose.
+        List<ImmediateObservationDto> immediateObservations =
+                immediateObservationService.evaluate(pet, recentCheckIns, recentFoodLogs);
+
         String status = todayStatus(latestCheckIn, patterns);
         return new PetOverviewResponse(
                 PetResponse.from(pet),
@@ -166,7 +176,8 @@ public class PetController {
                 goodNews(pet, recentCheckIns),
                 watchOut(pet, recentFoodLogs),
                 weeklyInsightService.generate(pet, recentCheckIns, recentActivities),
-                MilestoneCalculator.buildStage(pet.getSpecies(), usefulLogs, foodLogsRecorded, patterns.size())
+                MilestoneCalculator.buildStage(pet.getSpecies(), usefulLogs, foodLogsRecorded, patterns.size()),
+                immediateObservations
         );
     }
 

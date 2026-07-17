@@ -8,6 +8,7 @@ import { statusLabel } from '../../lib/patterns'
 import { isStarterSpecies, speciesProfile } from '../../speciesProfiles'
 import { HeroSprig } from '../../components/HeroSprig'
 import { ActivityQuickAdd } from './ActivityQuickAdd'
+import { ImmediateObservationCard } from './ImmediateObservationCard'
 import { BackfillCard } from './BackfillCard'
 import { PatternMemoryProgress } from './PatternMemoryProgress'
 import { RecentTimeline } from './RecentTimeline'
@@ -54,6 +55,10 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
           <strong>{overview?.nextAction ?? t('Log today')}</strong>
         </div>
       </section>
+
+      {/* Immediate safety layer: urgent, non-diagnostic observations from the latest entry,
+          surfaced above the daily actions so a "call your vet" combination is seen first. */}
+      <ImmediateObservationCard observations={overview?.immediateObservations} />
 
       <TodayDecisionActions
         pet={pet}

@@ -14,6 +14,10 @@ public record PetOverviewResponse(
         String goodNews,
         String watchOut,
         WeeklyInsight weeklyInsight,
-        PatternMemoryProgress patternMemory
+        PatternMemoryProgress patternMemory,
+        // Immediate, safety-oriented observations from the latest entry (Layer A). Evaluated with
+        // no seven-check-in gate, always urgent-tier and non-diagnostic, and never persisted — kept
+        // separate from `patterns` (the historical pattern-memory layer) on purpose.
+        List<ImmediateObservationDto> immediateObservations
 ) {
 }
