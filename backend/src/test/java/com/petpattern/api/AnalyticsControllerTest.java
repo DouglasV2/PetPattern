@@ -67,7 +67,8 @@ class AnalyticsControllerTest {
     void reportReturnsDataOnTheCorrectToken() {
         AnalyticsController c = controller("s3cret");
         AnalyticsReportResponse dummy = new AnalyticsReportResponse(
-                LocalDate.now(), null, null, 0, 0, List.of(), List.of(), List.of(), List.of());
+                LocalDate.now(), null, null, 0, 0, List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(), List.of());
         when(reportService.report(any())).thenReturn(dummy);
         assertSame(dummy, c.report("s3cret"));
     }

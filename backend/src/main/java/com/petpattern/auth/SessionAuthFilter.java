@@ -31,6 +31,11 @@ public class SessionAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         try {
+            // Capture the calling client so server-recorded analytics attribute the real platform
+            // and app version instead of hardcoding "web". Raw header values only — they are
+            // allow-list/regex validated in AnalyticsService before anything is stored.
+            ClientContext.set(request.getHeader("X-PetPattern-Platform"),
+                    request.getHeader("X-PetPattern-App-Version"));
             String token = readCookie(request);
             if (token == null) {
                 token = readBearerToken(request);
@@ -44,6 +49,7 @@ public class SessionAuthFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } finally {
             OwnerContext.clear();
+            ClientContext.clear();
         }
     }
 

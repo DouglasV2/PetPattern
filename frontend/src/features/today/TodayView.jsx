@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { Activity, ChevronRight, HeartPulse, Stethoscope, Users, Utensils } from 'lucide-react'
 import { t } from '../../i18n'
+import { trackServer } from '../../analytics'
 import { addDays, formatDate, today } from '../../lib/date'
 import { isCat } from '../../lib/species'
 import { foodKindLabel, proteinLabel } from '../../lib/food'
@@ -35,6 +37,13 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
   // still lives in the "Possible pattern" panel below and the Patterns tab.
   const showWeeklyInsight = Boolean(overview?.weeklyInsight)
   const showSeenBefore = !showWeeklyInsight && seenBeforeQualifies(topPattern)
+
+  // Funnel analytics: the weekly overview is shown inline here. Record a view once it is actually
+  // rendered for this pet (fires on first appearance and on a pet switch, not on every re-render —
+  // deps are stable while the pet and shown-state don't change). Privacy-safe: species only.
+  useEffect(() => {
+    if (showWeeklyInsight) trackServer('weekly_overview_viewed', { species: pet.species })
+  }, [pet.id, pet.species, showWeeklyInsight])
 
   return (
     <>

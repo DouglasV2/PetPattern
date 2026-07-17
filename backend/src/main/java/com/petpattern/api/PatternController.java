@@ -40,7 +40,10 @@ public class PatternController {
     @GetMapping
     public List<PatternResponse> patterns(@PathVariable UUID petId) {
         petAccess.requireOwnedPet(petId);
-        analytics.recordCurrent(AnalyticsEventType.PATTERN_VIEWED);
+        // NOTE: this list endpoint is fetched automatically by the app on every pet load / refresh
+        // (loadPetData), so recording PATTERN_VIEWED here would inflate it on background loads. The
+        // "viewed a pattern" signal is recorded only on an EXPLICIT open — see the timeline
+        // endpoints below, which fire only when the owner opens a specific pattern.
         return patternMemoryService.listPatterns(petId);
     }
 
@@ -64,6 +67,9 @@ public class PatternController {
     @GetMapping("/{patternId}/timeline")
     public PatternTimelineDto timeline(@PathVariable UUID petId, @PathVariable String patternId) {
         petAccess.requireOwnedPet(petId);
+        // An explicit "open this pattern" action — the real PATTERN_VIEWED signal (never fired by
+        // the automatic list fetch above).
+        analytics.recordCurrent(AnalyticsEventType.PATTERN_VIEWED);
         return timelineService.timelineForPatternId(petId, patternId);
     }
 
@@ -74,6 +80,8 @@ public class PatternController {
     @GetMapping("/timeline")
     public PatternTimelineDto timelineByType(@PathVariable UUID petId, @RequestParam("type") String type) {
         petAccess.requireOwnedPet(petId);
+        // Same explicit-open signal as the by-id timeline above.
+        analytics.recordCurrent(AnalyticsEventType.PATTERN_VIEWED);
         PatternType patternType;
         try {
             patternType = PatternType.valueOf(type.trim().toUpperCase(Locale.ROOT));

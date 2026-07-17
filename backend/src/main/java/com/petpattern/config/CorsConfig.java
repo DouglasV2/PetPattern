@@ -28,7 +28,8 @@ public class CorsConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // Explicit list: with allowCredentials=true, "*" is not honoured for
         // non-simple headers. These are the only custom headers the app sends.
-        config.setAllowedHeaders(List.of("Content-Type", "X-Share-Token", "Accept-Language", "Authorization", "X-PetPattern-Client"));
+        config.setAllowedHeaders(List.of("Content-Type", "X-Share-Token", "Accept-Language", "Authorization",
+                "X-PetPattern-Client", "X-PetPattern-Platform", "X-PetPattern-App-Version"));
         // Mobile clients request the raw session token in this response header
         // and then send it back as Authorization: Bearer <token>. The web app
         // still uses the HttpOnly cookie and never needs to read this header.

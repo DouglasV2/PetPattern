@@ -32,6 +32,15 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
             + "from AnalyticsEvent e")
     List<RefDayPlatformRow> refDayPlatforms();
 
+    /**
+     * For every (ref, type), the FIRST time that ref hit that event type. This is the input to the
+     * step-conversion, time-to-milestone, and date-cohort computations — one row per ref per type,
+     * so it stays small and never exposes an identity (refs are pseudonyms).
+     */
+    @Query("select e.ref as ref, e.type as type, min(e.occurredAt) as at "
+            + "from AnalyticsEvent e group by e.ref, e.type")
+    List<RefTypeFirstRow> refTypeFirsts();
+
     @Query("select count(distinct e.ref) from AnalyticsEvent e")
     long countDistinctRefs();
 
@@ -62,6 +71,12 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
         String getRef();
         LocalDate getDay();
         String getPlatform();
+        java.time.Instant getAt();
+    }
+
+    interface RefTypeFirstRow {
+        String getRef();
+        String getType();
         java.time.Instant getAt();
     }
 }

@@ -82,7 +82,7 @@ public class CheckInController {
         Owner owner = petAccess.currentOwner();
         String species = pet.getSpecies() == null ? null : pet.getSpecies().name();
         Map<String, String> speciesMeta = species == null ? Map.of() : Map.of("species", species);
-        analytics.record(owner.getId(), AnalyticsEventType.CHECKIN_CREATED, "web", null, speciesMeta);
+        analytics.record(owner.getId(), AnalyticsEventType.CHECKIN_CREATED, speciesMeta);
         // Idempotent activation milestones from the owner's distinct check-in count. A "useful
         // check-in" is a distinct saved check-in day, so editing an existing day never advances them.
         analytics.recordCheckInMilestones(owner.getId(), checkInRepository.countByOwner(owner), species);

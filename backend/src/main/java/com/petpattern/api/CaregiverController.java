@@ -48,7 +48,7 @@ public class CaregiverController {
         Owner owner = petAccess.currentOwner();
         Pet pet = petAccess.requirePrimaryOwner(petId);
         PendingInviteResponse response = PendingInviteResponse.from(caregiverService.invite(pet, owner, request.email()));
-        analytics.record(owner.getId(), AnalyticsEventType.CAREGIVER_INVITED, "web", null, java.util.Map.of());
+        analytics.record(owner.getId(), AnalyticsEventType.CAREGIVER_INVITED, java.util.Map.of());
         return response;
     }
 

@@ -44,7 +44,7 @@ public class AccountController {
     public ResponseEntity<AccountExportDto> export() {
         Owner owner = petAccess.currentOwner();
         AccountExportDto data = exportService.export(owner);
-        analytics.record(owner.getId(), AnalyticsEventType.DATA_EXPORT_REQUESTED, "web", null, Map.of());
+        analytics.record(owner.getId(), AnalyticsEventType.DATA_EXPORT_REQUESTED, Map.of());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"petpattern-export.json\"")
                 .body(data);
@@ -55,7 +55,7 @@ public class AccountController {
         Owner owner = petAccess.currentOwner();
         // Record the churn event before the account is wiped (analytics has no FK to the
         // owner, so the pseudonymous row survives deletion by design — it is not identifying).
-        analytics.record(owner.getId(), AnalyticsEventType.ACCOUNT_DELETED, "web", null, Map.of());
+        analytics.record(owner.getId(), AnalyticsEventType.ACCOUNT_DELETED, Map.of());
         accountService.deleteAccount(owner);
         // The owner's sessions were deleted with the account; also clear the cookie.
         return ResponseEntity.noContent()

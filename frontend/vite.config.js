@@ -1,8 +1,18 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// The app version travels with analytics events (validated + clamped server-side). Read it from
+// package.json at build time so there is a single source of truth and it can never drift.
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
+
 export default defineConfig({
   plugins: [react()],
+  // Injected build-time constant — see src/lib/clientInfo.js. VITE_APP_VERSION (if set in the
+  // environment / .env) wins, else the package.json version.
+  define: {
+    __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || pkg.version)
+  },
   build: {
     // Route-level code-splitting (React.lazy) removed the monolith; keep a sane threshold and
     // split heavy libs into their own long-cacheable chunks. @sentry is reached ONLY via a

@@ -55,6 +55,105 @@ class AnalyticsReportServiceTest {
         }
     }
 
+    // ---- directly-computed funnel metrics (WP6) -----------------------------
+
+    private static AnalyticsReportService.RefTypeFirst first(String ref, String type, String isoInstant) {
+        return new AnalyticsReportService.RefTypeFirst(ref, type, Instant.parse(isoInstant));
+    }
+
+    @Test
+    void stepConversionsCountRefsThatReachedBothMilestones() {
+        List<AnalyticsReportService.RefTypeFirst> rows = new ArrayList<>(List.of(
+                // R1: registered -> pet_created -> onboarding
+                first("R1", "registered", "2026-02-01T10:00:00Z"),
+                first("R1", "pet_created", "2026-02-01T10:05:00Z"),
+                first("R1", "onboarding_completed", "2026-02-01T10:10:00Z"),
+                // R2: registered -> pet_created only (dropped before onboarding)
+                first("R2", "registered", "2026-02-02T10:00:00Z"),
+                first("R2", "pet_created", "2026-02-02T10:20:00Z"),
+                // R3: registered only
+                first("R3", "registered", "2026-02-03T10:00:00Z")));
+
+        Map<String, AnalyticsReportResponse.ConversionEntry> byStep = service
+                .conversions(service.firstByRef(rows)).stream()
+                .collect(java.util.stream.Collectors.toMap(AnalyticsReportResponse.ConversionEntry::from, e -> e));
+
+        AnalyticsReportResponse.ConversionEntry regToPet = byStep.get("registered");
+        assertEquals(3, regToPet.fromUsers(), "R1,R2,R3 all registered");
+        assertEquals(2, regToPet.toUsers(), "R1,R2 created a pet");
+        assertEquals(0.667, regToPet.rate(), 1e-3);
+
+        AnalyticsReportResponse.ConversionEntry petToOnboarding = byStep.get("pet_created");
+        assertEquals(2, petToOnboarding.fromUsers());
+        assertEquals(1, petToOnboarding.toUsers(), "only R1 completed onboarding");
+        assertEquals(0.5, petToOnboarding.rate(), 1e-9);
+    }
+
+    @Test
+    void timeToFirstCheckInReportsAverageAndMedianSeconds() {
+        List<AnalyticsReportService.RefTypeFirst> rows = new ArrayList<>(List.of(
+                // deltas: 100s, 200s, 600s -> median 200, average 300
+                first("A", "registered", "2026-02-01T00:00:00Z"),
+                first("A", "first_checkin_completed", "2026-02-01T00:01:40Z"),
+                first("B", "registered", "2026-02-01T00:00:00Z"),
+                first("B", "first_checkin_completed", "2026-02-01T00:03:20Z"),
+                first("C", "registered", "2026-02-01T00:00:00Z"),
+                first("C", "first_checkin_completed", "2026-02-01T00:10:00Z"),
+                // D registered but never checked in -> excluded from the sample
+                first("D", "registered", "2026-02-01T00:00:00Z")));
+
+        AnalyticsReportResponse.TimingEntry t = service.timings(service.firstByRef(rows)).stream()
+                .filter(e -> e.metric().equals("time_to_first_checkin")).findFirst().orElseThrow();
+        assertEquals(3, t.sampleSize(), "only A,B,C reached first check-in");
+        assertEquals(200.0, t.medianSeconds(), 1e-9);
+        assertEquals(300.0, t.averageSeconds(), 1e-9);
+    }
+
+    @Test
+    void ratesComputeReminderOpenAndNotificationConversion() {
+        List<AnalyticsReportResponse.FunnelEntry> funnel = List.of(
+                new AnalyticsReportResponse.FunnelEntry("reminder_enabled", 10, 12),
+                new AnalyticsReportResponse.FunnelEntry("reminder_notification_opened", 4, 20),
+                new AnalyticsReportResponse.FunnelEntry("notification_to_checkin", 3, 5));
+
+        Map<String, AnalyticsReportResponse.RateEntry> byMetric = service.rates(funnel).stream()
+                .collect(java.util.stream.Collectors.toMap(AnalyticsReportResponse.RateEntry::metric, e -> e));
+
+        AnalyticsReportResponse.RateEntry open = byMetric.get("reminder_open_rate");
+        assertEquals(4, open.numerator());
+        assertEquals(10, open.denominator());
+        assertEquals(0.4, open.rate(), 1e-9);
+
+        AnalyticsReportResponse.RateEntry conv = byMetric.get("notification_to_checkin_conversion_rate");
+        assertEquals(5, conv.numerator(), "conversion uses event totals");
+        assertEquals(20, conv.denominator());
+        assertEquals(0.25, conv.rate(), 1e-9);
+    }
+
+    @Test
+    void dateCohortsGroupNewUsersByRegistrationDayAndActivation() {
+        List<AnalyticsReportService.RefTypeFirst> rows = new ArrayList<>(List.of(
+                first("A", "registered", "2026-02-01T09:00:00Z"),
+                first("A", "first_checkin_completed", "2026-02-01T12:00:00Z"),
+                first("B", "registered", "2026-02-01T23:00:00Z"),
+                // B registered same UTC day, no check-in
+                first("C", "registered", "2026-02-02T01:00:00Z"),
+                first("C", "first_checkin_completed", "2026-02-05T01:00:00Z")));
+
+        Map<LocalDate, AnalyticsReportResponse.DateCohortEntry> byDay = service
+                .dateCohorts(service.firstByRef(rows)).stream()
+                .collect(java.util.stream.Collectors.toMap(AnalyticsReportResponse.DateCohortEntry::date, e -> e));
+
+        AnalyticsReportResponse.DateCohortEntry feb1 = byDay.get(LocalDate.of(2026, 2, 1));
+        assertEquals(2, feb1.newUsers(), "A,B registered on Feb 1 UTC");
+        assertEquals(1, feb1.reachedFirstCheckIn(), "only A activated");
+        assertEquals(0.5, feb1.rate(), 1e-9);
+
+        AnalyticsReportResponse.DateCohortEntry feb2 = byDay.get(LocalDate.of(2026, 2, 2));
+        assertEquals(1, feb2.newUsers());
+        assertEquals(1, feb2.reachedFirstCheckIn());
+    }
+
     @Test
     void retentionByPlatformAttributesEachRefToItsEarliestPlatform() {
         LocalDate today = LocalDate.of(2026, 3, 1);

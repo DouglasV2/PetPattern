@@ -65,10 +65,15 @@ const SERVER_ALLOWED = new Set([
 export function trackServer(event, meta) {
   if (!SERVER_ALLOWED.has(event)) return
   try {
-    const platform = globalThis.Capacitor?.getPlatform?.() || 'web'
-    // Lazy import keeps analytics decoupled from the api module's load order.
-    import('./api')
-      .then(({ api }) => api.trackEvent({ type: event, platform, meta: meta || undefined }).catch(() => {}))
+    // Lazy imports keep analytics decoupled from the api module's load order.
+    Promise.all([import('./api'), import('./lib/clientInfo')])
+      .then(([{ api }, { platform, appVersion }]) =>
+        api.trackEvent({
+          type: event,
+          platform: platform(),
+          appVersion: appVersion(),
+          meta: meta || undefined
+        }).catch(() => {}))
       .catch(() => {})
   } catch {
     // Analytics must never break the app.

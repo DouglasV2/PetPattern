@@ -1,6 +1,7 @@
 package com.petpattern.analytics;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.petpattern.auth.ClientContext;
 import com.petpattern.auth.OwnerContext;
 import com.petpattern.domain.AnalyticsEvent;
 import com.petpattern.domain.AnalyticsEventType;
@@ -57,7 +58,7 @@ public class AnalyticsService {
         this.refSalt = refSalt;
     }
 
-    /** Record a web event for the currently signed-in owner (no-op if signed out). */
+    /** Record an event for the currently signed-in owner (no-op if signed out). */
     public void recordCurrent(AnalyticsEventType type) {
         recordCurrent(type, Map.of());
     }
@@ -67,7 +68,16 @@ public class AnalyticsService {
         if (owner == null) {
             return;
         }
-        record(owner.getId(), type, "web", null, meta);
+        record(owner.getId(), type, meta);
+    }
+
+    /**
+     * Record for a known owner, attributing the CURRENT request's platform and app version (from
+     * {@link ClientContext}) rather than hardcoding "web"/null — so a server-generated event from a
+     * mobile client lands in the mobile cohort. Platform/app-version are validated before storage.
+     */
+    public void record(UUID ownerId, AnalyticsEventType type, Map<String, String> meta) {
+        record(ownerId, type, ClientContext.platform(), ClientContext.appVersion(), meta);
     }
 
     /**
@@ -91,7 +101,7 @@ public class AnalyticsService {
             event.setType(type.wire());
             event.setOccurredAt(now);
             event.setOccurredOn(now.atZone(ZoneOffset.UTC).toLocalDate());
-            event.setPlatform(PLATFORMS.contains(platform) ? platform : "web");
+            event.setPlatform(normalizePlatform(platform));
             event.setAppVersion(safeAppVersion(appVersion));
             event.setSchemaVersion(SCHEMA_VERSION);
             event.setMeta(filterMeta(type, meta));
@@ -112,13 +122,13 @@ public class AnalyticsService {
     public void recordCheckInMilestones(UUID ownerId, long distinctCheckIns, String speciesName) {
         Map<String, String> meta = speciesName == null ? Map.of() : Map.of("species", speciesName);
         if (distinctCheckIns >= 1) {
-            record(ownerId, AnalyticsEventType.FIRST_CHECKIN_COMPLETED, "web", null, meta);
+            record(ownerId, AnalyticsEventType.FIRST_CHECKIN_COMPLETED, meta);
         }
         if (distinctCheckIns >= 3) {
-            record(ownerId, AnalyticsEventType.THIRD_USEFUL_CHECKIN_REACHED, "web", null, meta);
+            record(ownerId, AnalyticsEventType.THIRD_USEFUL_CHECKIN_REACHED, meta);
         }
         if (distinctCheckIns >= 7) {
-            record(ownerId, AnalyticsEventType.SEVENTH_USEFUL_CHECKIN_REACHED, "web", null, meta);
+            record(ownerId, AnalyticsEventType.SEVENTH_USEFUL_CHECKIN_REACHED, meta);
         }
     }
 
@@ -173,10 +183,26 @@ public class AnalyticsService {
         }
     }
 
-    /** Store the app version only if it looks like a version string, else null. */
+    /**
+     * Normalize a client-supplied platform to the allow-list ({@code web/android/ios}), lower-cased
+     * and trimmed; anything unknown or absent (including a server event with no request context)
+     * falls back to {@code "web"}. The value is never trusted as free text.
+     */
+    private static String normalizePlatform(String platform) {
+        if (platform == null) {
+            return "web";
+        }
+        String normalized = platform.trim().toLowerCase(java.util.Locale.ROOT);
+        return PLATFORMS.contains(normalized) ? normalized : "web";
+    }
+
+    /**
+     * Store the app version only if it looks like a version string; otherwise fall back to
+     * {@code "unknown"} (never null), so reporting always has a concrete cohort value.
+     */
     private static String safeAppVersion(String appVersion) {
         String clipped = clip(appVersion, 20);
-        return (clipped != null && APP_VERSION.matcher(clipped).matches()) ? clipped : null;
+        return (clipped != null && APP_VERSION.matcher(clipped).matches()) ? clipped : "unknown";
     }
 
     private static boolean isSpecies(String value) {

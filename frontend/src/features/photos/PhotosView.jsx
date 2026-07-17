@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ImagePlus, Trash2, X } from 'lucide-react'
 import { api } from '../../api'
 import { t } from '../../i18n'
+import { trackServer } from '../../analytics'
 import { formatDate, today } from '../../lib/date'
 import { PHOTO_AREAS, byCapturedDateAsc, isProfilePhoto, photoAreaLabel, resizeImage } from '../../lib/photos'
 
@@ -69,6 +70,13 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
   const groups = PHOTO_AREAS
     .map((code) => ({ code, items: healthPhotos.filter((photo) => photo.area === code) }))
     .filter((group) => group.items.length > 0)
+
+  // Funnel analytics: record that the owner viewed their visual photo timeline — only once a real
+  // timeline exists (at least one saved health photo), fired on first appearance / pet switch.
+  const hasTimeline = healthPhotos.length > 0
+  useEffect(() => {
+    if (hasTimeline) trackServer('photo_timeline_used', { species: pet.species })
+  }, [pet.id, pet.species, hasTimeline])
 
   return (
     <section className="flow-panel">
