@@ -1,0 +1,442 @@
+{
+  "summary": "Survey existing PetPattern subsystems vs release-hardening requirements to avoid rebuilding done work",
+  "agentCount": 6,
+  "logs": [],
+  "result": [
+    {
+      "wp": "WP2 — Product analytics & retention",
+      "overall": "PARTIAL",
+      "implemented": [
+        "Schema versioning (req 2): SCHEMA_VERSION=1 constant is stamped on every row server-side (AnalyticsService.java:37,96); schema_version is NOT NULL in the entity/table (AnalyticsEvent.java:44-45, V14__analytics_events.sql:21). Client-supplied schemaVersion in the DTO is ignored, so the server is authoritative.",
+        "Platform + appVersion capture (req 3): platform is constrained to {web,android,ios} with a 'web' fallback and appVersion is regex-validated (^[0-9A-Za-z.+_-]{1,20}$) then stored (AnalyticsService.java:39,43,94-95,145-148; AnalyticsEvent.java:38-42). Ingest endpoint accepts both from mobile clients (AnalyticsController.java:58).",
+        "Pseudonymous account ref (req 4): ref = Base64url(SHA-256(ownerId + ':' + salt)); the raw owner id is never stored (AnalyticsService.java:104-114; AnalyticsEvent.java:26-27). Verified by tests (AnalyticsServiceTest.java:26-44).",
+        "UTC timestamps (req 5): occurredAt=Instant.now() and occurredOn=now.atZone(ZoneOffset.UTC).toLocalDate() (AnalyticsService.java:88-93); column is 'timestamp with time zone' (V14:17); report uses LocalDate.now(ZoneOffset.UTC) (AnalyticsController.java:75).",
+        "Authorized report endpoint, not public (req 9): GET /api/analytics/report requires header X-Analytics-Token; 404 when no admin-token is configured (disabled by default), 403 on mismatch via constant-time MessageDigest.isEqual (AnalyticsController.java:63-85; application.yml:118-120 default empty).",
+        "D1/D7/D30 retention (part of req 10 & 11): cohort = ref's first UTC day, retained if any event exactly N days later, in-progress cohorts excluded so they don't deflate the rate (AnalyticsReportService.java:60-89). Well-defined windows + timezone handling, covered by deterministic test (AnalyticsReportServiceTest.java:18-49).",
+        "Funnel metric (part of req 10): distinct-users + total per event type, sorted desc (AnalyticsReportService.java:32-37; AnalyticsEventRepository.java:16-18).",
+        "Fail-safe recording (req context): all recording is wrapped so analytics never throws into a request (AnalyticsService.java:83-101).",
+        "Frontend client + privacy tests: frontend/src/analytics.js sends only {event, ts} for an allow-listed event set via sendBeacon/keepalive, no-op unless VITE_ANALYTICS_URL is set; guarded by frontend/src/analytics.test.js. Wired at App.jsx:156-157,678,747,800,856 and AccountView.jsx:32,59."
+      ],
+      "partial": [
+        "23-event model (req 1): only 7 event types exist in AnalyticsEventType.java:17-23 (registered, pet_created, checkin_created, pattern_viewed, vet_summary_viewed, export_clicked, account_deleted). Of the 23 required, ~5 map cleanly: ACCOUNT_REGISTERED->REGISTERED, PET_CREATED, PATTERN_VIEWED, DATA_EXPORT_REQUESTED->EXPORT_CLICKED, ACCOUNT_DELETED. VET_SUMMARY_GENERATED is only loosely covered by VET_SUMMARY_VIEWED (different semantics). The granular check-in taxonomy (SAME_AS_USUAL/CHANGED_DAY) is not distinct events — only a 'mode' meta value on a single CHECKIN_CREATED event, and the allowed modes (quick/full/changed/same_as_yesterday, AnalyticsService.java:40) don't match the required names.",
+        "Metadata allow-list (req 6): a strict allow-list exists and strips unknown keys / rejects invalid values / never stores PII or health text (AnalyticsService.java:120-142; tests AnalyticsServiceTest.java:47-67), BUT it is a single GLOBAL allow-list (species, mode) applied to every event type — it is NOT per-event as required. Any event can carry species/mode; there is no per-type key schema.",
+        "Idempotent milestones (req 7): the generic once-per-ref mechanism exists (AnalyticsEventType.isOncePerRef + repository.existsByRefAndType, AnalyticsService.java:85-86) but is applied ONLY to REGISTERED and ACCOUNT_DELETED. The specific required milestones (FIRST_CHECKIN, THIRD_USEFUL_CHECKIN, SEVENTH_USEFUL_CHECKIN, FIRST_WEEKLY_OVERVIEW, FIRST_PATTERN_GENERATED) do not exist, so first/3rd/7th-useful-checkin idempotency is not implemented. Also the exists-then-save guard is not atomic: no unique constraint on (ref,type) exists in V14 (only PK on id + two non-unique indexes), so concurrent milestone writes could double-fire.",
+        "Deleted account/pet handling (req 8): account deletion is handled deliberately — ACCOUNT_DELETED is recorded before wipe and pseudonymous rows intentionally survive since there is no FK/identity (AccountController.java:53-64). But there is no explicit purge of analytics on deletion, and deleted-PET handling is effectively absent (no pet id is stored, so nothing is done on pet deletion). Adequate as a privacy design but not an explicit deletion-reconciliation feature.",
+        "Report metrics (req 10): funnel + D1/D7/D30 are present, but PLATFORM ATTRIBUTION is missing — AnalyticsReportResponse.java has no platform breakdown and AnalyticsEventRepository has no per-platform query; platform is stored but never surfaced in the report.",
+        "Definitions (req 11): D1/D7/D30 windows, timezone (UTC), and active-day (any event on a UTC day) are well-defined; but 'useful check-in' is defined nowhere (the THIRD/SEVENTH_USEFUL_CHECKIN concept is absent), and analytics duplicate-prevention only covers the 2 milestone events (non-atomic)."
+      ],
+      "missing": [
+        "16 of the 23 required event types are entirely absent: ONBOARDING_COMPLETED, FIRST_CHECKIN_COMPLETED, SAME_AS_USUAL_CHECKIN_COMPLETED (as a distinct event), CHANGED_DAY_CHECKIN_COMPLETED (as a distinct event), THIRD_USEFUL_CHECKIN_REACHED, SEVENTH_USEFUL_CHECKIN_REACHED, FIRST_WEEKLY_OVERVIEW_AVAILABLE, WEEKLY_OVERVIEW_VIEWED, FIRST_PATTERN_GENERATED, PHOTO_TIMELINE_USED, VET_SUMMARY_SHARED, CAREGIVER_INVITED, REMINDER_ENABLED, REMINDER_PERMISSION_GRANTED, REMINDER_PERMISSION_DENIED, REMINDER_NOTIFICATION_OPENED, NOTIFICATION_TO_CHECKIN_CONVERSION.",
+        "Milestone events with idempotent 1st/3rd/7th-useful-check-in semantics — no such events exist and there is no 'useful check-in' counter/definition.",
+        "Platform attribution in the report (no platform-segmented funnel/retention or platform breakdown query).",
+        "Per-event (per-type) metadata allow-list — only one global allow-list exists.",
+        "A DB-level uniqueness guarantee for once-per-ref milestones (no unique constraint on (ref,type)); duplicate prevention is a non-atomic read-then-write.",
+        "Reminder/notification analytics entirely (all 5 reminder/notification events + notification->checkin conversion) — nothing in the analytics layer records reminder permission state or notification-driven conversions.",
+        "Any test for the report endpoint's authorization (no AnalyticsControllerTest exists — 404/403/token paths are untested)."
+      ],
+      "keyFiles": [
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/domain/AnalyticsEventType.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/analytics/AnalyticsService.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/analytics/AnalyticsReportService.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/domain/AnalyticsEvent.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/api/AnalyticsController.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/api/dto/AnalyticsReportResponse.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/api/dto/AnalyticsEventRequest.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/resources/db/migration/V14__analytics_events.sql",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/repository/AnalyticsEventRepository.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/api/AccountController.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/java/com/petpattern/api/CheckInController.java",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/analytics.js",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/analytics.test.js"
+      ],
+      "risks": [
+        "The privacy/retention foundation is genuinely solid and well-tested — do NOT rebuild it. The gap is breadth of the event taxonomy and report dimensions, not the core mechanics.",
+        "RetentionSummary.java is unrelated to product analytics (it is the per-pet habit/streak widget in the check-in domain); the task listed it but it is not part of the analytics event pipeline.",
+        "The web frontend (analytics.js) posts to an EXTERNAL collector (VITE_ANALYTICS_URL) sending only {event, ts}, while the backend records the same 7-event vocabulary server-side into analytics_event. These are two parallel pipelines; the backend /api/analytics/events ingest endpoint is used only by mobile clients, not the web app.",
+        "Once-per-ref milestone dedup is read-then-write with no DB unique constraint on (ref,type); low practical risk today (only registration/deletion) but would break under concurrency if more milestones adopt it.",
+        "The report endpoint is entirely untested (no AnalyticsControllerTest), so the 404/403/token authorization contract is unverified by CI."
+      ],
+      "recommendation": "1) Expand AnalyticsEventType to the full 23-event vocabulary (add onboarding, first/3rd/7th-useful-checkin milestones, weekly-overview, pattern-generated, photo-timeline, vet-summary generated/shared, caregiver-invited, and the 5 reminder/notification events + notification->checkin conversion), keeping the wire()/oncePerRef pattern. 2) Define 'useful check-in' explicitly and implement the 1st/3rd/7th milestone counters with an atomic guard — add a UNIQUE(ref, type) constraint (new migration) so once-per-ref cannot double-fire. 3) Add platform attribution to the report: a per-platform funnel/retention query in AnalyticsEventRepository and corresponding fields in AnalyticsReportResponse. 4) Move the metadata allow-list from a single global map to a per-event-type key schema so req 6 is truly per-event. 5) Add an AnalyticsControllerTest covering the 404 (no token), 403 (bad token), and 200 (valid token) paths, plus the ingest endpoint rejecting oncePerRef types. 6) Wire reminder/notification events from the reminder subsystem (WP3) into analytics. The check-in mode meta already models same/changed — promote those to distinct events if the funnel needs them."
+    },
+    {
+      "wp": "WP3 — Correct reminder behavior (web + native)",
+      "overall": "PARTIAL",
+      "implemented": [
+        "Explicit opt-in: default is OFF (loadReminder returns {enabled:false,...} at reminders.js:13,17) and the reminder only turns on via the user's toggle click (ReminderControl.jsx:35-48). No auto-enable.",
+        "Permission requested at the right moment: requested inside the toggle() user-gesture when turning ON, never on page load — native via ensureNativePermission (ReminderControl.jsx:41; nativeNotifications.js:26-37) and web via Notification.requestPermission only when permission==='default' (ReminderControl.jsx:42-43).",
+        "Neutral lock-screen copy: reminderBody returns \"Time for {name}'s daily check-in.\" with no health detail (reminderSchedule.js:48-54); native notification uses title 'PetPattern' + that neutral body (nativeNotifications.js:56-57). Only the owner-chosen pet name appears.",
+        "Suppress today's reminder after a qualifying check-in — WEB path only: shouldRemind returns false when loggedToday (reminderSchedule.js:24-25), enforced in maybeNotify (reminders.js:38-47) and covered by a test (reminderSchedule.test.js:20).",
+        "Disable + cancel on turn-off: toggling off sets enabled:false (ReminderControl.jsx:36-38); the native effect re-runs and syncNativeReminder cancels the scheduled id before returning early (nativeNotifications.js:49-51); the web interval is cleared (ReminderControl.jsx:23-27).",
+        "No duplicate scheduled notifications for a single pet on native: a single stable REMINDER_ID=1001 with cancel-before-schedule so re-scheduling replaces rather than stacks (nativeNotifications.js:13,49,53).",
+        "Reminder-time-change handling: native re-syncs on every pref change (effect dep [native,pref,pet.name], ReminderControl.jsx:30-33) cancelling+rescheduling with the stable id; web recomputes each minute and de-dups via the per-day .notified key (reminders.js:29-52).",
+        "Offline-safe: the reminder system makes no network calls; scheduling is purely local (localStorage + OS). localStorage reads/writes are wrapped in try/catch and maybeNotify bails if storage is blocked (reminders.js:10-26,31-35).",
+        "Permission-denied UI state (web): explicit 'Notifications are blocked — enable them in your browser settings' message when permission==='denied' (ReminderControl.jsx:73-74), plus an 'unsupported browser' branch (line 69-70).",
+        "App-restart handling: pref persisted to localStorage (saveReminder, reminders.js:20-26); the per-day .notified key prevents a double web nudge across restarts (reminders.js:29-52); native re-syncs on mount so the OS-held repeating notification is re-anchored (ReminderControl.jsx:30-33)."
+      ],
+      "partial": [
+        "'Do NOT mark enabled if denied' — BUGGY: toggle() sets pref.enabled=true unconditionally after requesting permission, regardless of the granted/denied result (ReminderControl.jsx:40-47). When denied, the chip still shows the active 'on' state and the pref persists enabled:true; only a note hints it won't work. (Web won't actually fire because maybeNotify guards permission==='granted', but the enabled state is semantically wrong and native still attempts to schedule.)",
+        "Permission-denied UI on NATIVE is generic: any non-granted state shows the same 'Allow notifications to get a daily reminder.' note (ReminderControl.jsx:65-68); it does not distinguish denied vs unsupported the way the web branch does.",
+        "Account-level vs pet-level is only implicit, not clearly defined: reminders are keyed per pet (storageKey `petpattern.reminder.${pet.id}`, ReminderControl.jsx:8), i.e. pet-level, but the native single-id design (below) collapses this to one slot, contradicting per-pet intent. No documented account-vs-pet model.",
+        "Timezone-change / DST handling is only solid on WEB (shouldRemind/localDateKey recompute from device-local time every minute, reminderSchedule.js:12-32). NATIVE has no timezone-change or app-resume re-sync: the notification is anchored once via nextReminderAt and left to Capacitor every:'day' repeat (nativeNotifications.js:51-58); there is no App 'resume' or timezone listener to re-anchor after a DST/timezone shift.",
+        "Deep-link opened notification to a safe destination is only partial: mobile.js routes appUrlOpen App/Universal links carrying #reset=/#shared= hashes (mobile.js:18-46), but the scheduled reminder carries no `extra` payload and there is NO localNotificationActionPerformed listener anywhere — tapping the reminder just opens the app's default route. Safe by omission, but not intentionally routed to the pet's check-in."
+      ],
+      "missing": [
+        "KEY DEFECT — native reminder still fires after a qualifying check-in: on the native path today's occurrence is never cancelled/suppressed after a check-in. The scheduling effect does not depend on loggedToday (ReminderControl.jsx:30-33) and syncNativeReminder ignores loggedToday entirely, always (re)scheduling a repeating daily notification (nativeNotifications.js:45-61). cancelNativeReminder exists but is never imported/called anywhere (dead export). So a native reminder fires at the chosen time even when the user already logged today — the 'schedule next occurrence keeping recurrence' half works, but the 'cancel/suppress today' half is absent on native.",
+        "Multi-pet native collision: REMINDER_ID is a single global constant 1001 shared across all pets (nativeNotifications.js:13). Enabling a reminder for a second pet overwrites the first pet's scheduled notification, so only ONE native reminder can exist at a time. Multi-pet native reminders are effectively broken (mutual clobbering rather than per-pet reminders).",
+        "'No swallowed scheduling failures' is violated: syncNativeReminder catches and silently ignores all scheduling errors (nativeNotifications.js:62-64) and maybeNotify swallows Notification-construction errors (reminders.js:53-55). No logging, telemetry, or UI surfaces a scheduling failure. (Partial mitigation on web: the day is marked .notified only after a successful Notification construction, reminders.js:50-52, so a transient failure doesn't permanently suppress that day — but the failure itself is invisible.)",
+        "Privacy-safe notification analytics is not wired up: analytics.js exists and is privacy-safe (fixed event-name allow-list, no payload, off unless VITE_ANALYTICS_URL, analytics.js:17-45), but its allow-list contains NO reminder events (no reminder_enabled / reminder_fired / reminder_tapped / permission_denied), and neither reminders.js nor nativeNotifications.js calls track(). There is zero measurement of reminder opt-in, delivery, or engagement."
+      ],
+      "keyFiles": [
+        "frontend/src/lib/reminderSchedule.js",
+        "frontend/src/lib/reminderSchedule.test.js",
+        "frontend/src/lib/reminders.js",
+        "frontend/src/lib/nativeNotifications.js",
+        "frontend/src/lib/mobile.js",
+        "frontend/src/features/notifications/ReminderControl.jsx",
+        "frontend/src/features/today/RetentionStrip.jsx",
+        "frontend/src/features/today/TodayView.jsx",
+        "frontend/src/analytics.js"
+      ],
+      "risks": [
+        "The headline 'reminder fires after check-in' defect is real and lives ENTIRELY in the native path, which cannot be exercised in this environment (no device/emulator) and has no automated tests — so it will only surface on a real build. nativeNotifications.js itself flags it is 'GENERATED / NOT VERIFIABLE here'.",
+        "Test coverage is limited to the pure web-suppression logic: reminderSchedule.test.js covers shouldRemind (incl. loggedToday, permission, per-day de-dup, malformed time), nextReminderAt, and localDateKey. There are NO tests for maybeNotify (web notify + de-dup + swallow), nativeNotifications.js (syncNativeReminder cancel/schedule, multi-pet id collision, ensureNativePermission, unused cancelNativeReminder), ReminderControl.jsx (toggle, enabled-if-denied bug, permission UI states), or mobile.js deep-links. The two most important defects (native fires-after-checkin, multi-pet single-id) are completely untested.",
+        "The enabled-if-denied behavior means a user who denies permission still sees an 'on' chip and a persisted enabled:true — a confusing state that reads as working when it isn't."
+      ],
+      "recommendation": "\"1) Fix the native fires-after-checkin defect: make the native (re)schedule react to loggedToday — pass loggedToday into syncNativeReminder and, after a qualifying check-in, cancel today's occurrence and reschedule starting at the NEXT day's time (keeping every:'day' recurrence). Wire the actual check-in handlers (App.jsx checkin_created, ~lines 800/856) to call cancelNativeReminder/re-sync, and add loggedToday to the effect deps (ReminderControl.jsx:30-33). 2) Fix multi-pet native collision: derive a per-pet notification id (e.g. hash pet.id) instead of the single REMINDER_ID=1001 (nativeNotifications.js:13). 3) Only set pref.enabled=true after a granted permission in toggle() (ReminderControl.jsx:40-47); otherwise leave it off and show the denied state. 4) Surface scheduling failures instead of swallowing them (at minimum log + a track('reminder_schedule_failed')-style event) (nativeNotifications.js:62-64, reminders.js:53-55). 5) Add privacy-safe reminder events to the analytics allow-list (analytics.js:17-25) and fire them on enable/schedule/tap. 6) Add a localNotificationActionPerformed listener that deep-links a tapped reminder to the pet's check-in (safe destination), and attach an `extra` payload when scheduling. 7) Add a native App 'resume'/timezone re-sync so DST/timezone changes re-anchor the scheduled time. 8) Add tests for maybeNotify, syncNativeReminder (cancel/schedule/multi-pet id), and the toggle enabled-if-denied path.\""
+    },
+    {
+      "wp": "WP4 — Real Capacitor mobile readiness",
+      "overall": "PARTIAL",
+      "implemented": [
+        "Valid Capacitor config with appId/appName/webDir — frontend/capacitor.config.json (appId \"app.petpattern.mobile\", appName \"PetPattern\", webDir \"dist\", server.androidScheme \"https\").",
+        "Safe-area / notch / tap-target handling — frontend/src/styles/capacitor.css uses env(safe-area-inset-*) on body/.top-bar/.screen/.center-shell/.start-shell, 16px inputs to prevent iOS zoom, and 40px min tap targets.",
+        "Dev/prod API base mechanism — frontend/src/api.js line 3 `const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'`, plus native Bearer/X-PetPattern-Client mobile session-token path (lines 4-43, 87-89); build:mobile + cap:sync/cap:android/cap:ios scripts in frontend/package.json; setup documented in docs/mobile.md.",
+        "Deep-link routing code — frontend/src/lib/mobile.js initDeepLinks() listens for the Capacitor App `appUrlOpen` event and applies the incoming URL hash (#reset=<token> / #shared=<token>) to the SPA hash router; wired once via initMobile() called in frontend/src/main.jsx:44.",
+        "Password-reset + shared-view deep links are hash-based and covered by the appUrlOpen handler (frontend/src/lib/mobile.js), and documented in docs/mobile.md 'Deep links & sign-in'.",
+        "OAuth redirect documentation — docs/mobile.md states Google sign-in intentionally stays a web-redirect flow (not a custom deep link) and documents Android App Links / iOS Universal Links (assetlinks.json / apple-app-site-association) as the mechanism.",
+        "LocalNotifications plugin configured + integrated — frontend/capacitor.config.json plugins.LocalNotifications (smallIcon ic_stat_icon, iconColor); frontend/src/lib/nativeNotifications.js implements permission/schedule/cancel with a stable REMINDER_ID and neutral lock-screen body; wired through frontend/src/features/notifications/ReminderControl.jsx.",
+        "StatusBar integration (code) — frontend/src/lib/mobile.js initMobile() calls StatusBar.setStyle({ style: 'DARK' }).",
+        "App lifecycle plugin used (partial) — frontend/src/lib/mobile.js uses App.addListener('appUrlOpen', ...).",
+        "SplashScreen configured — frontend/capacitor.config.json plugins.SplashScreen (launchShowDuration 600, backgroundColor, showSpinner false).",
+        "Signing material excluded from VCS — .gitignore lines 42-59 ignore *.jks, *.keystore, *.p12, *.pem, *.key, key.properties, google-services.json, GoogleService-Info.plist, and native build outputs (android/app/build, android/.gradle, ios/App/build, ios/App/Pods), while deliberately NOT ignoring the future android/ or ios/ project dirs.",
+        "Honest readiness status documented — docs/mobile.md verifiability table marks each piece verified/generated/not-done and states no Android Studio/Xcode/device exists in the environment."
+      ],
+      "partial": [
+        "Native plugins 'installed + configured': LocalNotifications, App, StatusBar have code+config and SplashScreen has config, but NONE of the plugin packages are in frontend/package.json — dependencies list only @capacitor/core, @capacitor/android, @capacitor/ios, @capacitor/cli. They are reached via the runtime `globalThis.Capacitor.Plugins` global and are only manually installed for native builds per docs/mobile.md (`npm i @capacitor/local-notifications @capacitor/app @capacitor/status-bar`). So they are not committed/lockfile-pinned, and SplashScreen's own package (@capacitor/splash-screen) is configured but not even listed in the install command.",
+        "Deep links: the appUrlOpen handler exists (frontend/src/lib/mobile.js) but there is no assetlinks.json or apple-app-site-association file and no native App Links/Universal Links registration in the repo (they would live in the missing android/ios projects); docs/mobile.md leaves this as a manual TODO.",
+        "Dev/prod API config: the VITE_API_BASE override works, but frontend/vite.config.js has no `mobile`-mode handling and there is no frontend/.env.mobile, so `npm run build:mobile` (vite build --mode mobile) alone does not inject a production API origin — it still relies on passing VITE_API_BASE inline as documented.",
+        "App lifecycle: only appUrlOpen is handled; there is no appStateChange / pause-resume (foreground-refresh, re-check reminders/session on resume) handling."
+      ],
+      "missing": [
+        "Android project committed — no frontend/android/ directory exists (Glob frontend/android/** and frontend/{android,ios}/** return nothing). Env note: BUILDING it is environment-blocked (no Android SDK, win32), but the scaffolded project is also simply not committed.",
+        "iOS project committed — no frontend/ios/ directory exists. Env note: building is environment-blocked (no Xcode/macOS), and the project is not committed.",
+        "Android hardware back-button handling — no App.addListener('backButton', ...) anywhere. All `back-button` matches (MedicationsView, CheckInView, AccountView, etc.) are web SPA UI buttons, not the native hardware back button. Pure code-gap.",
+        "Keyboard plugin — not installed, not configured (no plugins.Keyboard in capacitor.config.json), not used in code. Pure code-gap.",
+        "Browser plugin — @capacitor/browser not installed/configured/used; Google sign-in relies on the default system browser redirect but is not integrated via the Browser plugin. Pure code-gap.",
+        "Camera plugin — @capacitor/camera not installed/configured; all photo capture uses plain HTML `<input type=file accept=image/...>` (frontend/src/components/PetIdentityCard.jsx:49, PetPhotoStack.jsx:55, features/account/PetSwitcher.jsx:61, features/checkins/VisibleChangeField.jsx:80, features/photos/PhotosView.jsx:80). No native camera integration. Pure code-gap.",
+        "Offline / network error behavior — frontend/src/api.js request() has no catch around fetch(); a network/offline failure (TypeError 'Failed to fetch') propagates as a raw error. Only HTTP status codes are handled (401 → clear token/onUnauthorized; other → parsed message). No navigator.onLine check, no offline UI, no retry/queue. Pure code-gap.",
+        "Privacy permission usage descriptions — no iOS Info.plist strings (e.g. NSCameraUsageDescription / NSPhotoLibraryUsageDescription) and no Android manifest permission entries exist (they would live in the missing native projects), and none are drafted in docs/config. Tied to the missing native projects + undocumented.",
+        "Icon / splash asset generation instructions — docs/mobile.md contains no icon or splash generation guidance; there is no frontend/resources/ folder and no @capacitor/assets or cordova-res tooling; capacitor.config.json references smallIcon \"ic_stat_icon\" with no instructions to produce it. Pure doc/code-gap."
+      ],
+      "keyFiles": [
+        "frontend/capacitor.config.json",
+        "frontend/package.json",
+        "frontend/vite.config.js",
+        "docs/mobile.md",
+        "frontend/src/lib/mobile.js",
+        "frontend/src/lib/nativeNotifications.js",
+        "frontend/src/styles/capacitor.css",
+        "frontend/src/api.js",
+        "frontend/src/main.jsx",
+        "frontend/src/features/notifications/ReminderControl.jsx",
+        ".gitignore",
+        "frontend/src/components/PetIdentityCard.jsx",
+        "frontend/src/features/photos/PhotosView.jsx"
+      ],
+      "risks": [
+        "The native Android/iOS projects do not exist in the repo, so there is nothing to build or ship yet — the 'mobile app' is currently a web build plus generated-but-unverified glue code (docs/mobile.md marks config, native notifications, and deep links 'generated', not verified on device).",
+        "Because none of the Capacitor plugin packages are in package.json/lockfile, plugin versions are unpinned and native builds depend on a manual, undocumented-for-Keyboard/Browser/Camera install step — easy to drift from @capacitor/core ^8.4.1.",
+        "No offline/network-failure handling means a dropped connection (common on mobile) surfaces raw 'Failed to fetch' errors to users with no graceful state.",
+        "Missing Android hardware back-button handling means the OS back gesture will background/exit the app instead of navigating the SPA, a likely Play Store UX rejection risk.",
+        "Camera/photo capture via <input type=file> may not reliably access the device camera inside the Capacitor WebView, and without permission usage descriptions an iOS build touching camera/photos can be rejected or crash.",
+        "Environment-blocked verification: with no Android SDK (win32) and no Xcode/macOS, the actual native build, deep-link registration (assetlinks/AASA), notification delivery, and permission prompts cannot be verified in this environment — only the JS glue and config can be reviewed."
+      ],
+      "recommendation": "Prioritize the pure code-gaps that do not need a device: (1) add an Android hardware back-button listener (App.addListener('backButton')) that drives SPA history/hash navigation and only exits at the root; (2) wrap fetch in frontend/src/api.js to catch network TypeErrors and expose an offline/error state (plus optional navigator.onLine UI); (3) decide on Camera/Keyboard/Browser plugin integration — at minimum add @capacitor/camera for native photo capture or document the <input type=file> fallback as intentional; (4) add icon/splash generation instructions (e.g. @capacitor/assets + a 1024px source and an ic_stat_icon) to docs/mobile.md; (5) pin the plugin packages in package.json instead of relying on a manual install, and add a frontend/.env.mobile + vite mobile-mode wiring so build:mobile injects the prod API base. Then, when a native toolchain is available (environment-blocked here): run `npx cap add android`/`npx cap add ios`, commit the scaffolded projects, author permission usage descriptions (Info.plist / AndroidManifest) for camera/photos/notifications, add assetlinks.json + apple-app-site-association for App/Universal Links, and produce+verify a signed build. The .gitignore signing exclusions (lines 42-59) are already correct and should be kept."
+    },
+    {
+      "wp": "WP5 — Secure release packaging & secret hygiene",
+      "overall": "MOSTLY_MISSING",
+      "implemented": [
+        "No secret is currently tracked in git. `git ls-files` returns only `.env.example` among env/secret-named files; all other matches (ForgotPasswordRequest.java, PasswordResetService.java, V7__password_reset_tokens.sql, ops/backup-db.sh, etc.) are legitimate source for the password-reset feature. No `.env`, keystore, `*.key/*.pem/*.p12/*.jks`, `google-services.json`, `.npmrc`, or `.netrc` is tracked.",
+        "Git history is clean of secrets: `git log --all --diff-filter=A` and `git log --all -- '*.env' '.env'` both return nothing — no secret file was ever committed and later removed.",
+        "`.env.example` (root) contains safe placeholders only: every secret field (POSTGRES_PASSWORD, SMTP_PASSWORD, GOOGLE_OAUTH_CLIENT_SECRET, ANTHROPIC_API_KEY, GEMINI_API_KEY, PETPATTERN_ANALYTICS_REF_SALT, PETPATTERN_ANALYTICS_ADMIN_TOKEN, SENTRY_DSN, VITE_*) is empty or a non-secret example; header explicitly says '.env is gitignored; never commit real secrets'.",
+        "`.gitignore` covers the major sensitive/build paths: `.env` + `*.env` with `!.env.example` re-include, `backups/`, `frontend/node_modules/`, `backend/target/`, `frontend/dist/`, `*.zip`, `*.log`/`*.dump`/`*.sql.gz`/`*.dump.gz`, mobile signing material (`*.jks`,`*.keystore`,`*.p12`,`*.pem`,`*.key`,`key.properties`,`google-services.json`,`GoogleService-Info.plist`), and android/ios build outputs.",
+        "`backend/.dockerignore` and `frontend/.dockerignore` both exist and exclude `.env`/`*.env`, `.git`, IDE files, logs, and build output (target / node_modules / dist / coverage).",
+        "Application config does not hardcode production secrets: `backend/src/main/resources/application.yml` reads every prod secret from env (`${GOOGLE_OAUTH_CLIENT_SECRET:}`, `${SENTRY_DSN:}`, `${PETPATTERN_ANALYTICS_ADMIN_TOKEN:}`, `${PETPATTERN_AI_API_KEY:...}`), and `docker-compose.prod.yml` sets `SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}` (fails if unset).",
+        "`git archive HEAD` (tracked-only) inherently excludes the untracked local cruft — verified it contains none of `.env`, `backend;C`, `frontend/package.json;C`, `backups/`, or `.claude/settings.local.json` — so a git-archive-based release approach would auto-exclude those."
+      ],
+      "partial": [
+        "Ignore rules are near-complete but miss the malformed local cruft. `backend;C`, `frontend/package.json;C`, and `frontend/package-lock.json;C` all exist locally and are NOT matched by any `.gitignore` pattern (`git check-ignore` reports NOT-ignored for `backend;C` and `frontend/package.json;C`). They stay out of `git archive` only because they're untracked, but a naive `zip -r` release would sweep them in.",
+        "OAuth-rotation documentation is thin/scattered, not a runbook. There is a one-line checklist item in `LAUNCH_QA_CHECKLIST.md:31` ('Any credential that ever sat in a shared `.env`/ZIP has been rotated') and a flag in `docs/release-hardening/00-baseline.md:64-66` ('Google OAuth client secret ... Rotate if the `.env` was ever shared/committed/zipped'). `docs/google-login.md` documents OAuth *setup* but contains no rotation steps. No step-by-step procedure exists for rotating the Google OAuth client secret in Google Cloud Console, updating `.env`, and restarting.",
+        "`.claude/launch.json` is TRACKED in git (only `.claude/settings.local.json` is gitignored, per `.gitignore:40`). It is local-tooling cruft that ships in any `git archive`. It contains no secret (only an npm dev-server launch config), so it is a cleanliness issue, not a secret leak."
+      ],
+      "missing": [
+        "Deterministic release/packaging script: NONE exists. Glob/`git ls-files` for `*.sh`/`*.ps1`/`package`/`release`/`archive` finds only `ops/backup-db.sh` and `ops/restore-db.sh` (DB dump/restore, unrelated to packaging). No git-archive-based release script.",
+        "Secret-pattern scanning + fail-on-suspicious-file gate: NONE. No script scans the tree/archive for secret patterns (API keys, client secrets, private-key headers) or aborts when a `.env`/keystore/`*.key` is present. No guarantee-of-not-printing-secrets logic because no such script exists.",
+        "Clean-ZIP production excluding all prohibited paths: NONE. No automation produces a release ZIP; the only ZIP handling is `*.zip` in `.gitignore`.",
+        "Archive-hygiene verification script: NONE. Nothing unpacks/inspects a produced archive to assert it excludes `.env`, `backups/`, `node_modules`, `target`, `dist`, `.claude/`, `*;C` cruft, and contains no secret patterns.",
+        "Formal OAuth (Google client-secret) rotation runbook: MISSING as a standalone documented procedure (see partial note — only one-liners exist)."
+      ],
+      "keyFiles": [
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/.gitignore",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/.env.example",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/.dockerignore",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/.dockerignore",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/DEPLOY.md",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/docs/release-hardening/00-baseline.md",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/docs/google-login.md",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/LAUNCH_QA_CHECKLIST.md",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/ops/backup-db.sh",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/ops/restore-db.sh",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/.claude/launch.json",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/backend/src/main/resources/application.yml",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/docker-compose.prod.yml"
+      ],
+      "risks": [
+        "A hand-rolled `zip -r` release (instead of `git archive`) would leak the untracked local `.env` — it holds 2 populated live secrets (Google OAuth client id + client secret, confirmed via count without printing) — plus `backups/` and the `*;C` cruft. The safe-by-default choice (git archive, tracked-only) is not yet codified in any script, so the outcome depends on whoever runs the release doing it correctly.",
+        "`.claude/launch.json` being tracked means it ships in every `git archive` release; harmless today (no secret) but it normalizes shipping local-tooling files and could later carry machine-specific data.",
+        "No secret-scanning gate means a future accidental `git add` of a real secret (e.g. someone renaming `.env` to a non-ignored name, or committing a `*;C` variant) would not be caught at package time.",
+        "OAuth secret rotation depends on tribal knowledge / one-line reminders; without a runbook the client secret sitting in the local `.env` may never be rotated even though the baseline flags it for manual rotation."
+      ],
+      "recommendation": "\"1) Build the missing deterministic release script (e.g. `ops/make-release.sh` / `.ps1`) using `git archive --format=zip HEAD -o petpattern-<gitsha>.zip` so only tracked files ship (auto-excludes `.env`, `backups/`, `node_modules`, `target`, `dist`, `*;C` cruft). 2) Before archiving, add a fail-closed pre-flight: abort with non-zero exit if any working-tree/staged path matches `.env`(non-example)/`*.keystore`/`*.jks`/`*.p12`/`*.pem`/`*.key`/`google-services.json`, and run a secret-pattern scan (e.g. `AIza[0-9A-Za-z_-]{35}`, `-----BEGIN * PRIVATE KEY-----`, `GOCSPX-`, generic `client_secret`/high-entropy) over the tracked set — printing only offending FILE PATHS, never values. 3) Add an archive-hygiene verifier that unzips to a temp dir and asserts absence of `.env`, `backups/`, `node_modules`, `target`, `dist`, `.claude/`, `*;C`, plus a secret-pattern re-scan of the archive contents. 4) Stop tracking `.claude/launch.json` (either `git rm --cached` it and broaden `.gitignore` to `.claude/` with a `!.claude/launch.json` only if intentionally shared, or exclude via `.gitattributes export-ignore`), and add `.gitignore` entries for the `*;C` cruft as belt-and-suspenders. 5) Write a short OAuth-rotation runbook (rotate Google client secret in Cloud Console → update `.env` → `docker compose -f docker-compose.prod.yml up -d`), and rotate the secret currently in the local `.env` since it has been present in a shared working tree. 6) Optional: parameterize the `application.yml` local-dev DB password (`password: petpattern`, line 14) with `${SPRING_DATASOURCE_PASSWORD:petpattern}` to avoid any literal credential in tracked source, though prod already overrides it.\""
+    },
+    {
+      "wp": "WP7 — Frontend deps security + performance/code-splitting",
+      "overall": "MOSTLY_MISSING",
+      "implemented": [
+        "Native image lazy-loading (`loading=\"lazy\"`) is used on <img> tags in PhotosView.jsx:100, TimelineView.jsx:106, PetAvatar.jsx:19, PetPhotoStack.jsx:41 — this is HTML image lazy-loading only, NOT JS code-splitting.",
+        "Sentry is loaded but only *initialized* when VITE_SENTRY_DSN is set (frontend/src/main.jsx:11-41); the SDK module itself is still imported eagerly, so it is in the initial bundle regardless.",
+        "A production build artifact exists to confirm the baseline: frontend/dist/assets/index-DtefeGiF.js is a single 773,638-byte (~756kB) JS chunk plus one 57kB CSS file — matching the stated ~752kB single-chunk baseline."
+      ],
+      "partial": [
+        "'No duplicate dependency chunks' is trivially true only because there is exactly ONE chunk today; it is not a result of any splitting discipline. Once splitting is introduced this requirement becomes real and is currently unaddressed (no manualChunks / vendor strategy in vite.config.js)."
+      ],
+      "missing": [
+        "Resolve npm audit via safe supported Vite/esbuild update: NOT done. package.json pins `\"vite\": \"^5.4.21\"` and the lockfile resolves vite 5.4.21, which bundles esbuild 0.21.5 (vulnerable to GHSA-67mh-4wv8-2f99, dev-server, moderate). No upgrade has been applied.",
+        "Route/feature-level lazy loading (patterns, food, photos, vet, caregivers, settings) while keeping Today fast: NOT done. All 20+ feature views are statically imported at the top of App.jsx (lines 30-49) and rendered in a single `view === '...'` conditional block (lines 1048-1206). Everything ships in one chunk.",
+        "React.lazy / Suspense: NOT used anywhere in product source. A full grep of frontend/src for `lazy|Suspense|import(` returns only native <img loading=\"lazy\"> and one dynamic import in analytics.test.js (test-only).",
+        "Loading fallbacks (Suspense boundaries) for lazily-loaded views: NOT present (no Suspense at all).",
+        "Chunk-load error handling (retry / reload on a stale-chunk 404 after redeploy): NOT present. No error boundary wraps the view area; App.jsx has per-request try/catch for API calls only.",
+        "Measurable initial-bundle reduction: NOT achieved — still a single ~756kB JS chunk. No build-time code-splitting configured (no build.rollupOptions / manualChunks in vite.config.js)."
+      ],
+      "keyFiles": [
+        "frontend/package.json",
+        "frontend/package-lock.json",
+        "frontend/vite.config.js",
+        "frontend/src/main.jsx",
+        "frontend/src/App.jsx",
+        "frontend/dist/assets/index-DtefeGiF.js"
+      ],
+      "risks": [
+        "PRE-EXISTING PEER MISMATCH: the lockfile shows vitest 4.1.10 peer-requires vite `^6.0.0 || ^7.0.0 || ^8.0.0` (package-lock.json lines 4553 & 4577), but the project installs vite 5.4.21. The current dependency tree already violates vitest's peer requirement — the Vite-6 upgrade below actually FIXES this rather than introducing new risk.",
+        "@vitejs/plugin-react 4.3.4 peer-supports vite `^4.2.0 || ^5.0.0 || ^6.0.0` (package-lock.json line 2276) — it does NOT declare Vite 7. Jumping straight to Vite 7 would also force a plugin-react bump (>=4.4 or 5.x), widening blast radius; Vite 6 is the low-risk target.",
+        "Per user memory, there is no local Maven/Java and a plain `docker compose up` serves a STALE frontend — any Vite upgrade + code-split must be validated with an explicit `npm run build` (--build for docker) and the vitest suite, not a plain restart, or regressions will be masked.",
+        "The esbuild advisory is dev-server-only (moderate) and does not affect the production bundle, so it is not a shipping-blocker — but it will keep showing in `npm audit` until the Vite bump lands.",
+        "@sentry/react 8.55.2 is a large SDK imported eagerly in the entry (main.jsx) even though it is only initialized when VITE_SENTRY_DSN is set — it inflates the initial chunk for every user including dev/no-DSN."
+      ],
+      "recommendation": "See recommendation field above."
+    },
+    {
+      "wp": "WP9 — Accessibility & UX release pass (frontend)",
+      "overall": "MOSTLY_DONE",
+      "implemented": [
+        "Semantic controls throughout: every action is a real <button type=\"button\"/\"submit\">. Grep found exactly ONE div-with-onClick in the entire src tree (frontend/src/features/photos/PhotosView.jsx:117, the lightbox backdrop) and it has keyboard-operable alternatives (Escape + close button). TodayDecisionActions.jsx:16-38, PatternCard.jsx, CheckInView.jsx, CaregiversView.jsx, AccountView.jsx all use native buttons.",
+        "Global visible keyboard focus: a single unscoped rule `:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px }` in frontend/src/styles/edit-delete.css:71-74 applies to all interactive elements. base.css:250 sets `outline:none` on inputs but the pseudo-class rule has higher specificity so keyboard focus rings still show. Reinforced for tabs (shell.css:267) and today disclosure (today.css:448).",
+        "Destructive-action confirmation on ALL destructive paths via native window.confirm: delete pet (AccountView.jsx:14), delete account with DOUBLE confirm (AccountView.jsx:53-54), remove caregiver (CaregiversView.jsx:61), leave pet (CaregiversView.jsx:15), revoke vet share (VetShareCard.jsx:43), delete check-in (App.jsx:421), delete photo (App.jsx:494), delete trial/medication/food/activity (App.jsx:539,571,582,605).",
+        "aria-pressed on every toggle/choice control: QuickChoices.jsx:11, ToggleButton.jsx:5, guided chips CheckInView.jsx:138, VisibleChangeField.jsx:45,61, photo-area buttons PhotosView.jsx:64.",
+        "role=group with aria-label on choice grids: QuickChoices.jsx:5, weight unit toggle PetOnboarding.jsx:122, visible-change grid.",
+        "Toast is a correct polite live region: components/Toast.jsx:20 `role=\"status\" aria-live=\"polite\"`, plus pause-on-hover/focus so the 3.2s auto-dismiss can't yank focus from a keyboard user, and a labelled dismiss button (aria-label).",
+        "Error surfaces are announced: every form/save error uses `<div className=\"error-box\" role=\"alert\">` (App.jsx:976,1046; AuthScreen.jsx:140; CaregiversView.jsx:97,119; AccountView.jsx:77; ResetPasswordView.jsx:75; PetOnboarding.jsx:141).",
+        "Reduced-motion honored for all three keyframe animations that exist: styles/today.css:108 (.today-note note-settle), styles/patterns.css:145 (.toast), styles/pet-avatars.css:132 (.pet-photo-stack snap). No uncovered entrance/looping animation was found.",
+        "SR-interpretable progress: PatternMemoryProgress.jsx:53 marks the decorative baseline dots `aria-hidden=\"true\"` and pairs them with a text equivalent `{done} of {total} days logged` (line 59), so screen readers get the real progress.",
+        "Escape-to-close on all three dismissable overlays: LangToggle.jsx:13, PetSwitcher.jsx:18, PhotosView.jsx:19 (lightbox).",
+        "Image alt discipline: decorative avatars use alt=\"\" (PetAvatar.jsx:19, PetPhotoStack.jsx:41, PetIdentityCard.jsx:32); content photos use caption/area-label as alt (PhotosView.jsx:100,120; TimelineView.jsx:106).",
+        "Loading/disabled states: submit and action buttons disable while saving/busy/uploading with changed labels — CheckInView.jsx:186,220,224,439; TodayDecisionActions.jsx:16 (disabled when loggedToday); CaregiversView.jsx:99,115; AccountView.jsx:83,96,119; PhotosView.jsx:81.",
+        "Accessible collapsibles use native <details>/<summary> (keyboard-operable for free): TodayView.jsx:95 (More about today) and CheckInView.jsx:351 (Optional details).",
+        "Reminder permission flow requests Notification permission on enable and reflects granted/denied/blocked/unsupported in visible text: ReminderControl.jsx:35-48 and status copy at 63-77.",
+        "Nav landmark and heading structure: `<nav aria-label=\"PetPattern sections\">` App.jsx:1018; consistent h1 per view + h2 section headings.",
+        "Most form inputs have real labels via implicit wrapping <label>: onboarding (PetOnboarding.jsx:101,107,116), photos date/caption (PhotosView.jsx:71,75), medications, food, check-in note (CheckInView.jsx:175,455), reminder time (ReminderControl.jsx:58), visible-change note (VisibleChangeField.jsx:68)."
+      ],
+      "partial": [
+        "Accessible labels are PARTIAL: several key inputs are placeholder-only with no <label>/aria-label, so their accessible name vanishes once typing starts. AuthScreen.jsx:122 (name), :124 (email), :126 (password), and the ResetPassword field; CaregiversView.jsx:109-114 (invite email placeholder only). Login/signup and 'invite a caregiver' are primary flows.",
+        "Status/success announcements are PARTIAL: only the Toast is a live region. Non-toast confirmations are plain text with no aria-live, so screen readers don't hear them — AccountView.jsx:78 `{message && <p className=\"muted\">{message}</p>}` ('X was deleted', 'Your data has been downloaded'), AuthScreen.jsx:139 reset-link notice, VetShareCard.jsx:79 'Copied' (button text swap). CaregiversView gives NO confirmation at all after an invite is sent (the field just clears).",
+        "Touch-target sizing is PARTIAL: primary/secondary/ghost buttons meet ~42-46px (base.css:182,191), but .text-button and .chip-button are 32px (base.css:223) and .icon-button is 34x34 (edit-delete.css:25-26), e.g. the photo delete/close icons (PhotosView.jsx:106,118). These clear the WCAG 2.5.8 AA 24px floor but are under the comfortable 44px; capacitor.css:35-42 raises some to only 40px on native.",
+        "Modal semantics are PARTIAL: the only modal (PhotosView lightbox, PhotosView.jsx:117) sets role=\"dialog\" aria-modal=\"true\" and handles Escape, but has NO accessible name (no aria-label/aria-labelledby) so it opens as an unnamed dialog.",
+        "Urgent-observation messaging is PARTIAL: the historical urgent banner (TimelineView.jsx:61-68, VetSheet.jsx:166) is coral, iconed and headed 'Worth acting on soon', but uses role=\"note\" — a generic region that is not emphasized or announced as urgent by assistive tech; no aria-live/role=alert/role=status. For a safety-relevant surface this under-conveys urgency to SR users.",
+        "ARIA listbox pattern is PARTIAL: LangToggle.jsx:30-32 and PetSwitcher.jsx:49-65 use role=\"listbox\"/role=\"option\" on <button> children with only Escape handling — the pattern implies arrow-key roving focus that isn't implemented. Operable via Tab, but ARIA-inconsistent."
+      ],
+      "missing": [
+        "Modal focus trap + focus management is MISSING entirely. The PhotosView lightbox (PhotosView.jsx:116-127) does not move focus into the dialog on open, does not trap Tab within it (focus can walk to the still-present page behind the overlay), and does not restore focus to the triggering thumbnail on close. This is the one true focus-trap requirement in the app and it is unmet.",
+        "Programmatic form-error association is MISSING: no aria-invalid, aria-describedby, or aria-errormessage anywhere in src (grep returned zero). Errors render in a page-level role=alert box (announced) but are never tied to the offending field — e.g. the invite email (CaregiversView.jsx:109) has no aria-invalid, so a SR user isn't told which field failed.",
+        "Immediate acute/urgent feedback after saving a check-in is MISSING: saveCheckIn (App.jsx:789-808) and quickLog (App.jsx:811-868) only reload data and navigate to Today; nothing surfaces an acute observation at the moment of logging. The urgent banner is historical-only (timeline). This matches WP1 still being in progress, but from the UX side there is no immediate urgent-observation message.",
+        "Skip-to-content link is MISSING (grep for skip/Skip found only unrelated 'Skip'/backfill text). Keyboard/SR users must tab through the full header + sidebar nav on every view."
+      ],
+      "keyFiles": [
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/photos/PhotosView.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/patterns/TimelineView.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/vet/VetSheet.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/account/AccountView.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/caregivers/CaregiversView.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/auth/AuthScreen.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/checkins/CheckInView.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/features/today/PatternMemoryProgress.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/components/Toast.jsx",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/styles/edit-delete.css",
+        "D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot/frontend/src/styles/base.css"
+      ],
+      "risks": [
+        "The lightbox is the app's only modal and lacks a focus trap + focus restore; a keyboard/SR user can tab 'behind' the open overlay and lose their place — the highest-impact a11y defect found.",
+        "Placeholder-only labels on the sign-in/registration and caregiver-invite inputs mean the accessible name disappears on input; SR users mid-typing lose the field's purpose on primary flows.",
+        "The urgent/acute observation banner is role=\"note\" (not a live/alert region), so on a safety-relevant surface the urgency is not conveyed to assistive tech — and there is still no immediate acute message at the moment of logging (ties to WP1 being incomplete).",
+        "Success confirmations (deletions, data export, invites sent, link copied) are silent to screen readers because only the Toast is a live region; destructive/irreversible outcomes especially should be announced.",
+        "Contrast was not machine-verified in this pass; the design uses warm low-saturation tokens (muted grey text, gold/coral chips) that should be checked against WCAG 1.4.3 4.5:1, particularly `.muted` body text and status chips."
+      ],
+      "recommendation": "\"1) Add a focus trap to the PhotosView lightbox: on open, move focus to the close button and record the trigger; loop Tab/Shift+Tab within the dialog; on close, restore focus to the triggering thumbnail. Give the dialog an aria-label (e.g. the photo caption/area). This is the single most important fix. 2) Give AuthScreen (name/email/password) and CaregiversView invite inputs real accessible names — visible <label> or at minimum aria-label — instead of placeholder-only. 3) Announce success: reuse the existing Toast pattern (or add role=status/aria-live=polite) for AccountView deletion/export messages, CaregiversView invite-sent, and VetShareCard 'Copied'. 4) Upgrade the urgent-observation banner from role=\\\"note\\\" to role=\\\"status\\\" (or wrap in an aria-live region) and, for the WP1 immediate layer, surface an acute observation right after saveCheckIn rather than only in the historical timeline. 5) Associate field errors with inputs via aria-invalid + aria-describedby (start with the invite email and auth fields). 6) Add a skip-to-content link ahead of the header nav. 7) Lower-priority: bump .text-button/.chip-button/.icon-button toward 44px hit areas and give LangToggle/PetSwitcher proper arrow-key listbox behavior or drop the listbox roles. 8) Run an automated contrast check on .muted text and status chips.\""
+    }
+  ],
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Survey"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "gap:wp2-analytics",
+      "phaseIndex": 1,
+      "phaseTitle": "Survey",
+      "agentId": "a5e5b9dad38609c65",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784245652161,
+      "queuedAt": 1784245652127,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "WP2 — Product analytics & retention",
+      "promptPreview": "You are auditing the PetPattern repo at D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot. Use Read/Grep/Glob on ABSOLUTE paths under that root. Report ONLY what the code actually shows — cite the exact file for every \"implemented\" claim. Do not propose rebuilding working systems. Be precise about what EXISTS vs what is MISSING against the requirement list. Return the struct…",
+      "lastProgressAt": 1784245842255,
+      "tokens": 64140,
+      "toolCalls": 32,
+      "durationMs": 190094,
+      "resultPreview": "{\"wp\":\"WP2 — Product analytics & retention\",\"overall\":\"PARTIAL\",\"implemented\":[\"Schema versioning (req 2): SCHEMA_VERSION=1 constant is stamped on every row server-side (AnalyticsService.java:37,96); schema_version is NOT NULL in the entity/table (AnalyticsEvent.java:44-45, V14__analytics_events.sql:21). Client-supplied schemaVersion in the DTO is ignored, so the server is authoritative.\",\"Platfor…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "gap:wp3-reminders",
+      "phaseIndex": 1,
+      "phaseTitle": "Survey",
+      "agentId": "a8c2f167a91d6a598",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784245652163,
+      "queuedAt": 1784245652128,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "WP3 — Correct reminder behavior (web + native)",
+      "promptPreview": "You are auditing the PetPattern repo at D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot. Use Read/Grep/Glob on ABSOLUTE paths under that root. Report ONLY what the code actually shows — cite the exact file for every \"implemented\" claim. Do not propose rebuilding working systems. Be precise about what EXISTS vs what is MISSING against the requirement list. Return the struct…",
+      "lastProgressAt": 1784245861961,
+      "tokens": 53156,
+      "toolCalls": 16,
+      "durationMs": 209798,
+      "resultPreview": "{\"wp\":\"WP3 — Correct reminder behavior (web + native)\",\"overall\":\"PARTIAL\",\"implemented\":[\"Explicit opt-in: default is OFF (loadReminder returns {enabled:false,...} at reminders.js:13,17) and the reminder only turns on via the user's toggle click (ReminderControl.jsx:35-48). No auto-enable.\",\"Permission requested at the right moment: requested inside the toggle() user-gesture when turning ON, neve…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "gap:wp4-mobile",
+      "phaseIndex": 1,
+      "phaseTitle": "Survey",
+      "agentId": "a720f3eb0660c0b6d",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784245652164,
+      "queuedAt": 1784245652128,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "WP4 — Real Capacitor mobile readiness",
+      "promptPreview": "You are auditing the PetPattern repo at D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot. Use Read/Grep/Glob on ABSOLUTE paths under that root. Report ONLY what the code actually shows — cite the exact file for every \"implemented\" claim. Do not propose rebuilding working systems. Be precise about what EXISTS vs what is MISSING against the requirement list. Return the struct…",
+      "lastProgressAt": 1784245810938,
+      "tokens": 54535,
+      "toolCalls": 28,
+      "durationMs": 158774,
+      "resultPreview": "{\"wp\":\"WP4 — Real Capacitor mobile readiness\",\"overall\":\"PARTIAL\",\"implemented\":[\"Valid Capacitor config with appId/appName/webDir — frontend/capacitor.config.json (appId \\\"app.petpattern.mobile\\\", appName \\\"PetPattern\\\", webDir \\\"dist\\\", server.androidScheme \\\"https\\\").\",\"Safe-area / notch / tap-target handling — frontend/src/styles/capacitor.css uses env(safe-area-inset-*) on body/.top-bar/.scre…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "gap:wp5-packaging",
+      "phaseIndex": 1,
+      "phaseTitle": "Survey",
+      "agentId": "aab995ac257928ed3",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784245652165,
+      "queuedAt": 1784245652128,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "WP5 — Secure release packaging & secret hygiene",
+      "promptPreview": "You are auditing the PetPattern repo at D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot. Use Read/Grep/Glob on ABSOLUTE paths under that root. Report ONLY what the code actually shows — cite the exact file for every \"implemented\" claim. Do not propose rebuilding working systems. Be precise about what EXISTS vs what is MISSING against the requirement list. Return the struct…",
+      "lastProgressAt": 1784245841297,
+      "tokens": 49255,
+      "toolCalls": 18,
+      "durationMs": 189132,
+      "resultPreview": "{\"wp\":\"WP5 — Secure release packaging & secret hygiene\",\"overall\":\"MOSTLY_MISSING\",\"implemented\":[\"No secret is currently tracked in git. `git ls-files` returns only `.env.example` among env/secret-named files; all other matches (ForgotPasswordRequest.java, PasswordResetService.java, V7__password_reset_tokens.sql, ops/backup-db.sh, etc.) are legitimate source for the password-reset feature. No `.e…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "gap:wp7-perf",
+      "phaseIndex": 1,
+      "phaseTitle": "Survey",
+      "agentId": "a707b72472ea253ad",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784245652165,
+      "queuedAt": 1784245652128,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "WP7 — Frontend deps security + performance/code-splitting",
+      "promptPreview": "You are auditing the PetPattern repo at D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot. Use Read/Grep/Glob on ABSOLUTE paths under that root. Report ONLY what the code actually shows — cite the exact file for every \"implemented\" claim. Do not propose rebuilding working systems. Be precise about what EXISTS vs what is MISSING against the requirement list. Return the struct…",
+      "lastProgressAt": 1784245821881,
+      "tokens": 68709,
+      "toolCalls": 19,
+      "durationMs": 169716,
+      "resultPreview": "{\"wp\":\"WP7 — Frontend deps security + performance/code-splitting\",\"overall\":\"MOSTLY_MISSING\",\"implemented\":[\"Native image lazy-loading (`loading=\\\"lazy\\\"`) is used on <img> tags in PhotosView.jsx:100, TimelineView.jsx:106, PetAvatar.jsx:19, PetPhotoStack.jsx:41 — this is HTML image lazy-loading only, NOT JS code-splitting.\",\"Sentry is loaded but only *initialized* when VITE_SENTRY_DSN is set (fron…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "gap:wp9-a11y",
+      "phaseIndex": 1,
+      "phaseTitle": "Survey",
+      "agentId": "aebda97f2c81fafba",
+      "model": "claude-opus-4-8",
+      "state": "done",
+      "startedAt": 1784245652166,
+      "queuedAt": 1784245652128,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "WP9 — Accessibility & UX release pass (frontend)",
+      "promptPreview": "You are auditing the PetPattern repo at D:/bpusic/Downloads/petpattern-pilot-unique-ports-fixed/petpattern-pilot. Use Read/Grep/Glob on ABSOLUTE paths under that root. Report ONLY what the code actually shows — cite the exact file for every \"implemented\" claim. Do not propose rebuilding working systems. Be precise about what EXISTS vs what is MISSING against the requirement list. Return the struct…",
+      "lastProgressAt": 1784245956067,
+      "tokens": 95256,
+      "toolCalls": 44,
+      "durationMs": 303901,
+      "resultPreview": "{\"wp\":\"WP9 — Accessibility & UX release pass (frontend)\",\"overall\":\"MOSTLY_DONE\",\"implemented\":[\"Semantic controls throughout: every action is a real <button type=\\\"button\\\"/\\\"submit\\\">. Grep found exactly ONE div-with-onClick in the entire src tree (frontend/src/features/photos/PhotosView.jsx:117, the lightbox backdrop) and it has keyboard-operable alternatives (Escape + close button). TodayDecis…"
+    }
+  ],
+  "totalTokens": 385051,
+  "totalToolCalls": 157
+}
