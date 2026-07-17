@@ -7,6 +7,11 @@ import { LangToggle } from '../../components/LangToggle'
 import { GoogleG } from '../../components/GoogleG'
 
 function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo, onRabbitDemo, demoEnabled = true, googleEnabled = false }) {
+  // Google sign-in is a web-redirect flow (relative /api/auth/google/start) that cannot return a
+  // session into a native WebView, so it is HIDDEN on Android/iOS for this beta — native users keep
+  // email/password + password reset. Full native OAuth is post-beta (see docs/google-login.md).
+  const isNative = Boolean(globalThis.Capacitor?.isNativePlatform?.())
+  const showGoogle = googleEnabled && !isNative
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -107,7 +112,7 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo
           <p className="start-sub muted">{t('Food, stool, itching, vomiting, litter box, appetite, energy — small notes become useful over time.')}</p>
         )}
 
-        {googleEnabled && mode !== 'forgot' && (
+        {showGoogle && mode !== 'forgot' && (
           <>
             <button className="google-button" type="button" onClick={() => { window.location.href = '/api/auth/google/start' }}>
               <GoogleG size={18} /> {t('Continue with Google')}

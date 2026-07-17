@@ -51,4 +51,22 @@ describe('Auth flow', () => {
     await user.click(screen.getByRole('button', { name: 'Send reset link' }))
     expect(await screen.findByText(/If an account exists/i)).toBeInTheDocument()
   })
+
+  it('shows the Google button on the web when enabled', () => {
+    setup({ googleEnabled: true })
+    expect(screen.getByRole('button', { name: /Continue with Google/i })).toBeInTheDocument()
+  })
+
+  it('hides the Google button on native even when enabled (web-redirect cannot return a native session)', () => {
+    // Simulate running inside the Capacitor native shell.
+    globalThis.Capacitor = { isNativePlatform: () => true }
+    try {
+      setup({ googleEnabled: true })
+      expect(screen.queryByRole('button', { name: /Continue with Google/i })).not.toBeInTheDocument()
+      // Email/password + password reset remain available natively.
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
+    } finally {
+      delete globalThis.Capacitor
+    }
+  })
 })
