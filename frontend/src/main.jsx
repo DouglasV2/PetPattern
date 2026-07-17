@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { initMobile } from './lib/mobile'
+import { initSecureSession } from './lib/secureSession'
 import './styles/index.css'
 
 // Error tracking is optional and env-driven: with no VITE_SENTRY_DSN set (dev),
@@ -48,8 +49,15 @@ if (dsn) {
 // Native shell setup (status bar + deep-link routing). A no-op on the web.
 initMobile()
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+function renderApp() {
+  createRoot(document.getElementById('root')).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  )
+}
+
+// Hydrate the native session token from secure storage (Keychain/Keystore) BEFORE the first
+// authenticated request, so a returning native user stays signed in across restarts. Resolves
+// immediately on the web (not native). Never blocks rendering on a failure.
+initSecureSession().then(renderApp).catch(renderApp)

@@ -1,35 +1,40 @@
 import { getLang } from './i18n'
+import { platform as clientPlatform, appVersion as clientAppVersion } from './lib/clientInfo'
+import { getSessionToken, setSessionToken, clearSessionToken, initSecureSession } from './lib/secureSession'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
-const MOBILE_SESSION_KEY = 'petpattern.mobileSessionToken'
 
 function isNativeApp() {
   return Boolean(globalThis.Capacitor?.isNativePlatform?.())
 }
 
+// Native session token lives in the OS secure store (Keychain / Keystore), surfaced through an
+// in-memory cache hydrated at app start — see lib/secureSession.js. The web app never uses a bearer
+// token (it relies on the HttpOnly cookie), so these are native-only.
+export { initSecureSession }
+
 function getMobileSessionToken() {
   if (!isNativeApp()) return null
-  try {
-    return globalThis.localStorage?.getItem(MOBILE_SESSION_KEY) || null
-  } catch (err) {
-    return null
-  }
+  return getSessionToken()
 }
 
 function saveMobileSessionToken(token) {
   if (!isNativeApp() || !token) return
-  try {
-    globalThis.localStorage?.setItem(MOBILE_SESSION_KEY, token)
-  } catch (err) {
-    // If storage is unavailable, the next authenticated request will simply 401.
-  }
+  // Cache is updated synchronously inside setSessionToken; the secure write is best-effort.
+  setSessionToken(token)
 }
 
 function clearMobileSessionToken() {
-  try {
-    globalThis.localStorage?.removeItem(MOBILE_SESSION_KEY)
-  } catch (err) {
-    // ignore
+  clearSessionToken()
+}
+
+// Platform + app-version travel on EVERY request (web and native) so server-recorded analytics can
+// attribute the real platform/version instead of hardcoding "web". Both are non-sensitive hints and
+// are validated/clamped server-side; never put a token or PII here.
+function clientHeaders() {
+  return {
+    'X-PetPattern-Platform': clientPlatform(),
+    'X-PetPattern-App-Version': clientAppVersion()
   }
 }
 
@@ -76,6 +81,7 @@ async function request(path, options = {}) {
         'Content-Type': 'application/json',
         // Backend-generated text (patterns, vet summary, recap…) follows the UI language.
         'Accept-Language': getLang(),
+        ...clientHeaders(),
         ...mobileHeaders(),
         ...(options.headers ?? {})
       }
@@ -153,7 +159,7 @@ export const api = {
       response = await fetch(`${API_BASE}/pets/${petId}/photos`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Accept-Language': getLang(), ...mobileHeaders() },
+        headers: { 'Accept-Language': getLang(), ...clientHeaders(), ...mobileHeaders() },
         body: formData
       })
     } catch (networkErr) {
