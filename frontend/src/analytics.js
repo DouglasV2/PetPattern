@@ -44,3 +44,33 @@ export function track(event) {
     // Analytics must never break the app.
   }
 }
+
+// Internal funnel events the CLIENT knows (which button, which permission result). Sent to the
+// app's own privacy-safe ingest (`/api/analytics/events`) for the signed-in owner. Must be
+// non-once-per-ref (the server rejects milestone types), and carry no PII — the server also
+// strips any disallowed meta per event type. Fire-and-forget; never blocks or breaks the app.
+const SERVER_ALLOWED = new Set([
+  'same_as_usual_checkin',
+  'changed_day_checkin',
+  'weekly_overview_viewed',
+  'photo_timeline_used',
+  'vet_summary_shared',
+  'reminder_enabled',
+  'reminder_permission_granted',
+  'reminder_permission_denied',
+  'reminder_notification_opened',
+  'notification_to_checkin'
+])
+
+export function trackServer(event, meta) {
+  if (!SERVER_ALLOWED.has(event)) return
+  try {
+    const platform = globalThis.Capacitor?.getPlatform?.() || 'web'
+    // Lazy import keeps analytics decoupled from the api module's load order.
+    import('./api')
+      .then(({ api }) => api.trackEvent({ type: event, platform, meta: meta || undefined }).catch(() => {}))
+      .catch(() => {})
+  } catch {
+    // Analytics must never break the app.
+  }
+}

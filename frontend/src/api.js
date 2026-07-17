@@ -88,7 +88,8 @@ async function request(path, options = {}) {
   if (sessionToken) saveMobileSessionToken(sessionToken)
   if (path === '/auth/logout' || (path === '/account' && method === 'DELETE')) clearMobileSessionToken()
 
-  if (response.status === 204) return null
+  // 204/202 carry no body (202 is the analytics ingest's "accepted"); don't try to parse them.
+  if (response.status === 204 || response.status === 202) return null
   return response.json()
 }
 
@@ -178,6 +179,9 @@ export const api = {
   deleteAccount: () => request('/account', { method: 'DELETE' }),
   // Token goes in a header, not the URL, so it stays out of server/access logs.
   sharedVetSummary: (token) => request('/shared/vet-summary', { headers: { 'X-Share-Token': token } }),
+  // Internal, privacy-safe analytics ingest for client-known events. The server rejects
+  // once-per-ref milestone types and unknown types, and strips any disallowed meta.
+  trackEvent: (payload) => request('/analytics/events', { method: 'POST', body: JSON.stringify(payload) }),
   seedDemo: () => request('/dev/seed', { method: 'POST' }),
   seedCatDemo: () => request('/dev/seed-cat', { method: 'POST' }),
   seedRabbitDemo: () => request('/dev/seed-rabbit', { method: 'POST' })

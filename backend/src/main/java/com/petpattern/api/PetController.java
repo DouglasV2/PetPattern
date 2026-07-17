@@ -163,6 +163,19 @@ public class PetController {
         List<ImmediateObservationDto> immediateObservations =
                 immediateObservationService.evaluate(pet, recentCheckIns, recentFoodLogs);
 
+        WeeklyInsight weeklyInsight = weeklyInsightService.generate(pet, recentCheckIns, recentActivities);
+
+        // First-time value milestones (idempotent via oncePerRef): the owner now has a generated
+        // pattern / a weekly overview available. Firing on overview reads is safe — each records once.
+        Map<String, String> overviewMeta =
+                pet.getSpecies() == null ? Map.of() : Map.of("species", pet.getSpecies().name());
+        if (!patterns.isEmpty()) {
+            analytics.recordCurrent(AnalyticsEventType.FIRST_PATTERN_GENERATED, overviewMeta);
+        }
+        if (weeklyInsight != null) {
+            analytics.recordCurrent(AnalyticsEventType.FIRST_WEEKLY_OVERVIEW_AVAILABLE, overviewMeta);
+        }
+
         String status = todayStatus(latestCheckIn, patterns);
         return new PetOverviewResponse(
                 PetResponse.from(pet),
@@ -175,7 +188,7 @@ public class PetController {
                 retention(pet),
                 goodNews(pet, recentCheckIns),
                 watchOut(pet, recentFoodLogs),
-                weeklyInsightService.generate(pet, recentCheckIns, recentActivities),
+                weeklyInsight,
                 MilestoneCalculator.buildStage(pet.getSpecies(), usefulLogs, foodLogsRecorded, patterns.size()),
                 immediateObservations
         );
@@ -331,8 +344,12 @@ public class PetController {
         pet.setSex(request.sex() == null ? Sex.UNKNOWN : request.sex());
         pet.setCurrentWeightKg(request.currentWeightKg());
         Pet saved = petRepository.save(pet);
-        analytics.recordCurrent(AnalyticsEventType.PET_CREATED,
-                saved.getSpecies() == null ? Map.of() : Map.of("species", saved.getSpecies().name()));
+        Map<String, String> speciesMeta =
+                saved.getSpecies() == null ? Map.of() : Map.of("species", saved.getSpecies().name());
+        analytics.recordCurrent(AnalyticsEventType.PET_CREATED, speciesMeta);
+        // Onboarding is "done" once the owner has their first pet. oncePerRef makes this fire once
+        // even though it is called on every pet creation.
+        analytics.recordCurrent(AnalyticsEventType.ONBOARDING_COMPLETED, speciesMeta);
         return PetResponse.from(saved);
     }
 

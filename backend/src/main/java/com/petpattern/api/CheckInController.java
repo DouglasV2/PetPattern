@@ -5,6 +5,7 @@ import com.petpattern.api.dto.CheckInRequest;
 import com.petpattern.api.dto.CheckInResponse;
 import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.domain.DailyCheckIn;
+import com.petpattern.domain.Owner;
 import com.petpattern.domain.Pet;
 import com.petpattern.domain.StoolState;
 import com.petpattern.auth.PetAccess;
@@ -78,8 +79,13 @@ public class CheckInController {
             // of inserting a duplicate.
             response = CheckInResponse.from(persist(pet, request));
         }
-        analytics.recordCurrent(AnalyticsEventType.CHECKIN_CREATED,
-                pet.getSpecies() == null ? Map.of() : Map.of("species", pet.getSpecies().name()));
+        Owner owner = petAccess.currentOwner();
+        String species = pet.getSpecies() == null ? null : pet.getSpecies().name();
+        Map<String, String> speciesMeta = species == null ? Map.of() : Map.of("species", species);
+        analytics.record(owner.getId(), AnalyticsEventType.CHECKIN_CREATED, "web", null, speciesMeta);
+        // Idempotent activation milestones from the owner's distinct check-in count. A "useful
+        // check-in" is a distinct saved check-in day, so editing an existing day never advances them.
+        analytics.recordCheckInMilestones(owner.getId(), checkInRepository.countByOwner(owner), species);
         return response;
     }
 

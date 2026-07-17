@@ -42,7 +42,7 @@ public class AuthController {
         Owner owner = authService.register(request.email(), request.password(), request.displayName(), request.acceptedTerms());
         String token = authService.issueSession(owner);
         // The new owner has no OwnerContext on this request yet, so record with the id directly.
-        analytics.record(owner.getId(), AnalyticsEventType.REGISTERED, "web", null, Map.of());
+        analytics.record(owner.getId(), AnalyticsEventType.ACCOUNT_REGISTERED, "web", null, Map.of());
         ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.CREATED)
                 .header(HttpHeaders.SET_COOKIE, authService.sessionCookie(token).toString());
         if (isMobileClient(client)) {

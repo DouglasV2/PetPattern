@@ -32,6 +32,9 @@ public class VetSummaryController {
     public VetSummaryDto vetSummary(@PathVariable UUID petId,
                                     @RequestParam(value = "days", required = false) Integer days) {
         petAccess.requireOwnedPet(petId);
+        // This endpoint both produces and returns the summary, so it is a GENERATED event; the
+        // legacy VIEWED event is kept for continuity with existing rows.
+        analytics.recordCurrent(AnalyticsEventType.VET_SUMMARY_GENERATED);
         analytics.recordCurrent(AnalyticsEventType.VET_SUMMARY_VIEWED);
         return vetSummaryService.build(petId, days);
     }

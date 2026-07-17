@@ -1,11 +1,13 @@
 package com.petpattern.api;
 
+import com.petpattern.analytics.AnalyticsService;
 import com.petpattern.api.dto.CaregiverResponse;
 import com.petpattern.api.dto.CaregiversResponse;
 import com.petpattern.api.dto.InviteRequest;
 import com.petpattern.api.dto.PendingInviteResponse;
 import com.petpattern.auth.PetAccess;
 import com.petpattern.caregiver.CaregiverService;
+import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.domain.Owner;
 import com.petpattern.domain.Pet;
 import org.springframework.http.HttpStatus;
@@ -23,10 +25,13 @@ public class CaregiverController {
 
     private final PetAccess petAccess;
     private final CaregiverService caregiverService;
+    private final AnalyticsService analytics;
 
-    public CaregiverController(PetAccess petAccess, CaregiverService caregiverService) {
+    public CaregiverController(PetAccess petAccess, CaregiverService caregiverService,
+                              AnalyticsService analytics) {
         this.petAccess = petAccess;
         this.caregiverService = caregiverService;
+        this.analytics = analytics;
     }
 
     @GetMapping("/caregivers")
@@ -42,7 +47,9 @@ public class CaregiverController {
     public PendingInviteResponse invite(@PathVariable UUID petId, @RequestBody InviteRequest request) {
         Owner owner = petAccess.currentOwner();
         Pet pet = petAccess.requirePrimaryOwner(petId);
-        return PendingInviteResponse.from(caregiverService.invite(pet, owner, request.email()));
+        PendingInviteResponse response = PendingInviteResponse.from(caregiverService.invite(pet, owner, request.email()));
+        analytics.record(owner.getId(), AnalyticsEventType.CAREGIVER_INVITED, "web", null, java.util.Map.of());
+        return response;
     }
 
     @DeleteMapping("/caregivers/{caregiverOwnerId}")

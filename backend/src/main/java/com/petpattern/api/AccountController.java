@@ -44,7 +44,7 @@ public class AccountController {
     public ResponseEntity<AccountExportDto> export() {
         Owner owner = petAccess.currentOwner();
         AccountExportDto data = exportService.export(owner);
-        analytics.record(owner.getId(), AnalyticsEventType.EXPORT_CLICKED, "web", null, Map.of());
+        analytics.record(owner.getId(), AnalyticsEventType.DATA_EXPORT_REQUESTED, "web", null, Map.of());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"petpattern-export.json\"")
                 .body(data);

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { api, setUnauthorizedHandler } from './api'
 import { t, setLang, loadLang, persistLang } from './i18n'
-import { track } from './analytics'
+import { track, trackServer } from './analytics'
 import { isStarterSpecies } from './speciesProfiles'
 import { today } from './lib/date'
 import { isCat } from './lib/species'
@@ -798,6 +798,7 @@ function App() {
       const payload = { ...rest, observationsJson: toObservationsJson(checkInForm, selectedPet.species) }
       await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
+      trackServer('changed_day_checkin', { species: selectedPet.species })
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
       go('today')
@@ -854,6 +855,7 @@ function App() {
       }
       await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
+      trackServer('same_as_usual_checkin', { species: selectedPet.species })
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
       showToast(t('Saved — quiet days matter too.'))

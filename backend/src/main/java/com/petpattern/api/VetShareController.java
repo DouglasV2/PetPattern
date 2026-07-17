@@ -1,7 +1,9 @@
 package com.petpattern.api;
 
+import com.petpattern.analytics.AnalyticsService;
 import com.petpattern.api.dto.VetShareResponse;
 import com.petpattern.auth.PetAccess;
+import com.petpattern.domain.AnalyticsEventType;
 import com.petpattern.domain.Pet;
 import com.petpattern.vet.VetShareService;
 import org.springframework.http.HttpStatus;
@@ -23,10 +25,13 @@ public class VetShareController {
 
     private final PetAccess petAccess;
     private final VetShareService vetShareService;
+    private final AnalyticsService analytics;
 
-    public VetShareController(PetAccess petAccess, VetShareService vetShareService) {
+    public VetShareController(PetAccess petAccess, VetShareService vetShareService,
+                             AnalyticsService analytics) {
         this.petAccess = petAccess;
         this.vetShareService = vetShareService;
+        this.analytics = analytics;
     }
 
     @GetMapping
@@ -42,6 +47,7 @@ public class VetShareController {
     public VetShareResponse create(@PathVariable UUID petId) {
         Pet pet = petAccess.requirePrimaryOwner(petId);
         VetShareService.Created created = vetShareService.createOrReplace(pet);
+        analytics.recordCurrent(AnalyticsEventType.VET_SUMMARY_SHARED);
         return new VetShareResponse(true, created.token(), created.expiresAt());
     }
 

@@ -94,10 +94,31 @@ public class AnalyticsService {
             event.setPlatform(PLATFORMS.contains(platform) ? platform : "web");
             event.setAppVersion(safeAppVersion(appVersion));
             event.setSchemaVersion(SCHEMA_VERSION);
-            event.setMeta(filterMeta(meta));
+            event.setMeta(filterMeta(type, meta));
             repository.save(event);
         } catch (Exception ex) {
+            // Includes a partial UNIQUE(ref,type) violation racing a once-per-ref milestone —
+            // that is exactly the idempotency guarantee working, so it stays non-fatal.
             log.debug("Analytics event dropped (non-fatal)", ex);
+        }
+    }
+
+    /**
+     * Fire the idempotent check-in activation milestones for an owner, given how many distinct
+     * check-ins they have logged. Each milestone is once-per-ref, so re-invoking at a higher count
+     * (or on an edit that does not change the count) never double-fires — a "useful check-in" is a
+     * distinct saved check-in day, so editing an existing day does not advance the milestone.
+     */
+    public void recordCheckInMilestones(UUID ownerId, long distinctCheckIns, String speciesName) {
+        Map<String, String> meta = speciesName == null ? Map.of() : Map.of("species", speciesName);
+        if (distinctCheckIns >= 1) {
+            record(ownerId, AnalyticsEventType.FIRST_CHECKIN_COMPLETED, "web", null, meta);
+        }
+        if (distinctCheckIns >= 3) {
+            record(ownerId, AnalyticsEventType.THIRD_USEFUL_CHECKIN_REACHED, "web", null, meta);
+        }
+        if (distinctCheckIns >= 7) {
+            record(ownerId, AnalyticsEventType.SEVENTH_USEFUL_CHECKIN_REACHED, "web", null, meta);
         }
     }
 
@@ -114,21 +135,32 @@ public class AnalyticsService {
     }
 
     /**
-     * Keep only allow-listed categorical keys with allow-listed values, so no free text or
-     * health content is ever stored. Returns compact JSON, or null when nothing survives.
+     * Per-event meta filter: keep only the categorical keys THIS event type allows
+     * ({@link AnalyticsEventType#allowedMetaKeys()}), each with an allow-listed value, so no free
+     * text or health content is ever stored and a key valid for one event (e.g. species on a
+     * check-in) is dropped on an event that does not allow it (e.g. a reminder). Returns compact
+     * JSON, or null when nothing survives.
      */
-    String filterMeta(Map<String, String> meta) {
-        if (meta == null || meta.isEmpty()) {
+    String filterMeta(AnalyticsEventType type, Map<String, String> meta) {
+        if (type == null || meta == null || meta.isEmpty()) {
+            return null;
+        }
+        Set<String> allowed = type.allowedMetaKeys();
+        if (allowed.isEmpty()) {
             return null;
         }
         Map<String, String> safe = new LinkedHashMap<>();
-        String species = meta.get("species");
-        if (species != null && isSpecies(species)) {
-            safe.put("species", species.trim().toUpperCase(java.util.Locale.ROOT));
+        if (allowed.contains("species")) {
+            String species = meta.get("species");
+            if (species != null && isSpecies(species)) {
+                safe.put("species", species.trim().toUpperCase(java.util.Locale.ROOT));
+            }
         }
-        String mode = meta.get("mode");
-        if (mode != null && CHECKIN_MODES.contains(mode.trim().toLowerCase(java.util.Locale.ROOT))) {
-            safe.put("mode", mode.trim().toLowerCase(java.util.Locale.ROOT));
+        if (allowed.contains("mode")) {
+            String mode = meta.get("mode");
+            if (mode != null && CHECKIN_MODES.contains(mode.trim().toLowerCase(java.util.Locale.ROOT))) {
+                safe.put("mode", mode.trim().toLowerCase(java.util.Locale.ROOT));
+            }
         }
         if (safe.isEmpty()) {
             return null;
