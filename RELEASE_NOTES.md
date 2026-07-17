@@ -1,9 +1,9 @@
 # PetPattern v0.1.0-beta — Release Notes
 
-PetPattern is a **longitudinal health-memory app for dogs and cats**. Owners log
-small daily signals over time; PetPattern surfaces recurring, easy-to-miss
-patterns and turns them into a calm, vet-ready summary. It is not a chatbot, not
-an AI vet, and not a symptom Q&A app — the value is the remembered record.
+PetPattern is a **longitudinal pet health-memory app**. Owners log small daily
+signals over time; PetPattern surfaces recurring, easy-to-miss patterns and turns
+them into a calm, vet-ready summary. It is not a chatbot, not an AI vet, and not a
+symptom Q&A app — the value is the remembered record.
 
 This is the first closed **beta**. Expect rough edges; your data is real and
 survives (backed up), but the product is still being validated.
@@ -13,10 +13,14 @@ survives (backed up), but the product is still being validated.
 - **Accounts** — email + password, private per owner. At sign-up you accept the
   Terms, Privacy Policy, and Medical Disclaimer. Forgot-password reset is
   supported (via email, when a mail provider is configured).
-- **Species-specific tracking** — dogs (scratching, stool, vomiting, ear redness,
-  appetite, water, energy, food changes/treats) and cats (litter box, urination,
-  straining, hiding, vomiting, appetite, water, energy, weight concern). Each has
-  its own onboarding, daily check-in, and pattern language.
+- **Species-specific tracking** — 10 species. Dogs (scratching, stool, vomiting,
+  ear redness, appetite, water, energy, food changes/treats) and cats (litter box,
+  urination, straining, hiding, vomiting, appetite, water, energy, weight concern)
+  have the deepest models; rabbits, guinea pigs, hamsters, birds, reptiles, turtles,
+  fish/aquariums and other small pets have species-appropriate starter tracking.
+  Each has its own onboarding, daily check-in, and pattern language.
+- **Immediate urgent observations** — a non-diagnostic "worth a vet call today"
+  layer that reacts to the latest entry, independent of pattern history.
 - **Deterministic patterns** — cautious, non-diagnostic "possible patterns" from
   your own logs (e.g. scratching above the recent normal, a possible food-related
   pattern, a litter-box change), remembered over time.

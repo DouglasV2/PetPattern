@@ -58,3 +58,16 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:7317/api/auth/google/callback
   state cookies are TLS-only; the redirect URI must be `https://`.
 - Backend: [GoogleAuthController.java](../backend/src/main/java/com/petpattern/api/GoogleAuthController.java),
   [AuthService.findOrCreateGoogleOwner](../backend/src/main/java/com/petpattern/auth/AuthService.java).
+
+## Native apps (post-beta)
+
+This is a **web-redirect** flow: it navigates the browser to `/api/auth/google/start`, sets a
+`pp_oauth_state` cookie, and lands back on the same web origin with a session cookie. That round-trip
+cannot return a session into a native (Capacitor) WebView whose origin is `capacitor://localhost` /
+`https://localhost`, so the **Google button is hidden on Android/iOS** (`AuthScreen`). Native users
+sign in with email/password and can reset their password.
+
+Full native Google OAuth (a proper system-browser / ASWebAuthenticationSession + Custom Tabs handoff
+that returns the session to the app) is intentionally **out of scope for the closed beta** and is
+tracked as a post-beta enhancement. Do not ship a half-finished WebView redirect that cannot return
+a native session.

@@ -11,10 +11,12 @@ changes that are easy to miss between vet visits.
 
 ## Species (beta scope)
 
-PetPattern is a **dogs + cats** product with species-specific tracking — not a
-generic all-pet diary. Dogs and cats have different daily check-ins and different,
-cautious pattern language. No other species (rabbits, birds, reptiles, horses…)
-until the dog/cat beta flow is validated. Cat patterns never diagnose or imply a
+PetPattern is a **multi-species** product with species-specific tracking — 10
+species, each with its own daily check-in and cautious pattern language, not a
+generic all-pet diary. Dogs and cats have the deepest models (species signals plus
+trend analysis); rabbits, guinea pigs, hamsters, birds, reptiles, turtles,
+fish/aquariums and other small pets have species-appropriate **starter** tracking
+plus a shared visible-change/wound record. Patterns never diagnose or imply a
 specific disease — they stay at "a change worth discussing with your vet".
 
 ## Wedge

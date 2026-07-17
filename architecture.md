@@ -1,6 +1,6 @@
 # PetPattern Architecture
 
-PetPattern is a full-stack pilot for longitudinal dog health memory.
+PetPattern is a full-stack pilot for longitudinal pet health memory across 10 species.
 
 ## Frontend
 
@@ -355,13 +355,19 @@ rate-limited per IP (one bucket for all token attempts). In the SPA, a
 login gate; it reuses the same `VetSheet` as the owner view (so they match) and
 keeps the non-diagnostic disclaimer. Added via Flyway `V3__vet_shares.sql`.
 
-## Dogs + cats (species-specific tracking)
+## Species-specific tracking (10 species)
 
-PetPattern is a **dogs + cats** app for beta — deliberately not a generic all-pet
-diary. Each species has its own tracking model and pattern language; no other
-species are added until the dog/cat beta flow is validated.
+PetPattern ships **10 species**, each with its own tracking model and pattern
+language — deliberately not a generic all-pet diary. Dogs and cats have the deepest
+models (described below); rabbits, guinea pigs, hamsters, birds, reptiles, turtles,
+fish/aquariums and other small pets were added on top with species-appropriate
+**starter** rules (`<Species>RuleSet` beans routed by `PatternEngine`), a shared
+visible-change/wound record, and the immediate urgent-observation layer. The
+`Species` enum and `pets_species_check` (Flyway `V11`) are the source of truth; keep
+`frontend/src/speciesProfiles.js` in sync with them.
 
-`Pet.species` (`DOG` | `CAT`) drives everything. `DailyCheckIn` keeps the shared
+The dog/cat model (the original beta core) works as follows. `Pet.species` (`DOG` |
+`CAT`) drives their check-in shape. `DailyCheckIn` keeps the shared
 signals (appetite, water, energy, vomiting, note) plus dog-only fields (itching,
 stool, ear redness) **and** cat-only fields — `litterBoxUse`, `urinationChange`,
 `straining`, `hidingBehavior`, `weightConcern`. The cat fields are nullable /

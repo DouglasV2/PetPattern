@@ -10,6 +10,13 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 
+# Playwright (E2E) artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+frontend/.playwright/
+frontend/playwright/.cache/
+
 # Env
 .env
 *.env
@@ -25,6 +32,10 @@ backups/
 
 # Local test artifacts
 *_id.txt
+
+# Stray ";C" paths — a Windows shell/redirect artifact (e.g. `backend;C`,
+# `package.json;C`). Never source; keep them out so they can't clutter the tree.
+*;C
 
 # Logs & database dumps (never commit runtime logs or DB dumps). NB: *.sql is
 # intentionally NOT ignored — Flyway migrations under db/migration are source.
