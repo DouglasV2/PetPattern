@@ -144,6 +144,12 @@
   flex-basis: 100%;
 }
 
+/* Permission-blocked / scheduling-failed reminder notes read as a warning, not calm muted text. */
+.reminder-note.error-text {
+  color: var(--coral);
+  font-weight: 600;
+}
+
 .start-steps {
   margin: 1rem 0 0;
   padding-left: 1.2rem;

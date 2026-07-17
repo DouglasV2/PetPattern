@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Bell } from 'lucide-react'
 import { t } from '../../i18n'
+import { trackServer } from '../../analytics'
 import { loadReminder, saveReminder, maybeNotify } from '../../lib/reminders'
-import { nativeRemindersAvailable, ensureNativePermission, syncNativeReminder } from '../../lib/nativeNotifications'
+import {
+  nativeRemindersAvailable,
+  ensureNativePermission,
+  syncNativeReminder,
+  cancelNativeReminder
+} from '../../lib/nativeNotifications'
 
 function ReminderControl({ pet, loggedToday }) {
   const storageKey = `petpattern.reminder.${pet.id}`
@@ -13,6 +19,7 @@ function ReminderControl({ pet, loggedToday }) {
   const [permission, setPermission] = useState(() =>
     native ? 'unsupported' : (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
   )
+  const [scheduleFailed, setScheduleFailed] = useState(false)
 
   useEffect(() => { setPref(loadReminder(storageKey)) }, [storageKey])
   useEffect(() => { saveReminder(storageKey, pref) }, [storageKey, pref])
@@ -26,26 +33,71 @@ function ReminderControl({ pet, loggedToday }) {
     return () => clearInterval(id)
   }, [native, pref, permission, loggedToday, pet, storageKey])
 
-  // Native: (re)schedule the real daily reminder whenever the preference changes.
+  // Native: (re)schedule THIS pet's real daily reminder whenever the preference, permission or
+  // today's logged-state changes, and re-anchor on app resume (covers timezone/DST shifts and
+  // cold restarts). loggedToday feeds through so today's occurrence is skipped after a check-in —
+  // the reminder never fires on a day already logged. Scheduling failures surface (not swallowed).
   useEffect(() => {
-    if (!native) return
-    syncNativeReminder(pref, pet.name)
-  }, [native, pref, pet.name])
+    if (!native) return undefined
+    let cancelled = false
+    async function sync() {
+      // An enabled-but-not-granted state must never look "on": don't schedule, don't claim success.
+      if (pref.enabled && permission !== 'granted') {
+        if (!cancelled) setScheduleFailed(false)
+        return
+      }
+      const status = await syncNativeReminder(pref, pet.name, { petId: pet.id, loggedToday })
+      if (!cancelled) setScheduleFailed(status === 'error')
+    }
+    sync()
+    const app = globalThis.Capacitor?.Plugins?.App
+    let resumeHandle
+    if (app?.addListener) {
+      try { resumeHandle = app.addListener('resume', sync) } catch (err) { /* ignore */ }
+    }
+    return () => {
+      cancelled = true
+      try {
+        if (resumeHandle && typeof resumeHandle.remove === 'function') resumeHandle.remove()
+        else if (typeof resumeHandle?.then === 'function') resumeHandle.then((h) => h?.remove?.()).catch(() => {})
+      } catch (err) { /* ignore */ }
+    }
+  }, [native, pref, permission, loggedToday, pet.id, pet.name])
 
   async function toggle() {
     if (pref.enabled) {
       setPref({ ...pref, enabled: false })
+      setScheduleFailed(false)
+      if (native) cancelNativeReminder(pet.id)
       return
     }
+    // Request permission BEFORE enabling; only turn on when it is actually granted, so a denied
+    // permission can never leave a persisted "on" state that quietly does nothing.
+    let result
     if (native) {
-      setPermission(await ensureNativePermission())
-    } else if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      setPermission(await Notification.requestPermission())
-    } else if (typeof Notification !== 'undefined') {
-      setPermission(Notification.permission)
+      result = await ensureNativePermission()
+    } else if (typeof Notification === 'undefined') {
+      result = 'unsupported'
+    } else if (Notification.permission === 'default') {
+      result = await Notification.requestPermission()
+    } else {
+      result = Notification.permission
     }
-    setPref({ ...pref, enabled: true })
+    setPermission(result)
+
+    if (result === 'granted') {
+      trackServer('reminder_permission_granted')
+      trackServer('reminder_enabled')
+      setPref({ ...pref, enabled: true })
+    } else {
+      if (result === 'denied') trackServer('reminder_permission_denied')
+      // Leave it OFF and let the note explain why nothing turned on.
+      setPref({ ...pref, enabled: false })
+    }
   }
+
+  const showDeniedNote = permission === 'denied'
+  const showUnsupportedNote = !native && typeof Notification === 'undefined'
 
   return (
     <div className="reminder">
@@ -60,20 +112,27 @@ function ReminderControl({ pet, loggedToday }) {
           <input type="time" value={pref.time} onChange={(e) => setPref({ ...pref, time: e.target.value || '19:00' })} />
         </label>
       )}
-      {pref.enabled && (
+      {pref.enabled && !scheduleFailed && (
         <span className="reminder-note muted">
           {native
-            ? (permission === 'granted'
-                ? t('A daily reminder at your chosen time.')
-                : t('Allow notifications to get a daily reminder.'))
-            : typeof Notification === 'undefined'
-              ? t('This browser does not support reminders.')
-              : permission === 'granted'
-                ? t('Works while PetPattern is open — not an email reminder yet.')
-                : permission === 'denied'
-                  ? t('Notifications are blocked — enable them in your browser settings to get a nudge.')
-                  : t('Allow notifications to get a nudge (works while PetPattern is open).')}
+            ? t('A daily reminder at your chosen time.')
+            : t('Works while PetPattern is open — not an email reminder yet.')}
         </span>
+      )}
+      {pref.enabled && scheduleFailed && (
+        <span className="reminder-note error-text" role="alert">
+          {t("The reminder couldn't be scheduled. Try turning it off and on again.")}
+        </span>
+      )}
+      {!pref.enabled && showDeniedNote && (
+        <span className="reminder-note error-text" role="alert">
+          {native
+            ? t('Notifications are blocked — enable them in your device settings to get a daily reminder.')
+            : t('Notifications are blocked — enable them in your browser settings to get a nudge.')}
+        </span>
+      )}
+      {!pref.enabled && !showDeniedNote && showUnsupportedNote && (
+        <span className="reminder-note muted">{t('This browser does not support reminders.')}</span>
       )}
     </div>
   )

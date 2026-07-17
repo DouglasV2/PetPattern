@@ -74,3 +74,20 @@ export function trackServer(event, meta) {
     // Analytics must never break the app.
   }
 }
+
+// Notification -> check-in conversion attribution. A tapped reminder marks a timestamp; the next
+// check-in within the window "consumes" it and reports the conversion exactly once. No content is
+// stored — just whether a recent tap preceded a check-in.
+let notificationOpenedAt = 0
+
+export function markNotificationOpened() {
+  notificationOpenedAt = Date.now()
+}
+
+export function consumeNotificationConversion(windowMs = 30 * 60 * 1000) {
+  if (notificationOpenedAt && Date.now() - notificationOpenedAt <= windowMs) {
+    notificationOpenedAt = 0
+    return true
+  }
+  return false
+}

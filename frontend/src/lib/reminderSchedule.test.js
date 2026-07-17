@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { shouldRemind, nextReminderAt, localDateKey } from './reminderSchedule'
+import {
+  shouldRemind,
+  nextReminderAt,
+  localDateKey,
+  firstReminderAt,
+  reminderNotificationId
+} from './reminderSchedule'
 
 const at = (h, m) => new Date(2026, 2, 1, h, m, 0, 0) // 2026-03-01 local
 
@@ -49,5 +55,46 @@ describe('nextReminderAt', () => {
 
   it('returns null for an invalid time', () => {
     expect(nextReminderAt('nope', at(18, 0))).toBeNull()
+  })
+})
+
+describe('firstReminderAt (skip-today-after-check-in)', () => {
+  it('skips today and fires tomorrow when already logged today and the time is still ahead', () => {
+    // 18:00 now, 19:00 reminder, logged today -> must NOT fire tonight; anchor to tomorrow 19:00.
+    const first = firstReminderAt('19:00', at(18, 0), true)
+    expect(first.getDate()).toBe(2)
+    expect(first.getHours()).toBe(19)
+  })
+
+  it('fires today when the time is ahead and NOT yet logged today', () => {
+    const first = firstReminderAt('19:00', at(18, 0), false)
+    expect(first.getDate()).toBe(1)
+    expect(first.getHours()).toBe(19)
+  })
+
+  it('keeps tomorrow when the time already passed today, regardless of logged state', () => {
+    expect(firstReminderAt('17:00', at(18, 0), false).getDate()).toBe(2)
+    expect(firstReminderAt('17:00', at(18, 0), true).getDate()).toBe(2)
+  })
+
+  it('returns null for a cleared/invalid time', () => {
+    expect(firstReminderAt('', at(18, 0), true)).toBeNull()
+  })
+})
+
+describe('reminderNotificationId (per-pet slots)', () => {
+  it('is stable for the same pet id', () => {
+    expect(reminderNotificationId('pet-abc')).toBe(reminderNotificationId('pet-abc'))
+  })
+
+  it('differs between pets so multi-pet reminders never clobber each other', () => {
+    expect(reminderNotificationId('pet-a')).not.toBe(reminderNotificationId('pet-b'))
+  })
+
+  it('is always a safe positive integer', () => {
+    const id = reminderNotificationId('11111111-2222-3333-4444-555555555555')
+    expect(Number.isInteger(id)).toBe(true)
+    expect(id).toBeGreaterThan(0)
+    expect(id).toBeLessThan(2 ** 31)
   })
 })

@@ -4,14 +4,13 @@
 // @capacitor/local-notifications plugin is added only for the native builds (see docs/mobile.md).
 //
 // GENERATED / NOT VERIFIABLE here: there is no device or emulator in this environment, so the
-// scheduling calls below are implemented and reviewed but not run. The pure decision logic they
-// rely on (reminderSchedule.js) IS unit-tested.
+// scheduling/tap calls below are implemented and reviewed but NOT run on a device. The pure
+// decision logic they rely on (reminderSchedule.js) IS unit-tested; native runtime behavior
+// (delivery, permission prompts, taps, DST re-anchoring) must be verified on a real build.
 
-import { nextReminderAt, reminderBody } from './reminderSchedule'
+import { firstReminderAt, reminderBody, reminderNotificationId } from './reminderSchedule'
 import { t } from '../i18n'
-
-// A single stable id so re-scheduling REPLACES the reminder instead of stacking duplicates.
-const REMINDER_ID = 1001
+import { trackServer, markNotificationOpened } from '../analytics'
 
 function localNotifications() {
   return globalThis.Capacitor?.Plugins?.LocalNotifications || null
@@ -19,7 +18,7 @@ function localNotifications() {
 
 /** True only on a native platform that actually exposes the local-notifications plugin. */
 export function nativeRemindersAvailable() {
-  return Boolean(globalThis.Capacitor?.isNativePlatform?.()) && Boolean(localNotifications());
+  return Boolean(globalThis.Capacitor?.isNativePlatform?.()) && Boolean(localNotifications())
 }
 
 /** Request native notification permission. Returns 'granted' | 'denied' | 'unsupported'. */
@@ -37,39 +36,83 @@ export async function ensureNativePermission() {
 }
 
 /**
- * Schedule (or clear) the daily reminder to match the owner's preference. Always cancels the
- * previous one first, so reminders never stack; never schedules when disabled or the time is
- * cleared. The body is neutral (no health detail) so nothing sensitive shows on a lock screen.
- * A no-op on the web.
+ * Schedule (or clear) THIS pet's daily reminder to match the owner's preference. Uses a per-pet
+ * stable id so multiple pets don't clobber each other, always cancels that pet's previous one
+ * first (never stacks), skips today's occurrence when the pet was already logged today, and
+ * attaches a safe deep-link payload. The body is neutral (no health detail) so nothing sensitive
+ * shows on a lock screen. Returns a status ('scheduled' | 'cancelled' | 'error' | 'unavailable')
+ * so the caller can surface a failure instead of it being swallowed silently. A no-op on the web.
  */
-export async function syncNativeReminder(pref, petName) {
+export async function syncNativeReminder(pref, petName, options = {}) {
   const plugin = localNotifications()
-  if (!plugin) return
+  if (!plugin) return 'unavailable'
+  const id = reminderNotificationId(options.petId)
   try {
-    await plugin.cancel?.({ notifications: [{ id: REMINDER_ID }] })
-    if (!pref?.enabled) return
-    const at = nextReminderAt(pref.time, new Date())
-    if (!at) return
+    await plugin.cancel?.({ notifications: [{ id }] })
+    if (!pref?.enabled) return 'cancelled'
+    const at = firstReminderAt(pref.time, new Date(), Boolean(options.loggedToday))
+    if (!at) return 'cancelled'
     await plugin.schedule?.({
       notifications: [{
-        id: REMINDER_ID,
+        id,
         title: 'PetPattern',
         body: reminderBody(petName, t),
         schedule: { at, repeats: true, every: 'day' },
-        smallIcon: 'ic_stat_icon'
+        smallIcon: 'ic_stat_icon',
+        // Non-sensitive routing payload only — the tap handler deep-links to this pet's check-in.
+        extra: { petId: options.petId || null, kind: 'daily-checkin-reminder' }
       }]
     })
+    return 'scheduled'
   } catch (err) {
-    // Reminders are best-effort; a scheduling failure must never break the app.
+    // Best-effort, but NOT silent: log so a scheduling failure is diagnosable and the caller
+    // (ReminderControl) can show a failure note rather than a false "on" state.
+    console.warn('[reminder] native schedule failed', err)
+    return 'error'
   }
 }
 
-export async function cancelNativeReminder() {
+/** Cancel THIS pet's native reminder. Returns true if the cancel call was issued. */
+export async function cancelNativeReminder(petId) {
   const plugin = localNotifications()
-  if (!plugin) return
+  if (!plugin) return false
   try {
-    await plugin.cancel?.({ notifications: [{ id: REMINDER_ID }] })
+    await plugin.cancel?.({ notifications: [{ id: reminderNotificationId(petId) }] })
+    return true
   } catch (err) {
-    // ignore
+    console.warn('[reminder] native cancel failed', err)
+    return false
+  }
+}
+
+/**
+ * Register the "reminder tapped" handler once. When the owner taps a scheduled reminder, this
+ * records a privacy-safe open event and deep-links to that pet's safe check-in destination via
+ * {@code onOpenCheckIn(petId)}. Returns a cleanup function (or a no-op when unavailable).
+ */
+export function initReminderTapHandler(onOpenCheckIn) {
+  const plugin = localNotifications()
+  if (!plugin?.addListener) return () => {}
+  let handle
+  try {
+    handle = plugin.addListener('localNotificationActionPerformed', (event) => {
+      const extra = event?.notification?.extra
+      if (extra?.kind !== 'daily-checkin-reminder') return
+      trackServer('reminder_notification_opened')
+      markNotificationOpened()
+      if (typeof onOpenCheckIn === 'function') {
+        onOpenCheckIn(extra.petId || null)
+      }
+    })
+  } catch (err) {
+    return () => {}
+  }
+  return () => {
+    try {
+      if (handle && typeof handle.remove === 'function') handle.remove()
+      else if (typeof handle?.then === 'function') handle.then((h) => h?.remove?.()).catch(() => {})
+    } catch (err) {
+      // ignore
+    }
   }
 }

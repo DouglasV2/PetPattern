@@ -12,7 +12,8 @@ import {
 } from 'lucide-react'
 import { api, setUnauthorizedHandler } from './api'
 import { t, setLang, loadLang, persistLang } from './i18n'
-import { track, trackServer } from './analytics'
+import { track, trackServer, consumeNotificationConversion } from './analytics'
+import { initReminderTapHandler } from './lib/nativeNotifications'
 import { isStarterSpecies } from './speciesProfiles'
 import { today } from './lib/date'
 import { isCat } from './lib/species'
@@ -235,6 +236,18 @@ function App() {
       loadPetData(selectedPetId)
     }
   }, [selectedPetId])
+
+  // Native: a tapped daily reminder deep-links to that pet's Today (a safe, non-sensitive
+  // destination where the check-in actions live). Registered once; the notification->check-in
+  // conversion is attributed when the next check-in follows within the window.
+  useEffect(() => {
+    const cleanup = initReminderTapHandler((petId) => {
+      if (petId) setSelectedPetId(petId)
+      go('today')
+    })
+    return cleanup
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle direct hash loads / reloads of the detail views.
   useEffect(() => {
@@ -799,6 +812,7 @@ function App() {
       await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
       trackServer('changed_day_checkin', { species: selectedPet.species })
+      if (consumeNotificationConversion()) trackServer('notification_to_checkin')
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
       go('today')
@@ -856,6 +870,7 @@ function App() {
       await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
       trackServer('same_as_usual_checkin', { species: selectedPet.species })
+      if (consumeNotificationConversion()) trackServer('notification_to_checkin')
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
       showToast(t('Saved — quiet days matter too.'))
