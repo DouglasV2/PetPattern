@@ -3,6 +3,24 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // Route-level code-splitting (React.lazy) removed the monolith; keep a sane threshold and
+    // split heavy libs into their own long-cacheable chunks. @sentry is reached ONLY via a
+    // dynamic import (main.jsx), so it lands in its own on-demand chunk and never in the initial
+    // load; react/react-dom and the icon set become separately cacheable vendor chunks.
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('@sentry')) return 'sentry'
+          if (id.includes('lucide-react')) return 'icons'
+          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) return 'react-vendor'
+          return 'vendor'
+        }
+      }
+    }
+  },
   server: {
     port: 7317,
     proxy: {

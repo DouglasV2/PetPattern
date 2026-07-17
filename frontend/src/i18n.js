@@ -9,21 +9,13 @@
 // (see LANGUAGES); the backend is likewise gated to serve only HR + EN. The other
 // locale maps stay in the codebase as future work. See docs/i18n.md.
 
+// Only the PUBLIC non-English locale (Croatian) is bundled. English is the key/base and needs no
+// map. The 14 HIDDEN_LANGUAGES locale files still live under ./locales as future work, but they are
+// intentionally NOT imported here — SUPPORTED is {en, hr}, so their maps could never be reached at
+// runtime, and importing them shipped ~440 KB of unusable translations in every initial bundle.
+// To re-enable a hidden language once it is complete end-to-end: add its `import xx from
+// './locales/xx'`, put it in LOCALES, and move its entry into LANGUAGES.
 import hr from './locales/hr'
-import de from './locales/de'
-import es from './locales/es'
-import fr from './locales/fr'
-import it from './locales/it'
-import no from './locales/no'
-import pl from './locales/pl'
-import nl from './locales/nl'
-import sv from './locales/sv'
-import da from './locales/da'
-import pt from './locales/pt'
-import ro from './locales/ro'
-import cs from './locales/cs'
-import sk from './locales/sk'
-import el from './locales/el'
 
 let currentLang = 'en'
 
@@ -56,8 +48,9 @@ export const HIDDEN_LANGUAGES = [
   { code: 'el', label: 'Ελληνικά' }
 ]
 
-// English is the base (keys are English), so it has no map.
-const LOCALES = { hr, de, es, fr, it, no, pl, nl, sv, da, pt, ro, cs, sk, el }
+// English is the base (keys are English), so it has no map. Only the public non-English locale is
+// loaded; hidden languages are re-added here when promoted to LANGUAGES (see the import note above).
+const LOCALES = { hr }
 const SUPPORTED = new Set(LANGUAGES.map((l) => l.code))
 const STORAGE_KEY = 'petpattern.lang'
 

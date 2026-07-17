@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react'
 import {
   Activity,
   Check,
@@ -28,26 +28,30 @@ import { PetIdentityCard } from './components/PetIdentityCard'
 import { Toast } from './components/Toast'
 import { LangToggle } from './components/LangToggle'
 import { Tab } from './components/Tab'
+import { ChunkErrorBoundary, ViewFallback } from './components/ChunkErrorBoundary'
+// Primary flow — kept in the initial bundle so Today and check-in stay instant.
 import { TodayView } from './features/today/TodayView'
 import { CheckInView } from './features/checkins/CheckInView'
-import { PatternsView } from './features/patterns/PatternsView'
-import { TimelineView } from './features/patterns/TimelineView'
-import { FoodView } from './features/food/FoodView'
-import { FoodDetectiveView } from './features/food/FoodDetectiveView'
-import { TrialsView } from './features/food/TrialsView'
-import { PhotosView } from './features/photos/PhotosView'
-import { VetSummaryView } from './features/vet/VetSummaryView'
 import { SharedVetView } from './features/vet/SharedVetView'
-import { RecapView } from './features/vet/RecapView'
 import { InvitesBanner } from './features/caregivers/InvitesBanner'
-import { CaregiversView } from './features/caregivers/CaregiversView'
 import { AuthScreen } from './features/auth/AuthScreen'
 import { ResetPasswordView } from './features/auth/ResetPasswordView'
 import { PetOnboarding } from './features/onboarding/PetOnboarding'
-import { AccountView } from './features/account/AccountView'
-import { MedicationsView } from './features/account/MedicationsView'
 import { PetSwitcher } from './features/account/PetSwitcher'
-import { LegalView } from './features/legal/LegalView'
+// Secondary feature views — lazily loaded (their modules use named exports) so they leave the
+// initial chunk. Each is rendered inside a Suspense boundary with a loading fallback.
+const PatternsView = lazy(() => import('./features/patterns/PatternsView').then((m) => ({ default: m.PatternsView })))
+const TimelineView = lazy(() => import('./features/patterns/TimelineView').then((m) => ({ default: m.TimelineView })))
+const FoodView = lazy(() => import('./features/food/FoodView').then((m) => ({ default: m.FoodView })))
+const FoodDetectiveView = lazy(() => import('./features/food/FoodDetectiveView').then((m) => ({ default: m.FoodDetectiveView })))
+const TrialsView = lazy(() => import('./features/food/TrialsView').then((m) => ({ default: m.TrialsView })))
+const PhotosView = lazy(() => import('./features/photos/PhotosView').then((m) => ({ default: m.PhotosView })))
+const VetSummaryView = lazy(() => import('./features/vet/VetSummaryView').then((m) => ({ default: m.VetSummaryView })))
+const RecapView = lazy(() => import('./features/vet/RecapView').then((m) => ({ default: m.RecapView })))
+const CaregiversView = lazy(() => import('./features/caregivers/CaregiversView').then((m) => ({ default: m.CaregiversView })))
+const AccountView = lazy(() => import('./features/account/AccountView').then((m) => ({ default: m.AccountView })))
+const MedicationsView = lazy(() => import('./features/account/MedicationsView').then((m) => ({ default: m.MedicationsView })))
+const LegalView = lazy(() => import('./features/legal/LegalView').then((m) => ({ default: m.LegalView })))
 
 function App() {
   const [pets, setPets] = useState([])
@@ -928,12 +932,16 @@ function App() {
   const legalSection = legalFromHash()
   if (legalSection) {
     return (
+      <ChunkErrorBoundary viewKey="legal">
+      <Suspense fallback={<ViewFallback />}>
       <LegalView
         section={legalSection}
         lang={lang}
         onLangChange={switchLang}
         onBack={() => { if (window.history.length > 1) window.history.back(); else { window.location.hash = '' } }}
       />
+      </Suspense>
+      </ChunkErrorBoundary>
     )
   }
 
@@ -960,7 +968,13 @@ function App() {
   // Account/settings is a standalone screen (not a nav tab) so it works even for
   // an owner with no pets.
   if (view === 'account') {
-    return <AccountView owner={owner} pets={pets} onDeletePet={removePet} onBack={() => go('today')} onDeleted={afterAccountDeleted} />
+    return (
+      <ChunkErrorBoundary viewKey={view}>
+        <Suspense fallback={<ViewFallback />}>
+          <AccountView owner={owner} pets={pets} onDeletePet={removePet} onBack={() => go('today')} onDeleted={afterAccountDeleted} />
+        </Suspense>
+      </ChunkErrorBoundary>
+    )
   }
 
   if (!selectedPet) {
@@ -1062,6 +1076,8 @@ function App() {
       <main className="screen">
         {error && <div className="error-box" role="alert">{error}</div>}
 
+        <ChunkErrorBoundary viewKey={view}>
+        <Suspense fallback={<ViewFallback />}>
         {view === 'check-in' && (
           <CheckInView
             key={checkInOpenSeq}
@@ -1221,6 +1237,8 @@ function App() {
             onRemoveActivity={removeActivity}
           />
         )}
+        </Suspense>
+        </ChunkErrorBoundary>
       </main>
       </div>
       {toast && <Toast key={toast.key} message={toast.message} onDismiss={() => setToast(null)} />}
