@@ -118,10 +118,15 @@ Bez numeričke ocjene, po eksplicitnom zahtjevu.
 
 ## CI status
 
-CI (GitHub Actions, `.github/workflows/ci.yml`) pokrenut je na push grane `release/hardening`.
-Poslovi: frontend (testovi/build/audit), backend (Maven wrapper `clean test`), migracije (clean boot
-Flyway V1..V15), release-hygiene (secret + prohibited-path gate). Baseline (prethodni HEAD) je bio
-zelen; rezultat aktualnog runa vidi na Actions stranici repozitorija.
+CI (GitHub Actions, `.github/workflows/ci.yml`) je **ZELEN** na finalnom kodu (commit `3f0d382`).
+Sva četiri posla su prošla: frontend (testovi/build/audit), backend (Maven wrapper `clean test` —
+autoritativna potvrda backend testova koje ovo okruženje ne može pokrenuti zbog zasićenog Docker
+daemona), migracije (clean boot Flyway V1..V15), release-hygiene (secret + prohibited-path gate).
+
+Napomena o procesu: prvi CI run je otkrio dvije stvarne greške ovog sprinta — vitest je skupljao
+Playwright `e2e` spec, a WP7 promjena je slomila per-species testove koji su hitna pravila provjeravali
+kroz `evaluate()`. Oboje je popravljeno (vitest ograničen na `src/`; hitni testovi provjeravaju kroz
+`immediateObservations()`) i CI je potom zelen.
 
 ## Native verification status
 
@@ -141,5 +146,6 @@ zelen; rezultat aktualnog runa vidi na Actions stranici repozitorija.
 
 ## Finalni verdikt
 
-**READY FOR WEB CLOSED BETA** — uz uvjet da CI ostaje zelen. Web closed-beta izdanje je spremno;
-daljnji polishing se zaustavlja.
+**READY FOR WEB CLOSED BETA.** Svi navedeni release blokatori su zatvoreni, lokalna verifikacija
+(frontend testovi/E2E/build/audit) je zelena, a CI (uključujući backend testove i migracije) je zelen
+na finalnom kodu. Web closed-beta izdanje je spremno; daljnji polishing se zaustavlja.
