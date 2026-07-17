@@ -13,12 +13,33 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState(null)
   const fileRef = useRef(null)
+  const lightboxCloseRef = useRef(null)
+  const lastFocusedRef = useRef(null)
 
+  // Lightbox is the app's one modal dialog: trap focus inside it, move focus to Close on open,
+  // keep Tab within the dialog, close on Escape, and restore focus to the opening thumbnail.
   useEffect(() => {
     if (!lightbox) return undefined
-    const onKey = (event) => { if (event.key === 'Escape') setLightbox(null) }
+    lastFocusedRef.current = document.activeElement
+    lightboxCloseRef.current?.focus()
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        setLightbox(null)
+        return
+      }
+      if (event.key === 'Tab') {
+        // The dialog exposes a single focusable control (Close), so keep focus on it.
+        event.preventDefault()
+        lightboxCloseRef.current?.focus()
+      }
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      if (lastFocusedRef.current && typeof lastFocusedRef.current.focus === 'function') {
+        lastFocusedRef.current.focus()
+      }
+    }
   }, [lightbox])
 
   async function onFile(event) {
@@ -114,8 +135,10 @@ function PhotosView({ pet, photos, onBack, onUploaded, onDeletePhoto }) {
       )}
 
       {lightbox && (
-        <div className="lightbox" role="dialog" aria-modal="true" onClick={() => setLightbox(null)}>
-          <button className="lightbox-close" type="button" aria-label={t('Close')} onClick={() => setLightbox(null)}><X size={22} /></button>
+        <div className="lightbox" role="dialog" aria-modal="true"
+             aria-label={lightbox.caption || photoAreaLabel(lightbox.area)}
+             onClick={() => setLightbox(null)}>
+          <button ref={lightboxCloseRef} className="lightbox-close" type="button" aria-label={t('Close')} onClick={() => setLightbox(null)}><X size={22} /></button>
           <figure className="lightbox-figure" onClick={(event) => event.stopPropagation()}>
             <img src={lightbox.imageUrl} alt={lightbox.caption || photoAreaLabel(lightbox.area)} />
             <figcaption>

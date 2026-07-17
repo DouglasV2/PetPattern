@@ -163,7 +163,7 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
       {urgentPatterns.length > 0 && (
         <VetBlock title={t('Urgent signs noted')}>
           {urgentPatterns.map((p, index) => (
-            <div className="urgent-banner sev-urgent" role="note" key={`urgent-${index}`}>
+            <div className="urgent-banner sev-urgent" role="status" key={`urgent-${index}`}>
               <AlertTriangle size={18} className="urgent-banner-icon" />
               <div>
                 <strong>{p.title}</strong>

@@ -109,6 +109,7 @@ function CaregiversView({ pet, onBack, onLeft }) {
             <input
               type="email"
               placeholder={t('Their email address')}
+              aria-label={t('Caregiver email address')}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />

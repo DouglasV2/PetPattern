@@ -73,3 +73,27 @@
   outline-offset: 2px;
 }
 
+/* Accessibility: skip-to-content link — off-screen until focused, then visible at top-left so a
+   keyboard/screen-reader user can jump past the header + sidebar nav on every view. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 2000;
+  padding: 0.6rem 1rem;
+  background: var(--teal);
+  color: #fff;
+  border-radius: 0 0 10px 0;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+/* Focusing the main region via the skip link must not paint a distracting outline on the region
+   itself (it's a programmatic target, not an interactive control). */
+#main-content:focus {
+  outline: none;
+}
+

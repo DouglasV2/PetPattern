@@ -1012,6 +1012,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">{t('Skip to content')}</a>
       <header className="top-bar">
         <div className="brand-line">
           <span className="brand-mark"><BrandMark size={20} /></span>
@@ -1073,7 +1074,7 @@ function App() {
         <InvitesBanner invites={invites} onAccept={acceptInvite} onDecline={declineInvite} />
       )}
 
-      <main className="screen">
+      <main className="screen" id="main-content" tabIndex={-1}>
         {error && <div className="error-box" role="alert">{error}</div>}
 
         <ChunkErrorBoundary viewKey={view}>

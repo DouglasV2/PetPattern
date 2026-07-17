@@ -119,11 +119,11 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo
         <p className="form-title">{mode === 'login' ? t('Welcome back') : mode === 'register' ? t('Create your account') : t('Reset your password')}</p>
         <form onSubmit={submit} className="stack-form">
           {mode === 'register' && (
-            <input placeholder={t('Your name, optional')} value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
+            <input placeholder={t('Your name, optional')} aria-label={t('Your name, optional')} value={displayName} onChange={(e) => setDisplayName(e.target.value)} autoComplete="name" />
           )}
-          <input type="email" required placeholder={t('Email')} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+          <input type="email" required placeholder={t('Email')} aria-label={t('Email')} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           {mode !== 'forgot' && (
-            <input type="password" required minLength={8} placeholder={t('Password (min 8 characters)')} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+            <input type="password" required minLength={8} placeholder={t('Password (min 8 characters)')} aria-label={t('Password (min 8 characters)')} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
           )}
           {mode === 'register' && (
             <label className="accept-terms">

@@ -75,7 +75,7 @@ function AccountView({ owner, pets = [], onDeletePet, onBack, onDeleted }) {
         <p className="lead">{owner?.email}</p>
 
         {error && <div className="error-box" role="alert">{error}</div>}
-        {message && <p className="muted">{message}</p>}
+        {message && <p className="muted" role="status" aria-live="polite">{message}</p>}
 
         <div className="account-section">
           <h2>{t('Your data')}</h2>
