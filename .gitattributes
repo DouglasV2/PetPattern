@@ -1,0 +1,23 @@
+# Normalize line endings so the repo is consistent across Windows/Linux.
+* text=auto
+
+# Shell scripts and the Gradle/Maven wrappers must stay LF + executable.
+*.sh text eol=lf
+mvnw text eol=lf
+gradlew text eol=lf
+
+# ---------------------------------------------------------------------------
+# Release-archive exclusions (git archive respects export-ignore).
+# Dev/tooling-only files that must NOT ship in a release archive. Runtime secrets,
+# node_modules, build output and the *;C cruft are already excluded because
+# `git archive` only ever includes TRACKED files.
+# ---------------------------------------------------------------------------
+.gitattributes export-ignore
+.gitignore     export-ignore
+.claude/       export-ignore
+.superpowers/  export-ignore
+docs/superpowers/ export-ignore
+tasks.md       export-ignore
+memory.md      export-ignore
+api.http       export-ignore
+LAUNCH_QA_CHECKLIST.md export-ignore
