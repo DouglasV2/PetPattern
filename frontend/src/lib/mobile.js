@@ -45,7 +45,41 @@ export function initDeepLinks() {
   }
 }
 
-/** Native shell init (status bar + deep links). Call once at app start; no-op on the web. */
+/**
+ * Android hardware back button: navigate the SPA instead of letting the OS background/close the
+ * app on every press. Uses the webview history (canGoBack) and the hash router — only exits at the
+ * root (Today). Returns a cleanup fn; a no-op on the web / non-native. iOS has no hardware back
+ * button, so this listener simply never fires there.
+ */
+export function initBackButton() {
+  const app = globalThis.Capacitor?.Plugins?.App
+  if (!app?.addListener || !isNative()) return () => {}
+  let handle
+  try {
+    handle = app.addListener('backButton', ({ canGoBack } = {}) => {
+      const hash = window.location.hash
+      const atRoot = !hash || hash === '#today' || hash === '#'
+      if (canGoBack || !atRoot) {
+        window.history.back()
+      } else {
+        // At the root screen the platform default (minimize/exit) is what users expect.
+        app.exitApp?.()
+      }
+    })
+  } catch (err) {
+    return () => {}
+  }
+  return () => {
+    try {
+      if (handle && typeof handle.remove === 'function') handle.remove()
+      else if (typeof handle?.then === 'function') handle.then((h) => h?.remove?.()).catch(() => {})
+    } catch (err) {
+      // ignore
+    }
+  }
+}
+
+/** Native shell init (status bar + deep links + Android back button). Call once at app start. */
 export function initMobile() {
   if (!isNative()) return () => {}
   try {
@@ -54,5 +88,8 @@ export function initMobile() {
   } catch (err) {
     // status bar is cosmetic; ignore if unavailable
   }
-  return initDeepLinks()
+  const cleanups = [initDeepLinks(), initBackButton()]
+  return () => cleanups.forEach((fn) => {
+    try { fn?.() } catch (err) { /* ignore */ }
+  })
 }

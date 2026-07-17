@@ -49,24 +49,40 @@ export function setUnauthorizedHandler(handler) {
   onUnauthorized = handler
 }
 
+// A network/offline failure of fetch() throws a bare TypeError ("Failed to fetch"). Wrap it in a
+// clear, identifiable error so callers can show a graceful "you appear to be offline" state
+// instead of a raw stack — mobile connections drop often.
+export class NetworkError extends Error {
+  constructor() {
+    super('You appear to be offline. Check your connection and try again.')
+    this.name = 'NetworkError'
+    this.isNetworkError = true
+  }
+}
+
 async function request(path, options = {}) {
   const method = (options.method || 'GET').toUpperCase()
-  const response = await fetch(`${API_BASE}${path}`, {
-    // Use include rather than same-origin so the web app keeps its HttpOnly
-    // cookie behavior, while Capacitor can still call a remote production API.
-    credentials: 'include',
-    // Spread options FIRST so a caller's headers can never clobber the merged
-    // headers object below (sharedVetSummary passes X-Share-Token and must still
-    // send Accept-Language).
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      // Backend-generated text (patterns, vet summary, recap…) follows the UI language.
-      'Accept-Language': getLang(),
-      ...mobileHeaders(),
-      ...(options.headers ?? {})
-    }
-  })
+  let response
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      // Use include rather than same-origin so the web app keeps its HttpOnly
+      // cookie behavior, while Capacitor can still call a remote production API.
+      credentials: 'include',
+      // Spread options FIRST so a caller's headers can never clobber the merged
+      // headers object below (sharedVetSummary passes X-Share-Token and must still
+      // send Accept-Language).
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        // Backend-generated text (patterns, vet summary, recap…) follows the UI language.
+        'Accept-Language': getLang(),
+        ...mobileHeaders(),
+        ...(options.headers ?? {})
+      }
+    })
+  } catch (networkErr) {
+    throw new NetworkError()
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -132,12 +148,17 @@ export const api = {
   // Multipart upload: must NOT set Content-Type so the browser adds the boundary,
   // so this bypasses the JSON `request` helper.
   uploadPhoto: async (petId, formData) => {
-    const response = await fetch(`${API_BASE}/pets/${petId}/photos`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Accept-Language': getLang(), ...mobileHeaders() },
-      body: formData
-    })
+    let response
+    try {
+      response = await fetch(`${API_BASE}/pets/${petId}/photos`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Accept-Language': getLang(), ...mobileHeaders() },
+        body: formData
+      })
+    } catch (networkErr) {
+      throw new NetworkError()
+    }
     if (!response.ok) {
       if (response.status === 401) {
         clearMobileSessionToken()

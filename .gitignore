@@ -51,7 +51,23 @@ key.properties
 google-services.json
 GoogleService-Info.plist
 
-# Capacitor / native build outputs
+# Capacitor / native build outputs. The native projects live under frontend/, so target those
+# paths (each generated project also ships its own .gitignore as belt-and-suspenders).
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/app/src/main/assets/public/
+frontend/android/capacitor-cordova-android-plugins/
+frontend/ios/App/build/
+frontend/ios/App/Pods/
+frontend/ios/App/App/public/
+frontend/ios/App/App/capacitor.config.json
+frontend/ios/App/App/config.xml
+frontend/ios/DerivedData/
+frontend/ios/**/xcuserdata/
+frontend/ios/.build/
+# Legacy root-level native paths (kept in case a project is ever generated at repo root)
 android/app/build/
 android/build/
 android/.gradle/
