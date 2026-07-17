@@ -45,13 +45,18 @@ class HamsterRuleSetTest {
         return hamster.evaluate(new RuleContext(pet, List.of(checkIns), List.of()));
     }
 
+    // Urgent starter rules belong to the IMMEDIATE layer, not the persisted historical evaluate().
+    private List<PatternCandidate> immediate(DailyCheckIn... checkIns) {
+        return hamster.immediateObservations(new RuleContext(pet, List.of(checkIns), List.of()));
+    }
+
     private static Optional<PatternCandidate> rule(List<PatternCandidate> candidates, String ruleId) {
         return candidates.stream().filter(c -> c.id().endsWith(":" + ruleId)).findFirst();
     }
 
     @Test
     void wetTailFiresUrgentWhenWateryDroppingsMeetLowEnergySameDay() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(2, sig("droppings", "Watery") + "," + sig("activity", "Less active")));
         Optional<PatternCandidate> wet = rule(found, "HAMSTER_WET_TAIL_RISK");
         assertTrue(wet.isPresent(), "watery droppings + less active on the same day is the urgent co-occurrence");
@@ -61,7 +66,7 @@ class HamsterRuleSetTest {
 
     @Test
     void wetTailAlsoFiresWhenWateryDroppingsMeetEatingLess() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(1, sig("droppings", "Watery") + "," + sig("appetite", "Eating less")));
         assertTrue(rule(found, "HAMSTER_WET_TAIL_RISK").isPresent(),
                 "watery droppings + eating less on the same day also qualifies");
@@ -69,7 +74,7 @@ class HamsterRuleSetTest {
 
     @Test
     void wetTailDoesNotFireWhenSignalsAreOnDifferentDays() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(3, sig("droppings", "Watery")),
                 day(1, sig("activity", "Less active")));
         assertTrue(rule(found, "HAMSTER_WET_TAIL_RISK").isEmpty(),

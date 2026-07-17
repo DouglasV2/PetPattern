@@ -45,6 +45,11 @@ class BirdRuleSetTest {
         return bird.evaluate(new RuleContext(pet, List.of(checkIns), List.of()));
     }
 
+    // Urgent starter rules belong to the IMMEDIATE layer, not the persisted historical evaluate().
+    private List<PatternCandidate> immediate(DailyCheckIn... checkIns) {
+        return bird.immediateObservations(new RuleContext(pet, List.of(checkIns), List.of()));
+    }
+
     private static Optional<PatternCandidate> rule(List<PatternCandidate> candidates, String ruleId) {
         return candidates.stream().filter(c -> c.id().endsWith(":" + ruleId)).findFirst();
     }
@@ -53,7 +58,7 @@ class BirdRuleSetTest {
     void breathingChangeIsUrgentFromASingleLoggedDay() {
         // Birds hide illness and show breathing changes late, so the binary breathing signal
         // is urgent from one logged day.
-        List<PatternCandidate> found = evaluate(day(1, sig("breathing", "Noticed change")));
+        List<PatternCandidate> found = immediate(day(1, sig("breathing", "Noticed change")));
         Optional<PatternCandidate> breathing = rule(found, "BIRD_LABORED_BREATHING");
         assertTrue(breathing.isPresent(), "a single logged breathing change is urgent for a bird");
         assertEquals(Severity.URGENT, breathing.get().severity());
@@ -63,7 +68,7 @@ class BirdRuleSetTest {
 
     @Test
     void breathingChangeGoesToHighConfidenceWhenItRepeats() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(4, sig("breathing", "Noticed change")),
                 day(1, sig("breathing", "Noticed change")));
         assertEquals(PatternConfidence.HIGH, rule(found, "BIRD_LABORED_BREATHING").orElseThrow().confidence());
@@ -71,7 +76,7 @@ class BirdRuleSetTest {
 
     @Test
     void sickPostureFiresUrgentWhenSittingLowMeetsLowEnergySameDay() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(2, sig("perch", "Sitting lower") + "," + sig("activity", "Less active")));
         Optional<PatternCandidate> posture = rule(found, "BIRD_SICK_POSTURE");
         assertTrue(posture.isPresent(), "sitting low + less active on the same day is the urgent sick-posture sign");

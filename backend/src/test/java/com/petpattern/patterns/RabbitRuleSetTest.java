@@ -49,13 +49,19 @@ class RabbitRuleSetTest {
         return rabbit.evaluate(new RuleContext(pet, list, List.of()));
     }
 
+    // Urgent starter rules belong to the IMMEDIATE layer, not the persisted historical evaluate().
+    private List<PatternCandidate> immediate(DailyCheckIn... checkIns) {
+        List<DailyCheckIn> list = new ArrayList<>(List.of(checkIns));
+        return rabbit.immediateObservations(new RuleContext(pet, list, List.of()));
+    }
+
     private static Optional<PatternCandidate> rule(List<PatternCandidate> candidates, String ruleId) {
         return candidates.stream().filter(c -> c.id().endsWith(":" + ruleId)).findFirst();
     }
 
     @Test
     void giStasisFiresUrgentOnSameDayIntakeAndDroppingsDrop() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(2, sig("appetite_hay", "Eating less") + "," + sig("poop", "Less")));
 
         Optional<PatternCandidate> gi = rule(found, "RABBIT_GI_STASIS_RISK");
@@ -68,7 +74,7 @@ class RabbitRuleSetTest {
 
     @Test
     void giStasisDoesNotFireWhenSignalsAreOnDifferentDays() {
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(4, sig("appetite_hay", "Eating less")),
                 day(1, sig("poop", "Less")));
         assertTrue(rule(found, "RABBIT_GI_STASIS_RISK").isEmpty(),
@@ -79,7 +85,7 @@ class RabbitRuleSetTest {
     void giStasisDoesNotFireForAnOldCoOccurrence() {
         // fix #2: URGENT cross-signal rules are pinned to the last ~7 days, so an old
         // same-day co-occurrence must NOT raise an urgent "is this happening now" sign.
-        List<PatternCandidate> found = evaluate(
+        List<PatternCandidate> found = immediate(
                 day(20, sig("appetite_hay", "Eating less") + "," + sig("poop", "Less")));
         assertTrue(rule(found, "RABBIT_GI_STASIS_RISK").isEmpty(),
                 "a 20-day-old co-occurrence is outside the urgent window");

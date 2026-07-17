@@ -44,6 +44,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.js',
+    // Vitest owns the unit/integration tests under src/. The Playwright E2E specs live in e2e/ and
+    // must NOT be collected here (Playwright's test.describe is incompatible with the vitest runner).
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
     // Vitest's CSS processing isn't needed for these tests (jsdom doesn't apply
     // layout/paint anyway) and just slows the run down.
     css: false
