@@ -53,5 +53,21 @@
 	<string>PetPattern accesses your photos so you can add a picture to your pet's check-in or timeline.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>PetPattern saves photos you add to your pet's timeline.</string>
+	<!-- Custom URL scheme deep link (works with no domain verification): the reliable path for
+	     password-reset / vet-share links during the beta, e.g. petpattern://reset#reset=<token>.
+	     src/lib/mobile.js reads the URL fragment and routes #reset=/#shared= into the SPA. Universal
+	     Links (https) additionally need the Associated Domains entitlement in App.entitlements +
+	     apple-app-site-association served at the domain — see docs/mobile.md. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.petpattern.mobile</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>petpattern</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

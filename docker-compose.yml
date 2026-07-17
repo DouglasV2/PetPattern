@@ -26,8 +26,10 @@ services:
       SPRING_DATASOURCE_USERNAME: petpattern
       SPRING_DATASOURCE_PASSWORD: petpattern
       # 7317 is the production (nginx) origin; 5273 is the local Vite dev/preview
-      # origin, allowed so the dev server can call the API with cookies.
-      PETPATTERN_CORS_ALLOWED_ORIGINS: http://localhost:7317,http://127.0.0.1:7317,http://localhost:5273
+      # origin, allowed so the dev server can call the API with cookies. The two capacitor
+      # origins let a native (Capacitor) build call this dev API — explicit origins only,
+      # never a wildcard (CORS runs with credentials).
+      PETPATTERN_CORS_ALLOWED_ORIGINS: http://localhost:7317,http://127.0.0.1:7317,http://localhost:5273,capacitor://localhost,https://localhost
       # Pin the server day to UTC so "today" matches the frontend's UTC date
       # (true per-user timezones need accounts — deferred to Route A).
       TZ: UTC

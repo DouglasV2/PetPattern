@@ -105,7 +105,10 @@ petpattern:
     redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:http://localhost:7317/api/auth/google/callback}
   cors:
     # Localhost is only the dev default; prod sets PETPATTERN_CORS_ALLOWED_ORIGINS.
-    allowed-origins: ${PETPATTERN_CORS_ALLOWED_ORIGINS:http://localhost:7317,http://127.0.0.1:7317}
+    # capacitor://localhost (iOS default WebView origin) and https://localhost (Android
+    # androidScheme=https) let the native app call the dev API. They are explicit origins — never a
+    # wildcard — which is required because CORS runs with allowCredentials=true.
+    allowed-origins: ${PETPATTERN_CORS_ALLOWED_ORIGINS:http://localhost:7317,http://127.0.0.1:7317,capacitor://localhost,https://localhost}
   analytics:
     # Internal, privacy-safe product analytics (activation funnel + D1/D7/D30 retention).
     # Stores only a pseudonymous one-way ref + allow-listed event types/categorical meta —

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- allowBackup=false so the session token / secure store are never captured in an Android
+         auto-backup or device-to-device transfer (WP2 hardening). fullBackupContent/dataExtractionRules
+         are unnecessary while nothing is backed up. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -20,6 +24,29 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Custom-scheme deep link. Always works with no domain verification, so it is the
+                 reliable path for password-reset / vet-share links during the beta, e.g.
+                 petpattern://reset#reset=<token> — src/lib/mobile.js reads the URL fragment and
+                 hands #reset=<token> / #shared=<token> to the SPA hash router. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="petpattern" />
+            </intent-filter>
+
+            <!-- Android App Links for the production web domain, so a password-reset email
+                 (https://<domain>/#reset=<token>) opens directly in the app. autoVerify requires
+                 /.well-known/assetlinks.json served at that domain AND on-device verification —
+                 NOT verified in this environment. Replace app.example.com with the real domain
+                 before release (see docs/mobile.md). -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.example.com" />
             </intent-filter>
 
         </activity>

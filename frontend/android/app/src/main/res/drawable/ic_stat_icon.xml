@@ -1,0 +1,28 @@
+<!--
+  Android status-bar notification small icon (referenced by capacitor.config.json's
+  LocalNotifications.smallIcon = "ic_stat_icon" and by src/lib/nativeNotifications.js).
+
+  Notification small icons MUST be a single-colour silhouette on a transparent background — Android
+  ignores the icon's own colours and tints the alpha mask with the system/notification accent. So
+  this is a solid-white paw drawn only with alpha; the "iconColor" in capacitor.config.json controls
+  the tint. Density-independent (vector), so no per-dpi PNGs are needed and there is no missing
+  resource at build time.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Four toe beans -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M4.6,9 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M7.9,6.5 a2.1,2.1 0 1,0 4.2,0 a2.1,2.1 0 1,0 -4.2,0 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M11.9,6.5 a2.1,2.1 0 1,0 4.2,0 a2.1,2.1 0 1,0 -4.2,0 Z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M15.6,9 a1.9,1.9 0 1,0 3.8,0 a1.9,1.9 0 1,0 -3.8,0 Z" />
+    <!-- Main pad -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M7.5,15.5 a4.5,4 0 1,0 9,0 a4.5,4 0 1,0 -9,0 Z" />
+</vector>

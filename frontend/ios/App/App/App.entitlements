@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  iOS Associated Domains for Universal Links, so a password-reset email
+	  (https://<domain>/#reset=<token>) can open directly in the app.
+
+	  NOT verified in this environment (no macOS/Xcode/device). To activate on a real build:
+	    1. Replace app.example.com with the real production web domain.
+	    2. Wire this file into the target in Xcode (Signing & Capabilities → add "Associated
+	       Domains", or set CODE_SIGN_ENTITLEMENTS = App/App.entitlements in build settings).
+	    3. Serve /.well-known/apple-app-site-association at that domain (see docs/mobile.md).
+	  The custom "petpattern://" scheme (Info.plist) works without any of this and is the beta path.
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:app.example.com</string>
+	</array>
+</dict>
+</plist>
