@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- allowBackup=false so the session token / secure store are never captured in an Android
-         auto-backup or device-to-device transfer (WP2 hardening). fullBackupContent/dataExtractionRules
-         are unnecessary while nothing is backed up. -->
+    <!-- Permissions. Deliberately minimal: no camera, storage, media, location or
+         QUERY_ALL_PACKAGES. Photo attachment uses the WebView file chooser, which needs none.
+         RECEIVE_BOOT_COMPLETED + WAKE_LOCK are merged in from @capacitor/local-notifications so the
+         daily reminder survives a reboot. Exact-alarm permissions are intentionally NOT declared —
+         see docs/android-release.md. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Daily check-in reminder (local notification). Runtime-requested on Android 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- The session token / secure store must never leave the device via backup or transfer.
+         allowBackup + fullBackupContent cover pre-Android-12; from API 31 those only govern CLOUD
+         backup, so dataExtractionRules additionally blocks device-to-device transfer. -->
     <application
         android:allowBackup="false"
         android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -38,15 +48,19 @@
             </intent-filter>
 
             <!-- Android App Links for the production web domain, so a password-reset email
-                 (https://<domain>/#reset=<token>) opens directly in the app. autoVerify requires
-                 /.well-known/assetlinks.json served at that domain AND on-device verification —
-                 NOT verified in this environment. Replace app.example.com with the real domain
-                 before release (see docs/mobile.md). -->
-            <intent-filter android:autoVerify="true">
+                 (https://<domain>/#reset=<token>) opens directly in the app.
+
+                 The host is a build-time placeholder, NOT a hard-coded domain: it comes from
+                 android/variables.gradle (appLinksHost) and defaults to the RFC-2606 reserved
+                 ".invalid" TLD with autoVerify OFF, so a default build never claims a domain we do
+                 not own. Supply the real domain and serve /.well-known/assetlinks.json from it:
+                   ./gradlew bundleRelease -PappLinksHost=app.yourdomain.com
+                 Verification itself can only be confirmed on a device — see docs/android-release.md. -->
+            <intent-filter android:autoVerify="${appLinksAutoVerify}">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="app.example.com" />
+                <data android:scheme="https" android:host="${appLinksHost}" />
             </intent-filter>
 
         </activity>
@@ -62,9 +76,4 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
-
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Daily check-in reminder (local notification). Runtime-requested on Android 13+. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

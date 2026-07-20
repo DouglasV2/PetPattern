@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ backup / transfer policy.
+
+  On API 31+ android:allowBackup only governs CLOUD backup; device-to-device transfer is controlled
+  separately and defaults to copying app data. PetPattern keeps a session bearer token in the OS
+  secure store, so neither path may carry app data off the device: both sections exclude everything.
+
+  Combined with android:allowBackup="false" (pre-12 cloud backup) this means the app is never
+  restored onto another device with a live session — the person signs in again, which is the
+  intended behaviour for a private health record.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

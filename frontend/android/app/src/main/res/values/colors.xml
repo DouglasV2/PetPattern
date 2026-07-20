@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Brand colours for the native chrome (task switcher header, splash, system bars).
+
+  Without this file these names resolve, via resource merging, to the stock Capacitor library
+  values (Material indigo #3F51B5 / pink #FF4081) — which is what Android was showing in the
+  recents card. These are PetPattern's own tokens, matching src/styles/tokens.css:
+    #3d6349  the teal/forest-green primary accent
+    #2e3d2f  the sidebar green (the record's dark cover)
+    #bf5a40  coral
+    #fbf7f0  the app's cream paper background (also the capacitor.config.json splash colour)
+-->
+<resources>
+    <color name="colorPrimary">#3d6349</color>
+    <color name="colorPrimaryDark">#2e3d2f</color>
+    <color name="colorAccent">#bf5a40</color>
+    <!-- The web UI is a light "paper" design in both system themes, so the splash and window
+         background stay cream in light AND dark (see values-night/colors.xml) — a dark splash
+         would flash black and then jump to a cream app. -->
+    <color name="splashBackground">#fbf7f0</color>
+    <color name="windowBackground">#fbf7f0</color>
+</resources>

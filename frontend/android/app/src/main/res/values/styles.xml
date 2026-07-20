@@ -13,10 +13,21 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!-- Pin the window behind the WebView to the app's cream. DayNight would otherwise make it
+             black under a dark system theme, which flashes on every cold start and behind the
+             keyboard, while the web UI itself is light. -->
+        <item name="android:windowBackground">@color/windowBackground</item>
     </style>
 
 
+    <!-- Launch theme. android:background is the pre-Android-12 path; the windowSplashScreen*
+         attributes are what Android 12+ (API 31+, i.e. most of the install base at targetSdk 36)
+         actually draws — without them the system composes its own splash from windowBackground and
+         the launcher icon, ignoring splash.png and flashing an unbranded colour. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/splashBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

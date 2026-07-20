@@ -13,9 +13,13 @@
 	    3. Serve /.well-known/apple-app-site-association at that domain (see docs/mobile.md).
 	  The custom "petpattern://" scheme (Info.plist) works without any of this and is the beta path.
 	-->
+	<!-- Reserved .invalid TLD, never registrable — a placeholder that cannot accidentally claim
+	     someone else's domain. Replace with the real production host before an iOS release and
+	     serve /.well-known/apple-app-site-association from it. (iOS release is out of scope for the
+	     current Android work; the petpattern:// custom scheme in Info.plist works without this.) -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:app.example.com</string>
+		<string>applinks:petpattern.invalid</string>
 	</array>
 </dict>
 </plist>

@@ -1,4 +1,27 @@
+// Read the App Links host BEFORE ext{} defines it. Defining ext.appLinksHost would itself make
+// project.hasProperty('appLinksHost') true, so the "was a host actually supplied?" test has to be
+// captured here or autoVerify would always end up "true" (verified: the merged manifest showed
+// autoVerify="true" on the .invalid placeholder before this fix).
+def suppliedAppLinksHost = project.findProperty('appLinksHost')
+
 ext {
+    // ---- Release identity -------------------------------------------------------------------
+    // THE two values to bump for every Play upload. versionCode must strictly increase or Play
+    // rejects the AAB; versionName is what users see. Override without editing the file via
+    //   ./gradlew bundleRelease -PappVersionCode=2 -PappVersionName=1.0.1
+    appVersionCode = (project.findProperty('appVersionCode') ?: '1') as Integer
+    appVersionName = project.findProperty('appVersionName') ?: '1.0.0'
+
+    // ---- Android App Links ------------------------------------------------------------------
+    // Deliberately EMPTY by default — we must not ship an intent filter claiming a domain we do
+    // not own (autoVerify against an unowned host just fails verification). Supply the real domain
+    // at build time, and serve /.well-known/assetlinks.json from it:
+    //   ./gradlew bundleRelease -PappLinksHost=app.yourdomain.com
+    // With no host configured we point at the RFC-2606 reserved ".invalid" TLD, which can never be
+    // registered or resolved, and leave autoVerify off. petpattern:// deep links are unaffected.
+    appLinksHost = suppliedAppLinksHost ?: 'petpattern.invalid'
+    appLinksAutoVerify = suppliedAppLinksHost ? 'true' : 'false'
+
     minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dark-system-setting overrides.
+
+  PetPattern's web UI is intentionally a single light "health notebook" design and does not yet
+  have a dark theme, and initMobile() sets a DARK-content status bar for that light background. So
+  in dark mode we deliberately keep the SAME cream splash/window background rather than inheriting
+  DayNight's dark one: otherwise the launch flashes black, then snaps to a cream app, and the
+  dark-content status bar becomes unreadable against a dark window.
+
+  If a real dark web theme is added later, these are the values to flip.
+-->
+<resources>
+    <color name="splashBackground">#fbf7f0</color>
+    <color name="windowBackground">#fbf7f0</color>
+</resources>
