@@ -8,7 +8,7 @@
 // decision logic they rely on (reminderSchedule.js) IS unit-tested; native runtime behavior
 // (delivery, permission prompts, taps, DST re-anchoring) must be verified on a real build.
 
-import { firstReminderAt, reminderBody, reminderNotificationId } from './reminderSchedule'
+import { reminderClockTime, reminderBody, reminderNotificationId } from './reminderSchedule'
 import { t } from '../i18n'
 import { trackServer, markNotificationOpened } from '../analytics'
 
@@ -58,10 +58,17 @@ export async function checkNativePermission() {
 /**
  * Schedule (or clear) THIS pet's daily reminder to match the owner's preference. Uses a per-pet
  * stable id so multiple pets don't clobber each other, always cancels that pet's previous one
- * first (never stacks), skips today's occurrence when the pet was already logged today, and
- * attaches a safe deep-link payload. The body is neutral (no health detail) so nothing sensitive
- * shows on a lock screen. Returns a status ('scheduled' | 'cancelled' | 'error' | 'unavailable')
- * so the caller can surface a failure instead of it being swallowed silently. A no-op on the web.
+ * first (never stacks), and attaches a safe deep-link payload. The body is neutral (no health
+ * detail) so nothing sensitive shows on a lock screen. Returns a status
+ * ('scheduled' | 'cancelled' | 'error' | 'unavailable') so the caller can surface a failure
+ * instead of it being swallowed silently. A no-op on the web.
+ *
+ * TIMING IS APPROXIMATE, BY DESIGN. The reminder is scheduled as a cron-style daily trigger
+ * (`schedule.on`). On Android 12+ the plugin uses an exact alarm only when the user has allowed
+ * exact alarms, and otherwise falls back to an inexact alarm — so delivery can be a few minutes
+ * late. We deliberately do NOT declare USE_EXACT_ALARM / SCHEDULE_EXACT_ALARM: a daily habit
+ * nudge is not an alarm-clock or calendar app, so that permission would not be policy-compliant.
+ * The UI must therefore describe the time as approximate rather than promise an exact minute.
  */
 export async function syncNativeReminder(pref, petName, options = {}) {
   const plugin = localNotifications()
@@ -70,14 +77,19 @@ export async function syncNativeReminder(pref, petName, options = {}) {
   try {
     await plugin.cancel?.({ notifications: [{ id }] })
     if (!pref?.enabled) return 'cancelled'
-    const at = firstReminderAt(pref.time, new Date(), Boolean(options.loggedToday))
-    if (!at) return 'cancelled'
+    const clock = reminderClockTime(pref.time)
+    if (!clock) return 'cancelled'
     await plugin.schedule?.({
       notifications: [{
         id,
         title: 'PetPattern',
         body: reminderBody(petName, t),
-        schedule: { at, repeats: true, every: 'day' },
+        // Cron-style daily trigger — NOT { at, repeats: true }. The plugin derives that repeat
+        // interval as (at - now), so a reminder set an hour ahead repeats EVERY HOUR forever
+        // (LocalNotificationManager.schedule: `long interval = at.getTime() - now`). `on`
+        // re-arms itself after each delivery and re-resolves the local clock time, which also
+        // keeps it correct across timezone and DST changes.
+        schedule: { on: { hour: clock.hour, minute: clock.minute }, allowWhileIdle: true },
         smallIcon: 'ic_stat_icon',
         // Non-sensitive routing payload only — the tap handler deep-links to this pet's check-in.
         extra: { petId: options.petId || null, kind: 'daily-checkin-reminder' }

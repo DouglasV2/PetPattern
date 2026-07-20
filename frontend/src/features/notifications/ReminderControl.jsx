@@ -67,9 +67,9 @@ function ReminderControl({ pet, loggedToday }) {
   }, [native, pref, permission, loggedToday, pet, storageKey])
 
   // Native: (re)schedule THIS pet's real daily reminder whenever the preference, permission or
-  // today's logged-state changes, and re-anchor on app resume (covers timezone/DST shifts and
-  // cold restarts). loggedToday feeds through so today's occurrence is skipped after a check-in —
-  // the reminder never fires on a day already logged. Scheduling failures surface (not swallowed).
+  // today's logged-state changes, and re-arm on app resume (covers cold restarts). The trigger is a
+  // cron-style local clock time, so timezone/DST changes are handled by the OS rather than by
+  // re-anchoring here. Scheduling failures surface (they are not swallowed).
   useEffect(() => {
     if (!native) return undefined
     let cancelled = false
@@ -148,7 +148,7 @@ function ReminderControl({ pet, loggedToday }) {
       {pref.enabled && !scheduleFailed && (
         <span className="reminder-note muted">
           {native
-            ? t('A daily reminder at your chosen time.')
+            ? t('A daily reminder around your chosen time.')
             : t('Works while PetPattern is open — not an email reminder yet.')}
         </span>
       )}

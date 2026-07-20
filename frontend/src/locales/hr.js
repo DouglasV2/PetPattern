@@ -6,7 +6,7 @@ export default {
   // Phase 4 — native daily reminder
   'Daily reminder': 'Dnevni podsjetnik',
   'Reminder on': 'Podsjetnik uključen',
-  'A daily reminder at your chosen time.': 'Dnevni podsjetnik u vrijeme koje odabereš.',
+  'A daily reminder around your chosen time.': 'Dnevni podsjetnik otprilike u vrijeme koje odabereš.',
   'Allow notifications to get a daily reminder.': 'Dopusti obavijesti za dnevni podsjetnik.',
   // Brand / shell
   'PetPattern': 'PetPattern',

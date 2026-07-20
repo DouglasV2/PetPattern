@@ -5,6 +5,7 @@ import { t } from '../../i18n'
 import { BrandMark } from '../../components/BrandMark'
 import { LangToggle } from '../../components/LangToggle'
 import { GoogleG } from '../../components/GoogleG'
+import { LegalLinks } from '../../components/LegalLinks'
 
 function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo, onRabbitDemo, demoEnabled = true, googleEnabled = false }) {
   // Google sign-in is a web-redirect flow (relative /api/auth/google/start) that cannot return a
@@ -178,13 +179,7 @@ function AuthScreen({ lang, onLangChange, onLogin, onRegister, onDemo, onCatDemo
           <p className="start-disclaimer muted">{t("Not a diagnosis. Not a vet chatbot. Just a clearer memory for your pet's health.")}</p>
         )}
 
-        <p className="legal-footer muted">
-          <a href="/#privacy" target="_blank" rel="noopener noreferrer">{t('Privacy Policy')}</a>
-          {' · '}
-          <a href="/#terms" target="_blank" rel="noopener noreferrer">{t('Terms')}</a>
-          {' · '}
-          <a href="/#disclaimer" target="_blank" rel="noopener noreferrer">{t('Medical Disclaimer')}</a>
-        </p>
+        <LegalLinks />
       </main>
     </div>
   )

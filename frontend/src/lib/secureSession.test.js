@@ -8,6 +8,7 @@ import {
   getSessionToken,
   setSessionToken,
   clearSessionToken,
+  secureSessionStatus,
   __resetSecureSessionForTest
 } from './secureSession'
 
@@ -96,6 +97,35 @@ describe('secureSession', () => {
 
     expect(getSessionToken()).toBe('legacy-tok')            // usable in memory
     expect(localStorage.getItem(TOKEN_KEY)).toBe('legacy-tok') // NOT deleted — nothing persisted
+  })
+
+  it('reports "secure" only when the OS store actually accepted the token', async () => {
+    installNative()
+    expect(secureSessionStatus()).toBe('none')
+    await setSessionToken('tok')
+    expect(secureSessionStatus()).toBe('secure')
+    await clearSessionToken()
+    expect(secureSessionStatus()).toBe('none')
+  })
+
+  it('never claims "secure" when the write failed — it reports memory-only', async () => {
+    installNative()
+    plugin.set.mockRejectedValue(new Error('keystore unavailable'))
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    await setSessionToken('tok')
+    expect(getSessionToken()).toBe('tok')          // usable now
+    expect(secureSessionStatus()).toBe('memory-only') // but honestly not persisted
+  })
+
+  it('never claims "secure" when the plugin is missing, and says so loudly', async () => {
+    installNative(false) // native build WITHOUT the secure-storage plugin
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await setSessionToken('tok')
+    expect(secureSessionStatus()).toBe('memory-only')
+    expect(err).toHaveBeenCalled()
+    const msg = err.mock.calls.flat().join(' ')
+    expect(msg).toMatch(/will NOT survive an app restart/i)
+    expect(msg).not.toContain('tok') // and still never logs the token
   })
 
   it('is a no-op on the web (the web app uses an HttpOnly cookie, not a bearer token)', async () => {

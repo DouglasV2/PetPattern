@@ -61,6 +61,19 @@ export function firstReminderAt(time, now, loggedToday) {
 }
 
 /**
+ * The chosen reminder time as {hour, minute}, or null for a cleared/invalid time.
+ *
+ * This is what the native daily reminder is scheduled from. It is a CLOCK time, not an instant:
+ * the OS re-resolves it against the device's local time for every occurrence, which is what keeps
+ * the reminder at "19:00 where the person is" across timezone and DST changes.
+ */
+export function reminderClockTime(time) {
+  if (!TIME.test(time || '')) return null
+  const [hour, minute] = time.split(':').map(Number)
+  return { hour, minute }
+}
+
+/**
  * A deterministic, stable positive notification id for a pet, so each pet gets its OWN native
  * reminder slot (no cross-pet clobbering) and re-scheduling REPLACES that pet's reminder instead
  * of stacking. Same pet id -> same slot across app restarts.

@@ -78,12 +78,12 @@ describe('ReminderControl native reminder lifecycle', () => {
     expect(plugin.schedule).toHaveBeenCalled()
 
     const scheduled = plugin.schedule.mock.calls.at(-1)[0].notifications[0]
-    expect(scheduled.schedule.repeats).toBe(true)   // the recurring daily reminder is active
-    expect(scheduled.schedule.every).toBe('day')
-    expect(scheduled.schedule.at.getDate()).toBe(1) // today 19:00 (18:00 now, not yet logged)
+    // Cron-style daily trigger at the saved clock time (re-arms itself after each delivery).
+    expect(scheduled.schedule.on).toEqual({ hour: 19, minute: 0 })
+    expect(scheduled.schedule.at).toBeUndefined()
   })
 
-  it("today's check-in cancels only today's occurrence; the future daily reminder stays active", async () => {
+  it('re-arms the same daily trigger after a check-in (cancel-then-schedule, never stacked)', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ enabled: true, time: '19:00' }))
 
     render(<ReminderControl pet={pet} loggedToday />) // already logged today
@@ -91,9 +91,11 @@ describe('ReminderControl native reminder lifecycle', () => {
 
     expect(plugin.cancel).toHaveBeenCalled() // this pet's slot is cancelled before (re)scheduling
     const scheduled = plugin.schedule.mock.calls.at(-1)[0].notifications[0]
-    expect(scheduled.schedule.at.getDate()).toBe(2) // anchored to TOMORROW — today is skipped
-    expect(scheduled.schedule.repeats).toBe(true)   // but the daily reminder itself remains
-    expect(scheduled.schedule.every).toBe('day')
+    // The daily reminder stays active at the chosen clock time. Note: a cron trigger cannot skip a
+    // single occurrence, so logging early in the day does not suppress that day's reminder — the
+    // neutral copy ("Would you like to save today's check-in?") stays correct either way.
+    expect(scheduled.schedule.on).toEqual({ hour: 19, minute: 0 })
+    expect(scheduled.schedule.at).toBeUndefined()
   })
 
   it('a since-revoked (denied) permission drops the control out of its stale "on" state', async () => {

@@ -7,7 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "build:mobile": "vite build --mode mobile",
+    "build:mobile": "node scripts/check-mobile-env.mjs && vite build --mode mobile",
     "cap:sync": "npm run build:mobile && npx cap sync",
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios",
@@ -25,6 +25,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
     "@sentry/react": "8.55.2",
+    "capacitor-secure-storage-plugin": "^0.13.0",
     "lucide-react": "0.468.0",
     "react": "18.3.1",
     "react-dom": "18.3.1"

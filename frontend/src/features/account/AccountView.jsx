@@ -3,6 +3,7 @@ import { ArrowLeft, Download, Trash2 } from 'lucide-react'
 import { api } from '../../api'
 import { t } from '../../i18n'
 import { track } from '../../analytics'
+import { LegalLinks } from '../../components/LegalLinks'
 
 function AccountView({ owner, pets = [], onDeletePet, onBack, onDeleted }) {
   const [busy, setBusy] = useState(false)
@@ -104,13 +105,7 @@ function AccountView({ owner, pets = [], onDeletePet, onBack, onDeleted }) {
 
         <div className="account-section">
           <h2>{t('Legal')}</h2>
-          <p className="legal-footer muted">
-            <a href="/#privacy" target="_blank" rel="noopener noreferrer">{t('Privacy Policy')}</a>
-            {' · '}
-            <a href="/#terms" target="_blank" rel="noopener noreferrer">{t('Terms')}</a>
-            {' · '}
-            <a href="/#disclaimer" target="_blank" rel="noopener noreferrer">{t('Medical Disclaimer')}</a>
-          </p>
+          <LegalLinks />
         </div>
 
         <div className="account-section danger-zone">

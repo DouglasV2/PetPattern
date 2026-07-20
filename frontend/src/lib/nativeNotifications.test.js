@@ -1,7 +1,7 @@
 // Native reminder scheduling LOGIC, verified against a mocked Capacitor LocalNotifications plugin.
-// This exercises the JS decisions (per-pet slot, skip-today-after-check-in, no-clobber, non-silent
-// failure status) — it does NOT verify real on-device delivery, permission prompts, or DST
-// re-anchoring, which require a device/emulator not available in this environment.
+// This exercises the JS decisions (per-pet slot, cron-style daily trigger, no-clobber, non-silent
+// failure status) — it does NOT verify real on-device delivery, permission prompts, exact-alarm
+// fallback, or DST re-anchoring, which require a device/emulator not available in this environment.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { reminderNotificationId } from './reminderSchedule'
@@ -36,8 +36,9 @@ describe('syncNativeReminder', () => {
     expect(plugin.cancel).toHaveBeenCalledWith({ notifications: [{ id }] })
     const scheduled = plugin.schedule.mock.calls[0][0].notifications[0]
     expect(scheduled.id).toBe(id)
-    expect(scheduled.schedule.repeats).toBe(true)
-    expect(scheduled.schedule.every).toBe('day')
+    // Cron-style daily trigger at the chosen local clock time.
+    expect(scheduled.schedule.on).toEqual({ hour: 19, minute: 0 })
+    expect(scheduled.schedule.allowWhileIdle).toBe(true)
     expect(scheduled.extra.petId).toBe('pet-a')
     expect(scheduled.extra.kind).toBe('daily-checkin-reminder')
     // Neutral body: no pet name, no health detail — safe on a lock screen.
@@ -61,13 +62,22 @@ describe('syncNativeReminder', () => {
     expect(idA).not.toBe(idB)
   })
 
-  it('skips today and anchors tomorrow after a qualifying check-in (loggedToday)', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date(2026, 2, 1, 18, 0, 0)) // 18:00 local, reminder at 19:00
+  // Regression guard for a real notification-spam bug. The plugin derives the repeat interval for
+  // { at, repeats: true } as (at - now), so a reminder set an hour ahead repeats HOURLY forever
+  // (and one set a minute ahead repeats every minute). We must never emit that shape again.
+  it('never schedules with the { at, repeats } shape that repeats at (at - now)', async () => {
     const { syncNativeReminder } = await import('./nativeNotifications')
-    await syncNativeReminder({ enabled: true, time: '19:00' }, 'Bella', { petId: 'pet-a', loggedToday: true })
-    const at = plugin.schedule.mock.calls[0][0].notifications[0].schedule.at
-    expect(at.getDate()).toBe(2) // tomorrow — it must NOT fire again tonight after a check-in
+    await syncNativeReminder({ enabled: true, time: '19:00' }, 'Bella', { petId: 'pet-a' })
+    const schedule = plugin.schedule.mock.calls[0][0].notifications[0].schedule
+    expect(schedule.at).toBeUndefined()
+    expect(schedule.repeats).toBeUndefined()
+    expect(schedule.every).toBeUndefined()
+  })
+
+  it('uses the chosen clock time so it survives timezone/DST changes', async () => {
+    const { syncNativeReminder } = await import('./nativeNotifications')
+    await syncNativeReminder({ enabled: true, time: '07:05' }, 'Bella', { petId: 'pet-a' })
+    expect(plugin.schedule.mock.calls[0][0].notifications[0].schedule.on).toEqual({ hour: 7, minute: 5 })
   })
 
   it('reports an error status (not a silent swallow) when scheduling throws', async () => {
