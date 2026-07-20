@@ -31,7 +31,7 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
         <p className="vet-report-note muted">{t('Owner-observed timeline, not a diagnosis.')}</p>
       </section>
 
-      <VetBlock title={t('Owner-observed concern')}>
+      <VetBlock title={t('Owner-observed concern')} tone="key">
         <p>{summary.mainConcern}</p>
       </VetBlock>
 
@@ -132,7 +132,7 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
         </VetBlock>
       )}
 
-      <VetBlock title={t('Possible patterns')}>
+      <VetBlock title={t('Possible patterns')} tone="key">
         {summary.patterns?.length ? (
           <ul className="vet-list">
             {summary.patterns.map((p, index) => (
@@ -161,7 +161,7 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
       </VetBlock>
 
       {urgentPatterns.length > 0 && (
-        <VetBlock title={t('Urgent signs noted')}>
+        <VetBlock title={t('Urgent signs noted')} tone="key">
           {urgentPatterns.map((p, index) => (
             <div className="urgent-banner sev-urgent" role="status" key={`urgent-${index}`}>
               <AlertTriangle size={18} className="urgent-banner-icon" />

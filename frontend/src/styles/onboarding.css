@@ -9,7 +9,7 @@
 
 .onboard-panel {
   width: 100%;
-  max-width: 560px;
+  max-width: var(--measure-medium);
   display: grid;
   gap: 1rem;
 }

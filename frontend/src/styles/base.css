@@ -93,7 +93,7 @@ p {
   display: grid;
   align-content: center;
   width: 100%;
-  max-width: 440px;
+  max-width: var(--measure-narrow);
   justify-self: center;
   padding: 2rem 1.9rem;
 }
@@ -227,10 +227,27 @@ p {
   color: var(--muted);
 }
 
+/* "Back" is navigation, not an action — it should not be the heaviest thing on the page.
+   Its parents (.flow-panel/.onboard-panel) are grids, so a stretched grid item turned it
+   into a full-width filled bar competing with the page title. justify-self stops the
+   stretch, and the fill only appears on hover/focus. Phones keep a 40px tap target from
+   the button floor in capacitor.css. */
 .back-button {
+  justify-self: start;
+  align-self: start;
+  width: fit-content;
+  min-height: 34px;
+  padding: 0 0.6rem 0 0.45rem;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: var(--radius-sm);
+}
+
+.back-button:hover {
   background: var(--surface);
   color: var(--ink);
-  padding: 0 0.8rem;
 }
 
 .stack-form,

@@ -131,7 +131,7 @@
 }
 
 .story-row.sev-urgent .story-body strong {
-  color: var(--coral);
+  color: var(--coral-text);
 }
 
 /* Urgent-care banner: an owner-logged combination worth acting on soon.
@@ -157,7 +157,7 @@
 .urgent-banner strong {
   display: block;
   margin-bottom: 0.2rem;
-  color: var(--coral);
+  color: var(--coral-text);
 }
 
 .urgent-banner p {
@@ -183,7 +183,7 @@
 
 .immediate-observations .immediate-vet-note {
   margin-top: 0.45rem;
-  color: var(--coral);
+  color: var(--coral-text);
   font-weight: 600;
 }
 
@@ -335,6 +335,45 @@
 .vet-list li p {
   margin: 0.2rem 0 0;
   color: var(--muted);
+}
+
+/* ---- Report scanning: key findings vs supporting detail --------------------
+   The summary was one flat wall of same-weight sections, so a vet had to read all of
+   it to find the two or three things that matter. Two tiers now:
+
+   KEY   — the owner's concern, the possible patterns, urgent signs. Ink heading at
+           reading size and the same 4px left rule the urgent banner already uses, so
+           the emphasis device is one the sheet already speaks.
+   OTHER — food, medications, counts, notes. Unchanged quiet uppercase label; these
+           stay available but stop competing.
+
+   No new colours or faces — only weight, size and an existing rule. */
+.vet-sheet {
+  max-width: var(--measure-read);
+}
+
+.vet-block-key {
+  gap: 0.3rem;
+  padding-left: 0.85rem;
+  border-left: 4px solid var(--teal);
+}
+
+.vet-block-key h3 {
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.vet-block-key > p,
+.vet-block-key .vet-list li {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Inside a key block the pattern explanation is the finding itself, not a footnote. */
+.vet-block-key .vet-list li p {
+  color: var(--ink);
 }
 
 @media (min-width: 700px) {

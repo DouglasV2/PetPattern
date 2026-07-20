@@ -238,7 +238,7 @@
 
 .cell-bar.calm { background: var(--sage-soft); border-color: var(--sage); color: var(--sage); }
 .cell-bar.watch { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
-.cell-bar.changed { background: var(--coral-soft); border-color: var(--coral); color: var(--coral); }
+.cell-bar.changed { background: var(--coral-soft); border-color: var(--coral); color: var(--coral-text); }
 
 .cell-legend {
   display: flex;

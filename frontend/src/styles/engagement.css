@@ -146,7 +146,7 @@
 
 /* Permission-blocked / scheduling-failed reminder notes read as a warning, not calm muted text. */
 .reminder-note.error-text {
-  color: var(--coral);
+  color: var(--coral-text);
   font-weight: 600;
 }
 

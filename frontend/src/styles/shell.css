@@ -209,7 +209,7 @@
    floating segmented control, no icons, no full underline. The active section
    carries only a small teal record marker. */
 .record-body {
-  max-width: 1180px;
+  max-width: var(--measure-wide);
   margin: 0 auto;
 }
 

@@ -50,7 +50,7 @@
 .toggle-button.active {
   background: var(--coral-soft);
   border-color: var(--coral);
-  color: var(--coral);
+  color: var(--coral-text);
 }
 
 /* ---- Patterns: line chart reads like GPT's "scratching over time" ----------

@@ -27,7 +27,7 @@
 }
 
 .legal-panel {
-  max-width: 620px;
+  max-width: var(--measure-medium);
 }
 
 .legal-doc {
@@ -71,11 +71,11 @@
 }
 
 .danger-zone h2 {
-  color: var(--coral);
+  color: var(--coral-text);
 }
 
 .ghost-button.danger {
-  color: var(--coral);
+  color: var(--coral-text);
   border-color: var(--coral-soft);
 }
 
@@ -84,13 +84,13 @@
 }
 
 .chip-button.danger {
-  color: var(--coral);
+  color: var(--coral-text);
   border-color: var(--coral-soft);
 }
 
 .chip-button.danger:hover {
   border-color: var(--coral);
-  color: var(--coral);
+  color: var(--coral-text);
 }
 
 /* Per-pet delete list in the account screen. */

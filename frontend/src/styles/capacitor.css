@@ -37,7 +37,10 @@ select {
   .ghost-button,
   .lang-trigger,
   .pet-switcher-trigger,
-  .unit-btn {
+  .unit-btn,
+  /* .back-button sets its own smaller min-height (a class beats the bare `button`
+     selector above), so it has to be named here or the touch target drops to 34px. */
+  .back-button {
     min-height: 40px;
   }
 

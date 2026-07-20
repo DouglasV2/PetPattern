@@ -72,21 +72,30 @@ function VetShareCard({ pet }) {
       </div>
       <p className="muted">{t('Create a private link to this summary. It is read-only, expires in 90 days, and you can turn it off anytime.')}</p>
 
+      {/* Exactly ONE primary action is offered at a time, and it is whatever the owner needs
+          next: create the link, then copy it. Everything else (make a replacement link, turn
+          sharing off) stays a quiet text button so it can't compete with that single CTA. */}
       {url && (
         <div className="share-link-row">
           <input className="share-link" readOnly value={url} onFocus={(e) => e.target.select()} />
-          <button className="secondary-button" type="button" onClick={copyLink}>
+          <button className="primary-button" type="button" onClick={copyLink}>
             <Copy size={16} /> {copied ? t('Copied') : t('Copy link')}
           </button>
         </div>
       )}
 
       <div className="action-row">
-        <button className="secondary-button" type="button" onClick={createLink} disabled={busy}>
-          <Share2 size={16} /> {status?.active && !url ? t('Create a new link') : t('Create a link')}
-        </button>
+        {url ? (
+          <button className="text-button" type="button" onClick={createLink} disabled={busy}>
+            {t('Create a new link')}
+          </button>
+        ) : (
+          <button className="primary-button" type="button" onClick={createLink} disabled={busy}>
+            <Share2 size={16} /> {status?.active ? t('Create a new link') : t('Create a link')}
+          </button>
+        )}
         {status?.active && (
-          <button className="ghost-button" type="button" onClick={revokeLink} disabled={busy}>
+          <button className="text-button" type="button" onClick={revokeLink} disabled={busy}>
             {t('Turn off sharing')}
           </button>
         )}

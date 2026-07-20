@@ -23,6 +23,12 @@
   --teal-soft: #dde8db;
   --coral: #bf5a40;
   --coral-soft: #f1dccf;
+  /* Same terracotta family as --coral, darkened for TEXT only. --coral itself measures
+     3.3–4.2:1 on our paper tones, which is fine for borders/fills/icons (non-text needs 3:1)
+     but fails WCAG AA for body-size text. Use --coral-text whenever coral carries words;
+     keep --coral for the shapes so the palette is unchanged. Verified >=4.9:1 on every
+     surface token (page/paper/paper-2/surface/coral-soft). */
+  --coral-text: #9e4029;
   --sage: #4c6845;
   --sage-soft: #dfe6d3;
   --gold: #726020;
@@ -32,6 +38,17 @@
   --sidebar-ink: #f2ede0;
   --sidebar-muted: #a7b19f;
   --sidebar-line: rgba(242, 237, 224, 0.16);
+  /* Content measures. Three widths, used everywhere instead of one-off pixel values, so
+     pages stop shifting their left edge as you move between them:
+       narrow  — a single focused form (sign-in), centred in its own full-page shell
+       medium  — a reading/setup column (onboarding, legal), left-aligned in the record
+       wide    — the record body itself
+     Reading text additionally caps at --measure-read (a ch-based line length) so long
+     report copy stays scannable instead of running the full width of the record. */
+  --measure-narrow: 28rem;
+  --measure-medium: 38rem;
+  --measure-wide: 70rem;
+  --measure-read: 68ch;
   /* Gently rounded, like a notebook card — not sharp, not a pill. */
   --radius: 10px;
   --radius-sm: 7px;
