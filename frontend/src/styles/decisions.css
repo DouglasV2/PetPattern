@@ -250,6 +250,49 @@
   color: var(--muted);
 }
 
+/* Evidence stage — a quiet communication state, NOT a confidence meter: every
+   stage looks identical, only the words change (spec Parts 8 & 12). */
+.stage-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* Part 10: limitations get real prominence — a tinted, accented block with an
+   ink-weight label, never small muted footer text. */
+.case-file-limits {
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: 0.7rem 0.8rem;
+  margin-top: 0.75rem;
+}
+
+.case-file-limits .case-file-label {
+  color: var(--ink);
+}
+
+.limits-list {
+  margin: 0.2rem 0 0.5rem;
+}
+
+.does-not-mean {
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.does-not-mean-label {
+  font-weight: 700;
+}
+
 .case-file-meta {
   margin: 0;
   color: var(--muted);

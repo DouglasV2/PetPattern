@@ -8,6 +8,7 @@ import com.petpattern.i18n.Copy;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -104,11 +105,39 @@ public class PatternExplanationBuilder {
     public PatternCandidate possibleFoodTrigger(Pet pet,
                                                 Protein protein,
                                                 PatternConfidence confidence,
-                                                int repeatedWindows,
-                                                double averageLift,
+                                                EvidenceStage stage,
+                                                FoodTriggerEvidence ev,
                                                 FoodLog relatedFoodLog,
                                                 List<DailyCheckIn> relatedCheckIns) {
         String proteinName = Copy.protein(protein);
+
+        // (2) What supports this — with the denominator, never a bare "it happened".
+        List<String> supports = new ArrayList<>();
+        supports.add(Copy.t("More scratching or stool changes followed {0} of the {1} times {2}-based food was fed",
+                ev.followedExposures(), ev.assessedExposures(), proteinName));
+        supports.add(Copy.t("We looked at days 3–10 after each change"));
+
+        // (3) What limits this — counter-evidence and missing data, shown plainly.
+        List<String> limits = new ArrayList<>();
+        if (ev.notFollowedExposures() > 0) {
+            limits.add(Copy.t("{0} of {1} times, the same food was not followed by a change",
+                    ev.notFollowedExposures(), ev.assessedExposures()));
+        }
+        if (ev.symptomDaysWithoutExposure() > 0) {
+            limits.add(Copy.t("Scratching was also logged on {0} days with no {1}-based food nearby",
+                    ev.symptomDaysWithoutExposure(), proteinName));
+        }
+        if (ev.concurrentOtherFoodChanges() > 0) {
+            limits.add(Copy.t("Other food changes were logged around the same time, so {0} isn't the only thing that changed",
+                    proteinName));
+        }
+        limits.add(Copy.t("This is based only on the days you logged — gaps can hide or exaggerate a link"));
+
+        // (4) What this does not mean.
+        List<String> doesNotMean = List.of(
+                Copy.t("This does not mean {0} is the cause — only that these days lined up. Symptoms have many causes.",
+                        proteinName));
+
         return new PatternCandidate(
                 stableId(pet.getId(), PatternType.POSSIBLE_FOOD_TRIGGER.name() + "_" + protein.name()),
                 pet.getId(),
@@ -119,14 +148,15 @@ public class PatternExplanationBuilder {
                 Copy.t("{0} and later changes were logged close together", Copy.proteinLabel(protein)),
                 Copy.t("More scratching or stool changes were logged after {0}-based food or treats "
                         + "more than once. Not a diagnosis — could be worth raising with your vet.", proteinName),
-                List.of(
-                        Copy.t("{0} was logged more than once", Copy.proteinLabel(protein)),
-                        Copy.t("A related change appeared {0} times afterwards", repeatedWindows),
-                        Copy.t("PetPattern reviewed the recent notes")
-                ),
+                supports,
                 Instant.now(),
                 relatedFoodLog == null ? null : relatedFoodLog.getId(),
-                ids(relatedCheckIns)
+                ids(relatedCheckIns),
+                Severity.WATCH,
+                null,
+                stage,
+                limits,
+                doesNotMean
         );
     }
 

@@ -268,6 +268,17 @@ export default {
     'Nije dijagnoza — samo nešto iz tvojih bilježaka što možda vrijedi spomenuti veterinaru.',
   'Noticed in more than one separate stretch since {date}': 'Zamijećeno u više odvojenih razdoblja od {date}',
   "You've noticed this in more than one separate stretch since {date}.": 'Ovo se pojavilo u više odvojenih razdoblja od {date}.',
+  // Evidence stages (Part 8) + 4-part structure (Part 10)
+  'Noticed once': 'Zamijećeno jednom',
+  'Noticed more than once': 'Zamijećeno više puta',
+  'Possible link — keep tracking': 'Moguća poveznica — nastavi pratiti',
+  'Worth mentioning to your vet': 'Vrijedi spomenuti veterinaru',
+  "What this can't tell us yet": 'Što ovo još ne može reći',
+  "What this doesn't mean:": 'Što ovo ne znači:',
+  'This is based only on the days you logged, so it can only show what was written down — not a cause.':
+    'Ovo se temelji samo na zabilježenim danima, pa može pokazati samo ono što je zapisano — ne i uzrok.',
+  'This is a record of what was logged, not a diagnosis or a cause.':
+    'Ovo je zapis onoga što je zabilježeno, nije dijagnoza ni uzrok.',
   "Not much of a story yet — that's fine.": 'Još nema baš priče — i to je u redu.',
   'A few more quiet days help too — they teach the app what normal looks like.':
     'I još nekoliko mirnih dana pomaže — uči aplikaciju kako izgleda normalno.',

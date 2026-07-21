@@ -111,6 +111,61 @@ class FoodExposureAnalyzerTest {
     }
 
     @Test
+    void foodTriggerCarriesAnEvidenceStageAndCounterEvidence() {
+        // Two independent chicken exposures, each followed by an itching rise, and
+        // no counter-evidence -> a possible-association stage with the 4-part
+        // structure populated (Parts 8 & 10).
+        List<DailyCheckIn> checkIns = series(61,
+                daysAgo -> inExposureWindow(daysAgo) ? 8 : 1,
+                daysAgo -> false);
+        List<FoodLog> foodLogs = List.of(chickenLog(45), chickenLog(20));
+
+        PatternCandidate candidate = analyzer.possibleFoodTrigger(dogPet(), checkIns, foodLogs).orElseThrow();
+
+        assertEquals(EvidenceStage.STAGE_3_POSSIBLE_ASSOCIATION, candidate.stage());
+        assertTrue(!candidate.limits().isEmpty(), "a food association must show what limits it");
+        assertTrue(!candidate.doesNotMean().isEmpty(), "a food association must show what it does not mean");
+    }
+
+    @Test
+    void anExposureNotFollowedBySymptomsAppearsAsCounterEvidence() {
+        // Three chicken exposures: the earliest (70 days ago) is NOT followed by a
+        // rise; the other two (45, 20) are. The un-followed exposure must surface as
+        // a limitation (Part 10, test #23).
+        java.util.function.IntPredicate followedWindow =
+                daysAgo -> (daysAgo >= 35 && daysAgo <= 42) || (daysAgo >= 10 && daysAgo <= 17);
+        List<DailyCheckIn> checkIns = series(81,
+                daysAgo -> followedWindow.test(daysAgo) ? 8 : 1,
+                daysAgo -> false);
+        List<FoodLog> foodLogs = List.of(chickenLog(70), chickenLog(45), chickenLog(20));
+
+        PatternCandidate candidate = analyzer.possibleFoodTrigger(dogPet(), checkIns, foodLogs).orElseThrow();
+
+        String limits = String.join(" | ", candidate.limits()).toLowerCase();
+        assertTrue(limits.contains("not followed"),
+                "an exposure without a following symptom should be shown as counter-evidence, got: " + limits);
+    }
+
+    @Test
+    void counterEvidenceOutweighingTheFollowedExposuresWeakensToRepeatedStage() {
+        // Part 11 / test #28: five chicken exposures but only the two most recent are
+        // followed by a rise; the three older ones are not. Contradiction outweighs,
+        // so the observation weakens from a possible association back to "repeated".
+        java.util.function.IntPredicate followedWindow =
+                daysAgo -> (daysAgo >= 26 && daysAgo <= 33) || (daysAgo >= 8 && daysAgo <= 15);
+        List<DailyCheckIn> checkIns = series(101,
+                daysAgo -> followedWindow.test(daysAgo) ? 8 : 1,
+                daysAgo -> false);
+        List<FoodLog> foodLogs = List.of(
+                chickenLog(90), chickenLog(72), chickenLog(54), chickenLog(36), chickenLog(18));
+
+        PatternCandidate candidate = analyzer.possibleFoodTrigger(dogPet(), checkIns, foodLogs).orElseThrow();
+
+        assertEquals(EvidenceStage.STAGE_2_REPEATED, candidate.stage(),
+                "counter-evidence outnumbering the followed exposures must weaken the stage");
+    }
+
+    @Test
     void doesNotFlagSteadyItchingWithNoStoolChange() {
         // Flat itch of 3 everywhere and no loose stool: no window worsens.
         List<DailyCheckIn> checkIns = series(61, daysAgo -> 3, daysAgo -> false);

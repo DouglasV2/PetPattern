@@ -42,16 +42,19 @@ public class FoodExposureAnalyzer {
 
         Protein bestProtein = null;
         FoodLog bestFoodLog = null;
-        int bestRepeatedWindows = 0;
-        double bestAverageLift = 0;
+        int bestFollowed = 0;
+        int bestAssessed = 0;
+        double bestLiftTotal = 0;
         List<DailyCheckIn> bestRelatedCheckIns = List.of();
+        List<FoodLog> bestProteinLogs = List.of();
 
         for (Map.Entry<Protein, List<FoodLog>> entry : byProtein.entrySet()) {
             if (entry.getValue().size() < 2) {
                 continue;
             }
 
-            int repeatedWindows = 0;
+            int followed = 0;      // exposures followed by the outcome
+            int assessed = 0;      // exposures we could evaluate (the denominator)
             double liftTotal = 0;
             List<DailyCheckIn> relatedCheckIns = new ArrayList<>();
             FoodLog relatedFoodLog = entry.getValue().get(entry.getValue().size() - 1);
@@ -76,40 +79,75 @@ public class FoodExposureAnalyzer {
                     continue;
                 }
 
+                assessed++;
                 double comparisonAverage = beforeAverage.orElse(globalAverage.getAsDouble());
                 double lift = postAverage.getAsDouble() - comparisonAverage;
                 long unstableStoolDays = postWindow.stream().filter(symptomTrendAnalyzer::hasUnstableStool).count();
                 boolean worsened = (lift >= 1.5 && postAverage.getAsDouble() >= 5.0) || unstableStoolDays >= 2;
 
                 if (worsened) {
-                    repeatedWindows++;
+                    followed++;
                     liftTotal += Math.max(lift, 0);
                     relatedCheckIns.addAll(postWindow);
                 }
             }
 
-            if (repeatedWindows > bestRepeatedWindows) {
+            if (followed > bestFollowed) {
                 bestProtein = entry.getKey();
                 bestFoodLog = relatedFoodLog;
-                bestRepeatedWindows = repeatedWindows;
-                bestAverageLift = repeatedWindows == 0 ? 0 : liftTotal / repeatedWindows;
+                bestFollowed = followed;
+                bestAssessed = assessed;
+                bestLiftTotal = liftTotal;
                 bestRelatedCheckIns = relatedCheckIns.stream().distinct().toList();
+                bestProteinLogs = entry.getValue();
             }
         }
 
-        if (bestProtein == null || bestRepeatedWindows < 2) {
+        if (bestProtein == null || bestFollowed < 2) {
             return Optional.empty();
         }
 
-        PatternConfidence confidence = bestAverageLift >= 2.2 ? PatternConfidence.HIGH : PatternConfidence.MEDIUM;
+        int notFollowed = bestAssessed - bestFollowed;
+        double averageLift = bestFollowed == 0 ? 0 : bestLiftTotal / bestFollowed;
+        int symptomWithoutExposure = symptomDaysOutsideExposureWindows(checkIns, bestProteinLogs);
+        int concurrentOther = concurrentOtherProteinChanges(foodLogs, bestProtein, bestProteinLogs);
+        EvidenceStage stage = EvidenceStage.forFoodExposure(bestFollowed, notFollowed, bestAssessed);
+
+        // Confidence stays internal (ranking only); it is not user-facing (Part 12).
+        PatternConfidence confidence = averageLift >= 2.2 ? PatternConfidence.HIGH : PatternConfidence.MEDIUM;
+        FoodTriggerEvidence evidence = new FoodTriggerEvidence(
+                bestAssessed, bestFollowed, notFollowed, symptomWithoutExposure,
+                concurrentOther, 3, 10, averageLift);
+
         return Optional.of(explanationBuilder.possibleFoodTrigger(
-                pet,
-                bestProtein,
-                confidence,
-                bestRepeatedWindows,
-                bestAverageLift,
-                bestFoodLog,
-                bestRelatedCheckIns
-        ));
+                pet, bestProtein, confidence, stage, evidence, bestFoodLog, bestRelatedCheckIns));
+    }
+
+    /** Days the symptom was logged high with no exposure window of this protein nearby. */
+    private int symptomDaysOutsideExposureWindows(List<DailyCheckIn> checkIns, List<FoodLog> proteinLogs) {
+        return (int) checkIns.stream()
+                .filter(checkIn -> checkIn.getItchingScore() != null && checkIn.getItchingScore() >= 5)
+                .filter(checkIn -> proteinLogs.stream().noneMatch(foodLog -> {
+                    LocalDate start = foodLog.getDateStarted().plusDays(3);
+                    LocalDate end = foodLog.getDateStarted().plusDays(10);
+                    LocalDate day = checkIn.getCheckInDate();
+                    return !day.isBefore(start) && !day.isAfter(end);
+                }))
+                .count();
+    }
+
+    /** Other-protein food changes started during the same overall span (a limitation). */
+    private int concurrentOtherProteinChanges(List<FoodLog> allFoodLogs, Protein winner, List<FoodLog> winnerLogs) {
+        LocalDate firstStart = winnerLogs.stream().map(FoodLog::getDateStarted).min(LocalDate::compareTo).orElse(null);
+        LocalDate lastStart = winnerLogs.stream().map(FoodLog::getDateStarted).max(LocalDate::compareTo).orElse(null);
+        if (firstStart == null) {
+            return 0;
+        }
+        LocalDate spanEnd = lastStart.plusDays(10);
+        return (int) allFoodLogs.stream()
+                .filter(foodLog -> foodLog.getPrimaryProtein() != winner)
+                .filter(foodLog -> !foodLog.getDateStarted().isBefore(firstStart)
+                        && !foodLog.getDateStarted().isAfter(spanEnd))
+                .count();
     }
 }

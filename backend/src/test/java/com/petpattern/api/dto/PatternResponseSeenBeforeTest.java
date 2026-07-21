@@ -66,4 +66,19 @@ class PatternResponseSeenBeforeTest {
         assertThat(response.episodeCount()).isEqualTo(1);
         assertThat(response.seenBefore()).isFalse();
     }
+
+    @Test
+    void stageForARecurrenceOnlyPatternReflectsSeparatePeriods() {
+        UUID petId = UUID.randomUUID();
+        // A symptom pattern with no exposure to compare against: one period -> Stage 1.
+        PatternObservation single = new PatternObservation(null, petId + ":ITCHING_ABOVE_BASELINE",
+                PatternType.ITCHING_ABOVE_BASELINE, DAY0);
+        assertThat(PatternResponse.from(candidate(petId), single).stage()).isEqualTo("STAGE_1_DATED");
+
+        // Seen in two separate periods -> Stage 2, but never an association stage.
+        PatternObservation twoPeriods = new PatternObservation(null, petId + ":ITCHING_ABOVE_BASELINE",
+                PatternType.ITCHING_ABOVE_BASELINE, DAY0);
+        twoPeriods.recordDetection(DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS), "LOW", "t", "s");
+        assertThat(PatternResponse.from(candidate(petId), twoPeriods).stage()).isEqualTo("STAGE_2_REPEATED");
+    }
 }

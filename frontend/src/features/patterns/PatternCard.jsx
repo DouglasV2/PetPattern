@@ -2,7 +2,7 @@ import { ChevronRight, Search, Stethoscope } from 'lucide-react'
 import { t } from '../../i18n'
 import { formatDate } from '../../lib/date'
 import { foodKindLabel, nearbyFoodChanges } from '../../lib/food'
-import { statusMeta, settledLine, memoryLine } from '../../lib/patterns'
+import { statusMeta, settledLine, memoryLine, stageMeta } from '../../lib/patterns'
 import { PatternChart } from './PatternChart'
 
 function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onSetStatus, onVetSummary, onFoodDetective }) {
@@ -40,10 +40,18 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
   const nearbyFood = nearbyFoodChanges(pattern, foodLogs)
   // seenBefore is backed by episodeCount (separate periods), never engine-run days.
   const seenBefore = pattern.seenBefore
+  const stage = stageMeta(pattern.stage)
+  const limits = pattern.limits?.length
+    ? pattern.limits
+    : [t('This is based only on the days you logged, so it can only show what was written down — not a cause.')]
+  const doesNotMean = pattern.doesNotMean?.length
+    ? pattern.doesNotMean.join(' ')
+    : t('This is a record of what was logged, not a diagnosis or a cause.')
   return (
     <article className="panel pattern-card case-file-card">
       <div className="pattern-top">
         <span className="case-file-kicker">{t('Pattern case file')}</span>
+        <span className={`stage-chip stage-${stage.number}`}>{stage.label}</span>
         {meta.label && <span className={`status-chip ${meta.tone}`}>{meta.label}</span>}
       </div>
       <h2>{pattern.title}</h2>
@@ -56,6 +64,15 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
             {pattern.evidence.map((line) => <li key={line}>{line}</li>)}
           </ul>
         )}
+      </div>
+
+      {/* Part 10: limitations get their own prominent block — never muted footer text. */}
+      <div className="case-file-section case-file-limits">
+        <p className="case-file-label">{t("What this can't tell us yet")}</p>
+        <ul className="evidence-list limits-list">
+          {limits.map((line) => <li key={line}>{line}</li>)}
+        </ul>
+        <p className="does-not-mean"><span className="does-not-mean-label">{t("What this doesn't mean:")}</span> {doesNotMean}</p>
       </div>
 
       {pattern.firstDetectedAt && (
@@ -87,9 +104,6 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
         </div>
       )}
 
-      {pattern.type === 'POSSIBLE_FOOD_TRIGGER' && (
-        <p className="pattern-disclaimer muted">{t('This lines up food changes with what was logged afterward — not a diagnosis.')}</p>
-      )}
       <p className="pattern-disclaimer muted">{t('This is a case file, not a diagnosis.')}</p>
 
       <div className="case-file-section">

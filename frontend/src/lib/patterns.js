@@ -126,6 +126,23 @@ export function memoryLine(pattern) {
   return t('First noticed {date}', { date: formatDate(pattern.firstDetectedAt) })
 }
 
+// The four evidence stages (spec Part 8) as plain, non-causal UI labels. These
+// describe how much the record supports talking about something — never a
+// confidence level or a cause. `number` (1..4) is for ordering/display only.
+export function stageMeta(stage) {
+  switch (stage) {
+    case 'STAGE_4_WORTH_VET':
+      return { number: 4, label: t('Worth mentioning to your vet') }
+    case 'STAGE_3_POSSIBLE_ASSOCIATION':
+      return { number: 3, label: t('Possible link — keep tracking') }
+    case 'STAGE_2_REPEATED':
+      return { number: 2, label: t('Noticed more than once') }
+    case 'STAGE_1_DATED':
+    default:
+      return { number: 1, label: t('Noticed once') }
+  }
+}
+
 export function trendWord(label) {
   switch (label) {
     case 'calmer': return t('calmer')

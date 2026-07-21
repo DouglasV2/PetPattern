@@ -319,6 +319,19 @@ public final class Copy {
                 "Prosječan porast češanja nakon toga: +{0}/10");
         put("We looked at days 3–10 after each change",
                 "Gledali smo dane 3–10 nakon svake promjene");
+        // Food association: 4-part evidence structure (supports / limits / does not mean)
+        put("More scratching or stool changes followed {0} of the {1} times {2}-based food was fed",
+                "Više češanja ili promjena stolice uslijedilo je {0} od {1} puta kad je davana hrana ({2})");
+        put("{0} of {1} times, the same food was not followed by a change",
+                "{0} od {1} puta ista hrana nije bila praćena promjenom");
+        put("Scratching was also logged on {0} days with no {1}-based food nearby",
+                "Češanje je zabilježeno i {0} dana kad u blizini nije bilo hrane ({1})");
+        put("Other food changes were logged around the same time, so {0} isn't the only thing that changed",
+                "U isto vrijeme zabilježene su i druge promjene hrane, pa {0} nije jedino što se promijenilo");
+        put("This is based only on the days you logged — gaps can hide or exaggerate a link",
+                "Ovo se temelji samo na zabilježenim danima — praznine mogu prikriti ili pojačati poveznicu");
+        put("This does not mean {0} is the cause — only that these days lined up. Symptoms have many causes.",
+                "Ovo ne znači da je {0} uzrok — samo da su se ti dani poklopili. Simptomi imaju mnogo uzroka.");
         // Clarity pass — plain-language pattern bullets (no analytics)
         put("{0} was logged more than once",
                 "Zabilježeno više puta: {0}");

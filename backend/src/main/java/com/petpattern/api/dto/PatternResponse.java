@@ -3,6 +3,7 @@ package com.petpattern.api.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.petpattern.domain.PatternObservation;
 import com.petpattern.domain.PatternStatus;
+import com.petpattern.patterns.EvidenceStage;
 import com.petpattern.patterns.PatternCandidate;
 
 import java.time.Instant;
@@ -35,7 +36,14 @@ public record PatternResponse(
         boolean currentlyDetected,
         Integer daysSinceLastSeen,
         String severity,
-        String urgentNote
+        String urgentNote,
+        // Evidence-communication stage (spec Part 8), e.g. STAGE_3_POSSIBLE_ASSOCIATION.
+        // Not a confidence level. limits/doesNotMean complete the 4-part structure
+        // (Part 10); they are empty for recurrence-only symptom patterns, which the
+        // card fills with a generic caution.
+        String stage,
+        List<String> limits,
+        List<String> doesNotMean
 ) {
     /** Currently-detected candidate, optionally enriched with its remembered observation. */
     public static PatternResponse from(PatternCandidate candidate, PatternObservation observation) {
@@ -44,6 +52,11 @@ public record PatternResponse(
         boolean seenBefore = observation != null && observation.isSeenAcrossSeparatePeriods();
         LocalDate first = observation == null ? null : observation.getFirstDetectedDate();
         LocalDate last = observation == null ? null : observation.getLastDetectedDate();
+        // The analyzer sets a stage when it has a comparison denominator (food
+        // exposure); otherwise the stage is the recurrence stage from separate periods.
+        EvidenceStage stage = candidate.stage() != null
+                ? candidate.stage()
+                : EvidenceStage.forRecurrence(episodes);
         return new PatternResponse(
                 candidate.id(),
                 candidate.petId(),
@@ -63,7 +76,10 @@ public record PatternResponse(
                 true,
                 null,
                 candidate.severity().name().toLowerCase(Locale.ROOT),
-                candidate.urgentNote()
+                candidate.urgentNote(),
+                stage.name(),
+                candidate.limits(),
+                candidate.doesNotMean()
         );
     }
 
@@ -93,7 +109,10 @@ public record PatternResponse(
                 // A settled pattern is no longer being detected, so it is never surfaced
                 // as an active urgent sign: a neutral severity, no urgent note.
                 "watch",
-                null
+                null,
+                EvidenceStage.forRecurrence(observation.getEpisodeCount()).name(),
+                List.of(),
+                List.of()
         );
     }
 }
