@@ -205,23 +205,24 @@ public class DevSeedController {
         inviteRepository.save(invite);
 
         // Seed pattern memory so the "remembers your dog" payoff is visible
-        // immediately: the chicken pattern has recurred across earlier periods,
-        // not just today. detectionCount counts distinct days the engine flagged
-        // it. lastDetectedDate is today so the next live detection does not bump.
+        // immediately: the chicken pattern appeared across two separate periods
+        // (episodeCount = 2), which is what makes it read as "seen before".
+        // detectionCount counts engine-run days (internal); lastDetectedDate is
+        // today so the next live detection does not bump it.
         LocalDate today = LocalDate.now();
         createObservation(pet, PatternType.POSSIBLE_FOOD_TRIGGER, "POSSIBLE_FOOD_TRIGGER_CHICKEN",
-                today.minusDays(33), today, 3, "HIGH",
-                "Possible chicken-related pattern",
+                today.minusDays(33), today, 3, 2, "HIGH",
+                "Chicken and later changes were logged close together",
                 "More scratching and softer stool were logged after chicken-based food or treats in more than one tracked period. "
                         + "This is not a medical conclusion, but it may be worth discussing with your vet.");
         createObservation(pet, PatternType.STOOL_INSTABILITY, "STOOL_INSTABILITY",
-                today.minusDays(20), today, 2, "HIGH",
+                today.minusDays(20), today, 2, 1, "HIGH",
                 "Stool has been less stable this week",
                 "Bella had softer stool or diarrhea more than once this week.");
         // A pattern that recurred earlier but has not returned -> shows as "settled".
         createObservation(pet, PatternType.POSSIBLE_FOOD_TRIGGER, "POSSIBLE_FOOD_TRIGGER_BEEF",
-                today.minusDays(40), today.minusDays(12), 2, "MEDIUM",
-                "Possible beef-related pattern",
+                today.minusDays(40), today.minusDays(12), 2, 2, "MEDIUM",
+                "Beef and later changes were logged close together",
                 "More scratching was logged after beef-based food in an earlier period, but this has not recurred recently.");
 
         return PetResponse.from(pet);
@@ -326,12 +327,12 @@ public class DevSeedController {
         // than showing a duplicate. lastDetectedDate is today so it won't bump.
         LocalDate today = LocalDate.now();
         createObservation(pet, PatternType.LITTER_BOX_CHANGE, PatternType.LITTER_BOX_CHANGE.name(),
-                today.minusDays(33), today, 3, "HIGH",
+                today.minusDays(33), today, 3, 2, "HIGH",
                 "Recurring litter box change",
                 "Litter box and hiding changes were logged in more than one tracked period. "
                         + "This is not a diagnosis, but it may be worth discussing with your vet.");
         createObservation(pet, PatternType.HIDING_INCREASED, PatternType.HIDING_INCREASED.name(),
-                today.minusDays(30), today, 2, "MEDIUM",
+                today.minusDays(30), today, 2, 2, "MEDIUM",
                 "More hiding than usual",
                 "Hiding and a lower appetite were logged together in more than one tracked period. "
                         + "This is not a diagnosis, but it may be worth discussing with your vet.");
@@ -447,12 +448,12 @@ public class DevSeedController {
         // Keyed to the RABBIT_INTAKE_DROP rule (not the old generic key) so the "seen 3x"
         // memory payoff attaches to the richer species rule that now claims appetite_hay.
         createObservation(pet, PatternType.STARTER_INTAKE_CHANGE, "RABBIT_INTAKE_DROP",
-                today.minusDays(30), today, 3, "MEDIUM",
+                today.minusDays(30), today, 3, 2, "MEDIUM",
                 "Eating less on more than one day",
                 "Appetite and hay intake were logged as lower in more than one tracked period. "
                         + "This is not a diagnosis, but it may be worth discussing with your vet.");
         createObservation(pet, PatternType.REPEATED_OBSERVATION, "REPEATED_OBSERVATION:poop",
-                today.minusDays(26), today, 2, "LOW",
+                today.minusDays(26), today, 2, 1, "LOW",
                 "Recurring change: Poop",
                 "Poop changes were logged on more than one day. This is not a diagnosis, "
                         + "but it may be worth mentioning to your vet if it continues.");
@@ -500,12 +501,16 @@ public class DevSeedController {
                                    LocalDate firstDetected,
                                    LocalDate lastDetected,
                                    int detectionCount,
+                                   int episodeCount,
                                    String confidence,
                                    String title,
                                    String summary) {
         PatternObservation observation = new PatternObservation(pet, pet.getId() + ":" + keySuffix, type, firstDetected);
         observation.setLastDetectedDate(lastDetected);
+        // detectionCount = engine-run-days (internal); episodeCount = separate
+        // periods (the only "seen before" signal). See PatternObservation.
         observation.setDetectionCount(detectionCount);
+        observation.setEpisodeCount(episodeCount);
         observation.setLastConfidence(confidence);
         observation.setLastTitle(title);
         observation.setLastSummary(summary);

@@ -79,7 +79,6 @@ describe('<TodayView/>', () => {
         title: 'Scratching pattern',
         summary: 'Scratching has come up a few times.',
         seenBefore: true,
-        detectionCount: 3,
         status: 'ACKNOWLEDGED',
         firstDetectedAt: '2026-07-01'
       }
@@ -104,7 +103,6 @@ describe('<TodayView/>', () => {
         title: 'Scratching pattern',
         summary: 'Scratching has come up a few times.',
         seenBefore: true,
-        detectionCount: 3,
         status: 'ACKNOWLEDGED',
         firstDetectedAt: '2026-07-01'
       }

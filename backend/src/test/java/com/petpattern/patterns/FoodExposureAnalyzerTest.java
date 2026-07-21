@@ -94,6 +94,23 @@ class FoodExposureAnalyzerTest {
     }
 
     @Test
+    void foodTriggerHeadlineIsFactualNotCausal() {
+        // Part 7: the headline must not use the forbidden "X-related pattern"
+        // construction or claim a trigger — only that things were logged together.
+        List<DailyCheckIn> checkIns = series(61,
+                daysAgo -> inExposureWindow(daysAgo) ? 8 : 1,
+                daysAgo -> false);
+        List<FoodLog> foodLogs = List.of(chickenLog(45), chickenLog(20));
+
+        PatternCandidate candidate = analyzer.possibleFoodTrigger(dogPet(), checkIns, foodLogs).orElseThrow();
+        String title = candidate.title().toLowerCase();
+
+        assertTrue(title.contains("chicken"), "headline should still name the protein factually");
+        assertTrue(!title.contains("related pattern"), "headline must not use 'X-related pattern'");
+        assertTrue(!title.contains("trigger"), "headline must not claim a trigger");
+    }
+
+    @Test
     void doesNotFlagSteadyItchingWithNoStoolChange() {
         // Flat itch of 3 everywhere and no loose stool: no window worsens.
         List<DailyCheckIn> checkIns = series(61, daysAgo -> 3, daysAgo -> false);

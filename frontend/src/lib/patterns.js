@@ -118,8 +118,10 @@ export function statusMeta(status) {
 
 export function memoryLine(pattern) {
   if (!pattern?.firstDetectedAt) return ''
-  if (pattern.seenBefore && pattern.detectionCount > 1) {
-    return t('Seen a few times since {date}', { date: formatDate(pattern.firstDetectedAt) })
+  // seenBefore is backed by episodeCount (genuinely separate periods) — never the
+  // engine-run-day count, which must not read as recurrence (spec Part 9).
+  if (pattern.seenBefore) {
+    return t('Noticed in more than one separate stretch since {date}', { date: formatDate(pattern.firstDetectedAt) })
   }
   return t('First noticed {date}', { date: formatDate(pattern.firstDetectedAt) })
 }

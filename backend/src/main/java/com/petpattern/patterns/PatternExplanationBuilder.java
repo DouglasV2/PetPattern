@@ -114,7 +114,9 @@ public class PatternExplanationBuilder {
                 pet.getId(),
                 PatternType.POSSIBLE_FOOD_TRIGGER,
                 confidence,
-                Copy.t("Possible {0}-related pattern", proteinName),
+                // Fact-tied headline, not a cause (spec Part 7): these things were
+                // logged near each other in time — nothing is claimed as a trigger.
+                Copy.t("{0} and later changes were logged close together", Copy.proteinLabel(protein)),
                 Copy.t("More scratching or stool changes were logged after {0}-based food or treats "
                         + "more than once. Not a diagnosis — could be worth raising with your vet.", proteinName),
                 List.of(

@@ -1,5 +1,6 @@
 package com.petpattern.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.petpattern.domain.PatternObservation;
 import com.petpattern.domain.PatternStatus;
 import com.petpattern.patterns.PatternCandidate;
@@ -15,7 +16,9 @@ public record PatternResponse(
         String id,
         UUID petId,
         String type,
-        String confidence,
+        // Internal ranking hint only — never a user-facing confidence level
+        // (spec Part 12). Kept for server-side sorting; not serialized.
+        @JsonIgnore String confidence,
         String title,
         String summary,
         List<String> evidence,
@@ -23,7 +26,9 @@ public record PatternResponse(
         UUID relatedFoodLogId,
         List<UUID> relatedCheckInIds,
         String status,
-        int detectionCount,
+        // Genuinely separate periods this pattern appeared in (>= 1). Replaces the
+        // former engine-run-day detectionCount, which must not read as recurrence.
+        int episodeCount,
         LocalDate firstDetectedAt,
         LocalDate lastDetectedAt,
         boolean seenBefore,
@@ -35,7 +40,8 @@ public record PatternResponse(
     /** Currently-detected candidate, optionally enriched with its remembered observation. */
     public static PatternResponse from(PatternCandidate candidate, PatternObservation observation) {
         PatternStatus status = observation == null ? PatternStatus.NEW : observation.getStatus();
-        int count = observation == null ? 1 : observation.getDetectionCount();
+        int episodes = observation == null ? 1 : observation.getEpisodeCount();
+        boolean seenBefore = observation != null && observation.isSeenAcrossSeparatePeriods();
         LocalDate first = observation == null ? null : observation.getFirstDetectedDate();
         LocalDate last = observation == null ? null : observation.getLastDetectedDate();
         return new PatternResponse(
@@ -50,10 +56,10 @@ public record PatternResponse(
                 candidate.relatedFoodLogId(),
                 candidate.relatedCheckInIds(),
                 status.name(),
-                count,
+                episodes,
                 first,
                 last,
-                count > 1,
+                seenBefore,
                 true,
                 null,
                 candidate.severity().name().toLowerCase(Locale.ROOT),
@@ -78,10 +84,10 @@ public record PatternResponse(
                 null,
                 List.of(),
                 observation.getStatus().name(),
-                observation.getDetectionCount(),
+                observation.getEpisodeCount(),
                 observation.getFirstDetectedDate(),
                 observation.getLastDetectedDate(),
-                observation.getDetectionCount() > 1,
+                observation.isSeenAcrossSeparatePeriods(),
                 false,
                 daysSince,
                 // A settled pattern is no longer being detected, so it is never surfaced

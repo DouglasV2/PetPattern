@@ -75,8 +75,8 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
             <Activity size={17} />
           </div>
           <h2>{headline}</h2>
-          {pattern?.seenBefore && pattern.detectionCount > 1 && (
-            <p className="memory-line">{t("You've seen this a few times since {date}.", { date: formatDate(pattern.firstDetectedAt) })}</p>
+          {pattern?.seenBefore && (
+            <p className="memory-line">{t('Noticed in more than one separate stretch since {date}', { date: formatDate(pattern.firstDetectedAt) })}</p>
           )}
           {timeline?.summary && <p>{timeline.summary}</p>}
           {timeline?.ownerExplanation && <p className="owner-explanation">{timeline.ownerExplanation}</p>}
@@ -114,7 +114,7 @@ function TimelineView({ pet, pattern, timeline, loading, photos, onBack, onVetSu
       )}
 
       {(pattern?.type ?? timeline?.type) === 'POSSIBLE_FOOD_TRIGGER' && (
-        <p className="pattern-disclaimer muted">{t('This is not an allergy diagnosis. It is a timeline you can discuss with your vet.')}</p>
+        <p className="pattern-disclaimer muted">{t('This lines up food changes with what was logged afterward — not a diagnosis.')}</p>
       )}
       <p className="muted">{t('Going to the vet? Bring the timeline, not your memory.')}</p>
       <div className="action-row">

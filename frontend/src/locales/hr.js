@@ -266,8 +266,8 @@ export default {
   'Something to notice': 'Nešto za primijetiti',
   'Not a diagnosis — just something from your notes that may be worth mentioning to your vet.':
     'Nije dijagnoza — samo nešto iz tvojih bilježaka što možda vrijedi spomenuti veterinaru.',
-  'Seen a few times since {date}': 'Zamijećeno nekoliko puta od {date}',
-  "You've seen this a few times since {date}.": 'Ovo se ponovilo nekoliko puta od {date}.',
+  'Noticed in more than one separate stretch since {date}': 'Zamijećeno u više odvojenih razdoblja od {date}',
+  "You've noticed this in more than one separate stretch since {date}.": 'Ovo se pojavilo u više odvojenih razdoblja od {date}.',
   "Not much of a story yet — that's fine.": 'Još nema baš priče — i to je u redu.',
   'A few more quiet days help too — they teach the app what normal looks like.':
     'I još nekoliko mirnih dana pomaže — uči aplikaciju kako izgleda normalno.',
@@ -747,8 +747,8 @@ export default {
   'This is a case file, not a diagnosis.': 'Ovo je dosje, ne dijagnoza.',
   'PetPattern found similar changes across a few logs.':
     'PetPattern je pronašao slične promjene kroz nekoliko unosa.',
-  'This is not an allergy diagnosis. It is a timeline you can discuss with your vet.':
-    'Ovo nije dijagnoza alergije. To je vremenska crta o kojoj možeš razgovarati s veterinarom.',
+  'This lines up food changes with what was logged afterward — not a diagnosis.':
+    'Ovo poklapa promjene hrane s onim što je zabilježeno poslije — nije dijagnoza.',
   'Going to the vet? Bring the timeline, not your memory.':
     'Ideš veterinaru? Ponesi vremensku crtu, ne pamćenje.',
   'Food changes often matter more than they seem. PetPattern lines them up with stool, scratching, appetite, vomiting and energy changes.':

@@ -38,7 +38,8 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
   }
 
   const nearbyFood = nearbyFoodChanges(pattern, foodLogs)
-  const seenBefore = pattern.seenBefore && pattern.detectionCount > 1
+  // seenBefore is backed by episodeCount (separate periods), never engine-run days.
+  const seenBefore = pattern.seenBefore
   return (
     <article className="panel pattern-card case-file-card">
       <div className="pattern-top">
@@ -62,7 +63,7 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
           <p className="case-file-label">{t('Seen before')}</p>
           <p className="case-file-meta">
             {seenBefore
-              ? `${t('PetPattern found similar changes across a few logs.')} ${t('Seen a few times since {date}', { date: formatDate(pattern.firstDetectedAt) })}`
+              ? t('Noticed in more than one separate stretch since {date}', { date: formatDate(pattern.firstDetectedAt) })
               : t('First noticed {date}', { date: formatDate(pattern.firstDetectedAt) })}
           </p>
         </div>
@@ -87,7 +88,7 @@ function PatternCard({ pattern, variant, checkIns, foodLogs, onShowTimeline, onS
       )}
 
       {pattern.type === 'POSSIBLE_FOOD_TRIGGER' && (
-        <p className="pattern-disclaimer muted">{t('This is not an allergy diagnosis. It is a timeline you can discuss with your vet.')}</p>
+        <p className="pattern-disclaimer muted">{t('This lines up food changes with what was logged afterward — not a diagnosis.')}</p>
       )}
       <p className="pattern-disclaimer muted">{t('This is a case file, not a diagnosis.')}</p>
 

@@ -1,6 +1,6 @@
 import { Check, ChevronRight } from 'lucide-react'
 import { t } from '../../i18n'
-import { stoolLabel, levelLabel, litterLabel, titleCase, confidenceLabel } from '../../lib/checkins'
+import { stoolLabel, levelLabel, litterLabel, titleCase } from '../../lib/checkins'
 
 function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
   const chips = []
@@ -30,7 +30,6 @@ function SuggestionPreview({ suggestion, applied, onApply, onAddFood }) {
     <div className="suggestion">
       <div className="suggestion-top">
         <strong>{t('Suggested fields')}</strong>
-        <span className={`confidence ${String(suggestion.confidence || 'low').toLowerCase()}`}>{confidenceLabel(suggestion.confidence || 'low')}</span>
       </div>
       <p className="muted">{t("Nothing's saved until you tap Save today.")}</p>
 

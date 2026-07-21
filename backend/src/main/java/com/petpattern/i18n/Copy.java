@@ -307,8 +307,8 @@ public final class Copy {
                 "Dana s manje vode: {0}");
         put("Bring this context to your vet if it continues or appears with other changes",
                 "Spomeni to veterinaru ako se nastavi ili se pojavi uz druge promjene");
-        put("Possible {0}-related pattern",
-                "Mogući obrazac: {0}");
+        put("{0} and later changes were logged close together",
+                "{0} i kasnije promjene zabilježene su blizu");
         put("More scratching or stool changes were logged after {0}-based food or treats more than once. Not a diagnosis — could be worth raising with your vet.",
                 "Nakon hrane ili poslastica ({0}) više je puta zabilježeno više češanja ili promjena stolice. Nije dijagnoza — vrijedi spomenuti veterinaru.");
         put("Food looked at: {0}",
@@ -500,8 +500,8 @@ public final class Copy {
                 "niska ili nemirna energija: {0}");
         put("Water, appetite, and energy stayed close to normal in this period.",
                 "Voda, apetit i energija bili su blizu uobičajenog u ovom razdoblju.");
-        put("Possible food-related pattern: more itching and stool changes were logged after certain foods. The owner would like to review this with a vet.",
-                "Mogući obrazac povezan s hranom: nakon određene hrane zabilježeno je više češanja i promjena stolice. Vlasnik bi to želio proći s veterinarom.");
+        put("More itching and stool changes were logged after certain foods. The owner would like to review this with a vet.",
+                "Nakon određene hrane zabilježeno je više češanja i promjena stolice. Vlasnik bi to želio proći s veterinarom.");
         put("Recurring scratching above {0}'s normal range that the owner wants to understand.",
                 "Ponavljano češanje iznad uobičajenog raspona koje vlasnik želi bolje razumjeti.");
         put("Recurring soft stool or diarrhea that the owner wants to review.",

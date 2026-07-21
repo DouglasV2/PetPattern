@@ -37,7 +37,7 @@ function FoodDetectiveView({ pet, foodLogs, checkIns, onBack, onFoodChange }) {
         : t('See whether stool, scratching, appetite, vomiting, or energy changes often happen near food or treat changes.')}</p>
       <p className="pattern-disclaimer muted">{environment
         ? t('PetPattern lines up care or environment changes with later observations. This is not a diagnosis.')
-        : t('This is not an allergy diagnosis. It is a timeline you can discuss with your vet.')}</p>
+        : t('This lines up food changes with what was logged afterward — not a diagnosis.')}</p>
 
       {!hasData ? (
         <article className="panel">

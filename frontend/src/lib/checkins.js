@@ -181,9 +181,3 @@ export function hidingLabel(value) {
   return value === 'MORE' ? t('Hiding more') : t('As usual')
 }
 
-export function confidenceLabel(value) {
-  const level = String(value ?? 'low').toLowerCase()
-  if (level === 'high') return t('High confidence')
-  if (level === 'medium') return t('Medium confidence')
-  return t('Low confidence')
-}

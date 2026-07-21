@@ -9,7 +9,9 @@ import { isDismissedStatus } from '../../lib/patterns'
 // exactly one place, never duplicated.
 export function seenBeforeQualifies(pattern) {
   if (!pattern) return false
-  return (pattern.seenBefore === true || pattern.detectionCount > 1) && !isDismissedStatus(pattern.status)
+  // seenBefore reflects genuinely separate periods (episodeCount >= 2). The
+  // engine-run-day count must never, on its own, promote a first-time pattern.
+  return pattern.seenBefore === true && !isDismissedStatus(pattern.status)
 }
 
 // A quiet "this looks familiar" nudge — shown ONLY when a real pattern has been
@@ -22,7 +24,7 @@ function SeenBeforeCard({ pet, pattern, onShowTimeline }) {
         <p className="seen-before-kicker">{t('This looks familiar')}</p>
         <p className="seen-before-text">
           {t('This looks similar to something you logged before for {name}.', { name: pet.name })}
-          {pattern.firstDetectedAt ? ` ${t("You've seen this a few times since {date}.", { date: formatDate(pattern.firstDetectedAt) })}` : ''}
+          {pattern.firstDetectedAt ? ` ${t("You've noticed this in more than one separate stretch since {date}.", { date: formatDate(pattern.firstDetectedAt) })}` : ''}
         </p>
       </div>
       <button className="text-button" type="button" onClick={() => onShowTimeline(pattern)}>

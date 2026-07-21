@@ -460,8 +460,8 @@ public class VetSummaryService {
         if (!patterns.isEmpty()) {
             PatternCandidate top = patterns.get(0);
             return switch (top.type()) {
-                case POSSIBLE_FOOD_TRIGGER -> Copy.t("Possible food-related pattern: more itching and stool changes "
-                        + "were logged after certain foods. The owner would like to review this with a vet.");
+                case POSSIBLE_FOOD_TRIGGER -> Copy.t("More itching and stool changes were logged after certain "
+                        + "foods. The owner would like to review this with a vet.");
                 case ITCHING_ABOVE_BASELINE -> Copy.t("Recurring scratching above {0}'s normal range that the owner "
                         + "wants to understand.", pet.getName());
                 case STOOL_INSTABILITY -> Copy.t("Recurring soft stool or diarrhea that the owner wants to review.");
