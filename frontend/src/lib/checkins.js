@@ -1,5 +1,5 @@
 import { t } from '../i18n'
-import { isChangedValue } from '../speciesProfiles'
+import { isChangedValue, isStarterSpecies } from '../speciesProfiles'
 import { today } from './date'
 
 export const emptyCheckIn = {
@@ -36,6 +36,61 @@ export function emptyCheckInFor(species) {
     return { ...base, litterBoxUse: 'NORMAL', urinationChange: 'NORMAL', straining: false, hidingBehavior: 'NORMAL', weightConcern: false }
   }
   return { ...base, itchingScore: 2, stoolState: 'NORMAL', earRedness: false, pawLicking: false }
+}
+
+// The payload for the two one-tap quick actions (spec Part 2). These are
+// deliberately DIFFERENT states, read by the analyzers from the saved values:
+//   - 'carry'  → "No change since last check-in": carry the last state forward,
+//                including anything still off (a still-8/10 dog stays 8/10).
+//   - 'usual'  → "Back to usual": write the pet's normal baseline values, even
+//                right after an unwell day.
+// A starter species carries its observations forward on 'carry' and clears them
+// on 'usual'. With no prior check-in, both fall back to the normal baseline.
+export function quickCheckInPayload(species, base, day, mode) {
+  const starter = isStarterSpecies(species)
+  if (mode === 'usual' || !base) {
+    if (starter) return { checkInDate: day, freeTextNote: '', observationsJson: null }
+    const { observations, checkInDate, ...normal } = emptyCheckInFor(species)
+    return { ...normal, checkInDate: day, observationsJson: null }
+  }
+  // 'carry' — keep the previous state.
+  if (starter) {
+    return {
+      checkInDate: day,
+      freeTextNote: '',
+      observationsJson: toObservationsJson({ observations: parseObservations(base.observationsJson) }, species)
+    }
+  }
+  if (species === 'CAT') {
+    return {
+      checkInDate: day,
+      appetiteLevel: keep(base.appetiteLevel),
+      waterLevel: keep(base.waterLevel),
+      energyLevel: keep(base.energyLevel),
+      litterBoxUse: keep(base.litterBoxUse),
+      urinationChange: keep(base.urinationChange),
+      hidingBehavior: keep(base.hidingBehavior),
+      // Acute flags never carry forward — a check-in starts them clean.
+      straining: false,
+      weightConcern: false,
+      vomiting: false,
+      freeTextNote: '',
+      observationsJson: null
+    }
+  }
+  return {
+    checkInDate: day,
+    itchingScore: base.itchingScore ?? 2,
+    stoolState: keep(base.stoolState),
+    appetiteLevel: keep(base.appetiteLevel),
+    waterLevel: keep(base.waterLevel),
+    energyLevel: keep(base.energyLevel),
+    vomiting: false,
+    earRedness: false,
+    pawLicking: false,
+    freeTextNote: '',
+    observationsJson: null
+  }
 }
 
 // Serialize a starter-species check-in form's observations map to the JSON string

@@ -29,7 +29,7 @@ function BackfillCard({ pet, checkIns, loggedToday, onQuickLog, onLogDay }) {
           <div className="backfill-row" key={d}>
             <span className="backfill-day">{label(d)}</span>
             <div className="backfill-actions">
-              <button className="chip-button" type="button" onClick={() => onQuickLog(d)}>{t('Same as usual')}</button>
+              <button className="chip-button" type="button" onClick={() => onQuickLog(d)}>{t('No change')}</button>
               <button className="chip-button" type="button" onClick={() => onLogDay(d)}>{t('Something changed')}</button>
               <button className="chip-button subtle" type="button" onClick={() => setSkipped((s) => [...s, d])}>{t('Skip')}</button>
             </div>

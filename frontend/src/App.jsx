@@ -17,7 +17,7 @@ import { initReminderTapHandler } from './lib/nativeNotifications'
 import { isStarterSpecies } from './speciesProfiles'
 import { today } from './lib/date'
 import { isCat } from './lib/species'
-import { emptyCheckIn, emptyCheckInFor, keep, toObservationsJson, parseObservations } from './lib/checkins'
+import { emptyCheckIn, emptyCheckInFor, keep, toObservationsJson, parseObservations, quickCheckInPayload } from './lib/checkins'
 import { emptyFood } from './lib/food'
 import { isDismissedStatus } from './lib/patterns'
 import { hashView, sharedTokenFromHash, resetTokenFromHash, legalFromHash } from './lib/nav'
@@ -136,7 +136,8 @@ function App() {
   }, [overview, pets, selectedPetId])
 
   const latestCheckIn = overview?.latestCheckIn ?? checkIns[0]
-  const currentFood = overview?.currentFood ?? foodLogs[0]
+  // The current-food panel is the active MAIN_FOOD, never the newest treat/supplement (Part 1).
+  const currentFood = overview?.currentFood ?? foodLogs.find((f) => (f.foodKind ?? 'MAIN_FOOD') === 'MAIN_FOOD')
   // The overview list is already active-only; never let a dismissed pattern
   // surface on Bella today.
   const topPattern = overview?.patterns?.[0] ?? patterns.find((pattern) => !isDismissedStatus(pattern.status))
@@ -827,57 +828,25 @@ function App() {
     }
   }
 
-  async function quickLog(date = today) {
+  // "No change since last check-in" — carry the last state forward (mode 'carry')
+  // or "Back to usual" — write the normal baseline (mode 'usual'). See Part 2.
+  async function quickCheckIn(mode, date = today, toastMsg) {
     if (!selectedPet) return
     // Guard: onClick passes a DOM event, and a future date is never valid — so a
     // non-string or out-of-range value falls back to today. A past date lets the
-    // Today "fill the last few days" rows save a quiet day for that day.
+    // Today "fill the last few days" rows save that day.
     const day = typeof date === 'string' && date <= today ? date : today
     setError('')
     setSaving(true)
     try {
-      const base = latestCheckIn
-      const cat = isCat(selectedPet)
-      let payload
-      if (!base) {
-        payload = { ...emptyCheckInFor(selectedPet.species), checkInDate: day }
-      } else if (cat) {
-        payload = {
-          checkInDate: day,
-          appetiteLevel: keep(base.appetiteLevel),
-          waterLevel: keep(base.waterLevel),
-          energyLevel: keep(base.energyLevel),
-          // Steady signals carry over; acute flags start clean each day.
-          litterBoxUse: keep(base.litterBoxUse),
-          urinationChange: keep(base.urinationChange),
-          hidingBehavior: keep(base.hidingBehavior),
-          straining: false,
-          weightConcern: false,
-          vomiting: false,
-          freeTextNote: ''
-        }
-      } else {
-        payload = {
-          checkInDate: day,
-          itchingScore: base.itchingScore ?? 2,
-          stoolState: keep(base.stoolState),
-          appetiteLevel: keep(base.appetiteLevel),
-          waterLevel: keep(base.waterLevel),
-          energyLevel: keep(base.energyLevel),
-          // Acute flags are never carried forward — a quiet day starts clean.
-          vomiting: false,
-          earRedness: false,
-          pawLicking: false,
-          freeTextNote: ''
-        }
-      }
+      const payload = quickCheckInPayload(selectedPet.species, latestCheckIn, day, mode)
       await api.saveCheckIn(selectedPet.id, payload)
       track('checkin_created')
       trackServer('same_as_usual_checkin', { species: selectedPet.species })
       if (consumeNotificationConversion()) trackServer('notification_to_checkin')
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
-      showToast(t('Saved — quiet days matter too.'))
+      showToast(toastMsg)
       // Works from both the Today nudge and the Daily Log form — a no-op if
       // already on Today, and returns to Today when saved from the form.
       go('today')
@@ -886,6 +855,16 @@ function App() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // Carries the last check-in forward unchanged — including anything still off.
+  function quickLog(date = today) {
+    return quickCheckIn('carry', date, t('Saved — nothing changed since the last check-in.'))
+  }
+
+  // Records that the pet is back at its normal baseline (distinct from "no change").
+  function backToUsual(date = today) {
+    return quickCheckIn('usual', date, t('Saved — {name} is back to usual.', { name: selectedPet?.name || '' }))
   }
 
   async function saveFood(event) {
@@ -1091,6 +1070,7 @@ function App() {
             onBack={() => go('today')}
             onSave={saveCheckIn}
             onQuickLog={quickLog}
+            onBackToUsual={backToUsual}
             onAddFood={addFoodFromSuggestion}
             onAddPhoto={() => go('photos')}
             onAddHealthPhoto={addHealthPhoto}
@@ -1231,6 +1211,7 @@ function App() {
             onEditCheckIn={editCheckIn}
             onDeleteCheckIn={removeCheckIn}
             onQuickLog={quickLog}
+            onBackToUsual={backToUsual}
             onCaregivers={() => go('caregivers')}
             onLogDay={openCheckInForDate}
             activities={activities}

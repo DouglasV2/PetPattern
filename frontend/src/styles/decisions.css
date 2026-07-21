@@ -92,6 +92,18 @@
   gap: 0.5rem;
 }
 
+/* "Back to usual" — a quiet distinct action for a pet that was off and is now
+   normal, offered as a calm line under the three main choices (spec Part 2). */
+.decision-recovered {
+  margin: 0.1rem 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.decision-recovered .text-button {
+  font-weight: 700;
+}
+
 /* "This looks familiar" — a quiet recurrence nudge, only when real. */
 .seen-before-card {
   display: flex;

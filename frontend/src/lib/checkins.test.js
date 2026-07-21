@@ -4,7 +4,41 @@
 // that persists a starter-species check-in's signals as JSON.
 
 import { describe, expect, it } from 'vitest'
-import { emptyCheckInFor, guidedTokens, keep, parseObservations, toObservationsJson } from './checkins'
+import { emptyCheckInFor, guidedTokens, keep, parseObservations, quickCheckInPayload, toObservationsJson } from './checkins'
+
+// Part 2: "No change since last check-in" (carry) and "Back to usual" (baseline)
+// are DIFFERENT states, and neither may be mislabeled as the other.
+describe('quickCheckInPayload', () => {
+  it('carry keeps a still-unwell dog unwell (nothing changed does not mean recovered)', () => {
+    const base = { itchingScore: 8, stoolState: 'SOFT', appetiteLevel: 'LOWER' }
+    const p = quickCheckInPayload('DOG', base, '2026-07-10', 'carry')
+    expect(p.itchingScore).toBe(8)
+    expect(p.stoolState).toBe('SOFT')
+    expect(p.appetiteLevel).toBe('LOWER')
+    expect(p.checkInDate).toBe('2026-07-10')
+  })
+
+  it('back-to-usual writes normal baseline values even right after an unwell day', () => {
+    const base = { itchingScore: 8, stoolState: 'DIARRHEA', appetiteLevel: 'LOWER' }
+    const p = quickCheckInPayload('DOG', base, '2026-07-10', 'usual')
+    expect(p.itchingScore).toBeLessThanOrEqual(2)
+    expect(p.stoolState).toBe('NORMAL')
+    expect(p.appetiteLevel).toBe('NORMAL')
+  })
+
+  it('the two actions are distinguishable states after an unwell day', () => {
+    const base = { itchingScore: 8 }
+    const carry = quickCheckInPayload('DOG', base, '2026-07-10', 'carry')
+    const usual = quickCheckInPayload('DOG', base, '2026-07-10', 'usual')
+    expect(carry.itchingScore).not.toBe(usual.itchingScore)
+  })
+
+  it('carries a starter species observation forward on "no change", clears it on "back to usual"', () => {
+    const base = { observationsJson: JSON.stringify({ species: 'RABBIT', signals: [{ key: 'appetite_hay', label: 'Appetite', value: 'less' }] }) }
+    expect(quickCheckInPayload('RABBIT', base, '2026-07-10', 'carry').observationsJson).toContain('appetite_hay')
+    expect(quickCheckInPayload('RABBIT', base, '2026-07-10', 'usual').observationsJson).toBeNull()
+  })
+})
 
 describe('emptyCheckInFor', () => {
   it('seeds dog-specific fields for a dog and omits cat-only fields', () => {

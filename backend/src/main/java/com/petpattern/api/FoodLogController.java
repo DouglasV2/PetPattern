@@ -2,10 +2,12 @@ package com.petpattern.api;
 
 import com.petpattern.api.dto.FoodLogRequest;
 import com.petpattern.api.dto.FoodLogResponse;
+import com.petpattern.domain.FoodKind;
 import com.petpattern.domain.FoodLog;
 import com.petpattern.domain.Pet;
 import com.petpattern.auth.PetAccess;
 import com.petpattern.i18n.Copy;
+import com.petpattern.patterns.FoodBaseline;
 import com.petpattern.repository.FoodLogRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -40,7 +42,8 @@ public class FoodLogController {
     @GetMapping("/current")
     public ResponseEntity<FoodLogResponse> current(@PathVariable UUID petId) {
         Pet pet = findPet(petId);
-        return foodLogRepository.findFirstByPetOrderByDateStartedDesc(pet)
+        // The active MAIN_FOOD, never the most-recently-started treat/supplement (Part 1).
+        return FoodBaseline.currentMainFood(foodLogRepository.findByPetOrderByDateStartedDesc(pet), LocalDate.now())
                 .map(FoodLogResponse::from)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.<FoodLogResponse>noContent().build());
@@ -79,7 +82,19 @@ public class FoodLogController {
         foodLog.setNewFood(request.newFood());
         foodLog.setAmountGrams(request.amountGrams());
         foodLog.setNotes(clean(request.notes()));
-        return FoodLogResponse.from(foodLogRepository.save(foodLog));
+        FoodLog saved = foodLogRepository.save(foodLog);
+
+        // A new main food closes the previous main-food period (Part 1): relink the
+        // whole chain so each period ends where the next begins. Treats/supplements
+        // are point events and leave the main-food chain untouched.
+        if (saved.getFoodKind() == FoodKind.MAIN_FOOD) {
+            List<FoodLog> mainFoods = foodLogRepository.findByPetOrderByDateStartedDesc(pet).stream()
+                    .filter(existing -> existing.getFoodKind() == FoodKind.MAIN_FOOD)
+                    .toList();
+            FoodBaseline.relinkChain(mainFoods);
+            foodLogRepository.saveAll(mainFoods);
+        }
+        return FoodLogResponse.from(saved);
     }
 
     @DeleteMapping("/{foodLogId}")

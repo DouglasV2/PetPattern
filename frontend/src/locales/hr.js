@@ -298,6 +298,8 @@ export default {
   // Quiet-day quick log
   'Everything looked normal today': 'Danas je sve izgledalo normalno',
   'Saved — quiet days matter too.': 'Spremljeno — i mirni dani su važni.',
+  'Saved — nothing changed since the last check-in.': 'Spremljeno — ništa se nije promijenilo od zadnjeg unosa.',
+  'Saved — {name} is back to usual.': 'Spremljeno — {name} je opet kao inače.',
   // Softer daily reminder
   "It's been {n} days since {name}'s last note — a quick one keeps the picture clear.":
     'Prošlo je {n} dana od zadnje bilješke za {name} — kratka bilješka održava sliku jasnom.',
@@ -707,6 +709,12 @@ export default {
   'Normal days are useful too. PetPattern learns what is normal for {name}.':
     'I obični dani su korisni. PetPattern uči što je normalno za {name}.',
   'Same as usual': 'Kao i inače',
+  'No change since last check-in': 'Bez promjene od zadnjeg unosa',
+  'No change': 'Bez promjene',
+  'Carries the last check-in forward — including anything still off.':
+    'Prenosi zadnji unos dalje — uključujući ono što je i dalje drukčije.',
+  'Was {name} off but back to normal now?': 'Je li {name} bio drukčije, a sad je opet u redu?',
+  'Back to usual': 'Opet kao inače',
   'Save a quiet day in one tap.': 'Spremi miran dan jednim dodirom.',
   'Today is logged': 'Danas je zabilježeno',
   'Pick just what changed — not the whole form.':

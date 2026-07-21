@@ -45,7 +45,7 @@ function baseProps(overrides = {}) {
 describe('<TodayView/>', () => {
   it('renders the three primary decision actions', () => {
     render(<TodayView {...baseProps()} />)
-    expect(screen.getByRole('button', { name: /Same as usual/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /No change since last check-in/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Something changed/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Add note or photo/ })).toBeInTheDocument()
   })

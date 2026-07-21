@@ -11,6 +11,7 @@ const pet = { id: 'pet-1', name: 'Bella', species: 'DOG' }
 function setup(props = {}) {
   const handlers = {
     onSameAsUsual: vi.fn(),
+    onBackToUsual: vi.fn(),
     onSomethingChanged: vi.fn(),
     onAddNoteOrPhoto: vi.fn(),
     onFoodChange: vi.fn(),
@@ -21,10 +22,17 @@ function setup(props = {}) {
 }
 
 describe('Today decision flow', () => {
-  it('logs a "same as usual" day in one tap', async () => {
+  it('carries the last check-in forward in one tap', async () => {
     const h = setup()
-    await userEvent.setup().click(screen.getByRole('button', { name: /Same as usual/i }))
+    await userEvent.setup().click(screen.getByRole('button', { name: /No change since last check-in/i }))
     expect(h.onSameAsUsual).toHaveBeenCalledTimes(1)
+  })
+
+  it('records a distinct "back to usual" day in one tap', async () => {
+    const h = setup()
+    await userEvent.setup().click(screen.getByRole('button', { name: /Back to usual/i }))
+    expect(h.onBackToUsual).toHaveBeenCalledTimes(1)
+    expect(h.onSameAsUsual).not.toHaveBeenCalled()
   })
 
   it('opens the changed-day flow from "Something changed"', async () => {
@@ -33,9 +41,9 @@ describe('Today decision flow', () => {
     expect(h.onSomethingChanged).toHaveBeenCalledTimes(1)
   })
 
-  it('disables "same as usual" once today is already logged', () => {
+  it('disables the no-change tap once today is already logged', () => {
     setup({ loggedToday: true })
-    const button = screen.getByRole('button', { name: /Same as usual/i })
+    const button = screen.getByRole('button', { name: /No change since last check-in/i })
     expect(button).toBeDisabled()
     expect(screen.getByText('Today is logged')).toBeInTheDocument()
   })

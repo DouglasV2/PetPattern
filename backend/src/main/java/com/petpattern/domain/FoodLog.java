@@ -27,6 +27,12 @@ public class FoodLog {
     @Column(name = "date", nullable = false)
     private LocalDate legacyDate;
 
+    // When this food stopped being active (spec Part 1). Null = still active. For a
+    // MAIN_FOOD it is set to the successor's start date when a new main food begins,
+    // so the active period is [dateStarted, endDate). History is never deleted.
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
     @Enumerated(EnumType.STRING)
     private FoodKind foodKind = FoodKind.MAIN_FOOD;
 
@@ -81,6 +87,14 @@ public class FoodLog {
 
     public void setDate(LocalDate date) {
         setDateStarted(date);
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 
     public FoodKind getFoodKind() {

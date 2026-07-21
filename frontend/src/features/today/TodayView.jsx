@@ -22,7 +22,7 @@ import { TodayDecisionActions } from './TodayDecisionActions'
 import { TodayNoteCard } from './TodayNoteCard'
 import { WeeklyInsightCard } from './WeeklyInsightCard'
 
-function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onFoodDetective, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto, activities, onAddActivity, onRemoveActivity }) {
+function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, checkIns, onLogToday, onFoodChange, onFoodDetective, onPatterns, onShowTimeline, onVetSummary, onEditCheckIn, onDeleteCheckIn, onQuickLog, onBackToUsual, onCaregivers, onLogDay, onSomethingChanged, onAddNoteOrPhoto, activities, onAddActivity, onRemoveActivity }) {
   const loggedToday = overview?.retention?.loggedToday ?? checkIns.some((c) => c.checkInDate === today)
 
   // How many of the pet's check-ins land in the last 7 calendar days
@@ -73,6 +73,7 @@ function TodayView({ pet, overview, latestCheckIn, currentFood, topPattern, chec
         pet={pet}
         loggedToday={loggedToday}
         onSameAsUsual={onQuickLog}
+        onBackToUsual={onBackToUsual}
         onSomethingChanged={onSomethingChanged}
         onAddNoteOrPhoto={onAddNoteOrPhoto}
         onFoodChange={onFoodChange}

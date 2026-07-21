@@ -20,6 +20,7 @@ import com.petpattern.domain.Sex;
 import com.petpattern.domain.Species;
 import com.petpattern.domain.StoolState;
 import com.petpattern.i18n.Copy;
+import com.petpattern.patterns.FoodBaseline;
 import com.petpattern.patterns.ImmediateObservationService;
 import com.petpattern.patterns.MilestoneCalculator;
 import com.petpattern.patterns.PatternMemoryService;
@@ -136,7 +137,10 @@ public class PetController {
     public PetOverviewResponse overview(@PathVariable UUID petId) {
         Pet pet = findPet(petId);
         DailyCheckIn latestCheckIn = checkInRepository.findFirstByPetOrderByCheckInDateDesc(pet).orElse(null);
-        FoodLog currentFood = foodLogRepository.findFirstByPetOrderByDateStartedDesc(pet).orElse(null);
+        // The "Current food" panel shows the active MAIN_FOOD, not the most recent
+        // treat/supplement (Part 1).
+        FoodLog currentFood = FoodBaseline.currentMainFood(
+                foodLogRepository.findByPetOrderByDateStartedDesc(pet), LocalDate.now()).orElse(null);
         List<PatternResponse> patterns = patternMemoryService.activePatterns(petId);
 
         LocalDate today = LocalDate.now();
