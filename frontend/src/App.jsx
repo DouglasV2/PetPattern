@@ -18,6 +18,7 @@ import { isStarterSpecies } from './speciesProfiles'
 import { today } from './lib/date'
 import { isCat } from './lib/species'
 import { emptyCheckIn, emptyCheckInFor, keep, toObservationsJson, parseObservations, quickCheckInPayload } from './lib/checkins'
+import { saveDraft, loadDraft, clearDraft, isMeaningfulDraft } from './lib/draft'
 import { emptyFood } from './lib/food'
 import { isDismissedStatus } from './lib/patterns'
 import { hashView, sharedTokenFromHash, resetTokenFromHash, legalFromHash } from './lib/nav'
@@ -77,6 +78,8 @@ function App() {
   // note all reset) — even when the start mode is unchanged, e.g. tapping nav "Log"
   // after switching to note/guided mode with the in-panel foot links.
   const [checkInOpenSeq, setCheckInOpenSeq] = useState(0)
+  // A recovered check-in draft to offer the owner (Part 3), or null.
+  const [draftPrompt, setDraftPrompt] = useState(null)
   const [foodForm, setFoodForm] = useState(emptyFood)
   const [selectedPattern, setSelectedPattern] = useState(null)
   const [timeline, setTimeline] = useState(null)
@@ -162,6 +165,28 @@ function App() {
     if (view === 'patterns') track('pattern_viewed')
     else if (view === 'vet') track('vet_summary_viewed')
   }, [view])
+
+  // Draft protection (Part 3): while a meaningful check-in is being filled, keep a
+  // local, pet-scoped copy so Back / navigation / backgrounding / WebView
+  // recreation never lose it. It is never auto-submitted (no duplicate).
+  useEffect(() => {
+    if (view === 'check-in' && selectedPet && isMeaningfulDraft(checkInForm)) {
+      saveDraft(selectedPet.id, checkInForm)
+    }
+  }, [checkInForm, view, selectedPet?.id])
+
+  // On opening a fresh check-in, offer to restore a meaningful draft (but never
+  // over an active edit, and never for an untouched form).
+  useEffect(() => {
+    if (view !== 'check-in' || !selectedPet) {
+      setDraftPrompt(null)
+      return
+    }
+    const draft = loadDraft(selectedPet.id)
+    setDraftPrompt(draft && isMeaningfulDraft(draft.form) && !isMeaningfulDraft(checkInForm) ? draft : null)
+    // Intentionally not keyed on checkInForm: re-evaluate only on an explicit open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, selectedPet?.id, checkInOpenSeq])
 
   useEffect(() => {
     // A 401 anywhere (e.g. an expired session) drops back to the login screen.
@@ -818,6 +843,8 @@ function App() {
       track('checkin_created')
       trackServer('changed_day_checkin', { species: selectedPet.species })
       if (consumeNotificationConversion()) trackServer('notification_to_checkin')
+      clearDraft(selectedPet.id)
+      setDraftPrompt(null)
       setCheckInForm(emptyCheckInFor(selectedPet.species))
       await loadPetData(selectedPet.id)
       go('today')
@@ -865,6 +892,16 @@ function App() {
   // Records that the pet is back at its normal baseline (distinct from "no change").
   function backToUsual(date = today) {
     return quickCheckIn('usual', date, t('Saved — {name} is back to usual.', { name: selectedPet?.name || '' }))
+  }
+
+  function restoreDraft() {
+    if (draftPrompt) setCheckInForm(draftPrompt.form)
+    setDraftPrompt(null)
+  }
+
+  function discardDraft() {
+    if (selectedPet) clearDraft(selectedPet.id)
+    setDraftPrompt(null)
   }
 
   async function saveFood(event) {
@@ -1067,6 +1104,9 @@ function App() {
             saving={saving}
             aiSuggestEnabled={aiSuggestEnabled}
             startMode={checkInStartMode}
+            draftPrompt={draftPrompt}
+            onRestoreDraft={restoreDraft}
+            onDiscardDraft={discardDraft}
             onBack={() => go('today')}
             onSave={saveCheckIn}
             onQuickLog={quickLog}

@@ -13,7 +13,7 @@ import { StarterGuidedFields } from './StarterGuidedFields'
 import { SuggestionPreview } from './SuggestionPreview'
 import { VisibleChangeField } from './VisibleChangeField'
 
-function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddHealthPhoto, onAddMedication }) {
+function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, draftPrompt, onRestoreDraft, onDiscardDraft, onBack, onSave, onQuickLog, onAddFood, onAddPhoto, onAddHealthPhoto, onAddMedication }) {
   const [note, setNote] = useState(form.freeTextNote || '')
   const [suggestion, setSuggestion] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
@@ -113,6 +113,16 @@ function CheckInView({ pet, form, setForm, saving, aiSuggestEnabled, startMode, 
       <button className="back-button" type="button" onClick={onBack}><ArrowLeft size={17} /> {t('Back')}</button>
       <p className="kicker">{t('Daily check-in')}</p>
       <h1>{t('How was {name} today?', { name: pet.name })}</h1>
+
+      {draftPrompt && (
+        <div className="draft-restore" role="status">
+          <p>{t('You have an unsaved check-in for {name}. Continue where you left off?', { name: pet.name })}</p>
+          <div className="draft-restore-actions">
+            <button className="chip-button primary-chip" type="button" onClick={onRestoreDraft}>{t('Continue editing')}</button>
+            <button className="chip-button subtle" type="button" onClick={onDiscardDraft}>{t('Discard draft')}</button>
+          </div>
+        </div>
+      )}
 
       {mode === 'full' && (
         <>

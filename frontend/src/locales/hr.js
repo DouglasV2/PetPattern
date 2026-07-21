@@ -172,6 +172,10 @@ export default {
 
   // Check-in
   'Daily check-in': 'Dnevni pregled',
+  'You have an unsaved check-in for {name}. Continue where you left off?':
+    'Imaš nespremljeni unos za {name}. Nastaviti s uređivanjem?',
+  'Continue editing': 'Nastavi uređivanje',
+  'Discard draft': 'Odbaci nacrt',
   'How was {name} today?': 'Kako je {name} danas?',
   "A few seconds a day builds {name}'s record, so changes are easy to spot later.":
     'Par sekundi na dan gradi zapis za {name}, pa promjene kasnije lakše uočiš.',

@@ -60,6 +60,27 @@
   bottom: calc(100% - 30px);
 }
 
+/* Draft recovery banner (spec Part 3) — a calm offer to resume, never alarming. */
+.draft-restore {
+  margin: 0.75rem 0 0.25rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--teal);
+  border-radius: var(--radius-sm);
+  background: var(--paper-2);
+}
+
+.draft-restore p {
+  margin: 0 0 0.5rem;
+  color: var(--ink);
+}
+
+.draft-restore-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .story-dot {
   position: relative;
   z-index: 1;
