@@ -1,9 +1,11 @@
 package com.petpattern.patterns;
 
 import com.petpattern.api.dto.PatternResponse;
+import com.petpattern.domain.DailyCheckIn;
 import com.petpattern.domain.PatternObservation;
 import com.petpattern.domain.PatternStatus;
 import com.petpattern.domain.Pet;
+import com.petpattern.repository.DailyCheckInRepository;
 import com.petpattern.repository.PatternObservationRepository;
 import com.petpattern.repository.PetRepository;
 import org.slf4j.Logger;
@@ -46,13 +48,16 @@ public class PatternMemoryService {
     private final PatternEngine patternEngine;
     private final PetRepository petRepository;
     private final PatternObservationRepository observationRepository;
+    private final DailyCheckInRepository checkInRepository;
 
     public PatternMemoryService(PatternEngine patternEngine,
                                 PetRepository petRepository,
-                                PatternObservationRepository observationRepository) {
+                                PatternObservationRepository observationRepository,
+                                DailyCheckInRepository checkInRepository) {
         this.patternEngine = patternEngine;
         this.petRepository = petRepository;
         this.observationRepository = observationRepository;
+        this.checkInRepository = checkInRepository;
     }
 
     /**
@@ -150,15 +155,44 @@ public class PatternMemoryService {
     }
 
     private PatternObservation saveDetection(Pet pet, PatternCandidate candidate, LocalDate today) {
+        LocalDate[] observed = observedRange(candidate);
         PatternObservation observation =
                 observationRepository.findByPetAndPatternKey(pet, candidate.id()).orElse(null);
         if (observation == null) {
-            observation = newObservation(pet, candidate, today);
+            observation = newObservation(pet, candidate, today, observed[1]);
         } else {
-            observation.recordDetection(today, candidate.confidence().name(),
+            observation.recordDetection(today, observed[0], observed[1], candidate.confidence().name(),
                     candidate.title(), candidate.summary());
         }
         return observationRepository.save(observation);
+    }
+
+    /**
+     * The earliest and latest DATA dates this candidate is evidenced by, as
+     * {@code [from, to]} (nulls when the candidate carries no related check-ins).
+     * This is what episode counting compares against, so recurrence reflects the
+     * data — not how often the patterns view is opened.
+     */
+    private LocalDate[] observedRange(PatternCandidate candidate) {
+        java.util.List<java.util.UUID> ids = candidate.relatedCheckInIds();
+        if (ids == null || ids.isEmpty()) {
+            return new LocalDate[] { null, null };
+        }
+        LocalDate from = null;
+        LocalDate to = null;
+        for (DailyCheckIn checkIn : checkInRepository.findAllById(ids)) {
+            LocalDate date = checkIn.getCheckInDate();
+            if (date == null) {
+                continue;
+            }
+            if (from == null || date.isBefore(from)) {
+                from = date;
+            }
+            if (to == null || date.isAfter(to)) {
+                to = date;
+            }
+        }
+        return new LocalDate[] { from, to };
     }
 
     private PatternObservation upsertStatus(Pet pet, String patternKey,
@@ -179,15 +213,16 @@ public class PatternMemoryService {
             if (candidate == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pattern not found");
             }
-            observation = newObservation(pet, candidate, LocalDate.now());
+            observation = newObservation(pet, candidate, LocalDate.now(), observedRange(candidate)[1]);
         }
         observation.setStatus(status);
         return observationRepository.save(observation);
     }
 
-    private PatternObservation newObservation(Pet pet, PatternCandidate candidate, LocalDate today) {
+    private PatternObservation newObservation(Pet pet, PatternCandidate candidate, LocalDate today, LocalDate observedTo) {
         PatternObservation observation =
                 new PatternObservation(pet, candidate.id(), candidate.type(), today);
+        observation.setLastObservedDate(observedTo != null ? observedTo : today);
         observation.setLastConfidence(candidate.confidence().name());
         observation.setLastTitle(candidate.title());
         observation.setLastSummary(candidate.summary());

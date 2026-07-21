@@ -92,6 +92,12 @@ public class PatternObservation {
     @Column(nullable = false)
     private int episodeCount = 1;
 
+    // The most recent DATA date on which the pattern was observed (from the
+    // evidencing check-ins), NOT the request date. The episode gap is measured
+    // against this so recurrence never depends on how often the app is opened.
+    @Column(name = "last_observed_date")
+    private LocalDate lastObservedDate;
+
     private String lastConfidence;
 
     @Column(length = 240)
@@ -114,6 +120,7 @@ public class PatternObservation {
         this.type = type == null ? null : type.name();
         this.firstDetectedDate = detectedDate;
         this.lastDetectedDate = detectedDate;
+        this.lastObservedDate = detectedDate;
         this.detectionCount = 1;
         this.episodeCount = 1;
     }
@@ -173,6 +180,14 @@ public class PatternObservation {
         this.episodeCount = episodeCount;
     }
 
+    public LocalDate getLastObservedDate() {
+        return lastObservedDate;
+    }
+
+    public void setLastObservedDate(LocalDate lastObservedDate) {
+        this.lastObservedDate = lastObservedDate;
+    }
+
     /** True only when the pattern has appeared in at least two separate periods. */
     public boolean isSeenAcrossSeparatePeriods() {
         return episodeCount >= 2;
@@ -209,19 +224,32 @@ public class PatternObservation {
     /**
      * Records a fresh detection. {@code detectionCount} bumps once per new
      * calendar day (internal — it just tracks how long this stretch has been
-     * visible). {@code episodeCount} bumps only when the pattern reappears after
-     * going quiet for {@link #EPISODE_GAP_DAYS} or more — a genuinely separate
-     * period, the only thing that may be described as "seen before".
+     * visible). {@code episodeCount} bumps only when this detection's EARLIEST
+     * evidence in the DATA ({@code observedFrom}) is at least
+     * {@link #EPISODE_GAP_DAYS} after the last data date the pattern was observed
+     * ({@code lastObservedDate}) — a genuinely separate period. Measuring against
+     * the data, not the request date, means recurrence never depends on how often
+     * the app is opened. When the evidence dates are unknown (a candidate with no
+     * related check-ins) the episode count is left unchanged — we never over-claim.
+     *
+     * @param date         the detection (request) date — drives detectionCount only
+     * @param observedFrom earliest evidencing check-in date for this detection, or null
+     * @param observedTo   latest evidencing check-in date for this detection, or null
      */
-    public void recordDetection(LocalDate date, String confidence, String title, String summary) {
+    public void recordDetection(LocalDate date, LocalDate observedFrom, LocalDate observedTo,
+                                String confidence, String title, String summary) {
         if (date != null && lastDetectedDate != null && date.isAfter(lastDetectedDate)) {
             detectionCount++;
-            if (ChronoUnit.DAYS.between(lastDetectedDate, date) >= EPISODE_GAP_DAYS) {
-                episodeCount++;
-            }
             lastDetectedDate = date;
         } else if (date != null && lastDetectedDate == null) {
             lastDetectedDate = date;
+        }
+        if (observedFrom != null && lastObservedDate != null
+                && ChronoUnit.DAYS.between(lastObservedDate, observedFrom) >= EPISODE_GAP_DAYS) {
+            episodeCount++;
+        }
+        if (observedTo != null && (lastObservedDate == null || observedTo.isAfter(lastObservedDate))) {
+            lastObservedDate = observedTo;
         }
         this.lastConfidence = confidence;
         this.lastTitle = title;

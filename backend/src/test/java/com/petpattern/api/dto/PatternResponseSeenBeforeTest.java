@@ -36,7 +36,8 @@ class PatternResponseSeenBeforeTest {
         PatternObservation obs = new PatternObservation(null, petId + ":ITCHING_ABOVE_BASELINE",
                 PatternType.ITCHING_ABOVE_BASELINE, DAY0);
         for (int i = 1; i <= 6; i++) {
-            obs.recordDetection(DAY0.plusDays(i), "LOW", "t", "s"); // one continuous stretch
+            // Continuous data (evidence advances day by day) — one stretch.
+            obs.recordDetection(DAY0.plusDays(i), DAY0.plusDays(i), DAY0.plusDays(i), "LOW", "t", "s");
         }
 
         PatternResponse response = PatternResponse.from(candidate(petId), obs);
@@ -51,7 +52,8 @@ class PatternResponseSeenBeforeTest {
         UUID petId = UUID.randomUUID();
         PatternObservation obs = new PatternObservation(null, petId + ":ITCHING_ABOVE_BASELINE",
                 PatternType.ITCHING_ABOVE_BASELINE, DAY0);
-        obs.recordDetection(DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS), "LOW", "t", "s");
+        LocalDate gap = DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS);
+        obs.recordDetection(gap, gap, gap, "LOW", "t", "s");
 
         PatternResponse response = PatternResponse.from(candidate(petId), obs);
 
@@ -78,7 +80,8 @@ class PatternResponseSeenBeforeTest {
         // Seen in two separate periods -> Stage 2, but never an association stage.
         PatternObservation twoPeriods = new PatternObservation(null, petId + ":ITCHING_ABOVE_BASELINE",
                 PatternType.ITCHING_ABOVE_BASELINE, DAY0);
-        twoPeriods.recordDetection(DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS), "LOW", "t", "s");
+        LocalDate gap = DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS);
+        twoPeriods.recordDetection(gap, gap, gap, "LOW", "t", "s");
         assertThat(PatternResponse.from(candidate(petId), twoPeriods).stage()).isEqualTo("STAGE_2_REPEATED");
     }
 }

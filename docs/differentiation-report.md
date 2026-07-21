@@ -190,6 +190,34 @@ also runs its tests inside the Docker image build.
   (`docs/store-listing.md`) but not published; retention/activation impact needs
   real usage.
 
+## 11a. Post-implementation adversarial review
+
+The full diff was put through a multi-agent adversarial review (7 subsystem
+finders → independent verifiers). It surfaced **6 confirmed defects, all fixed**:
+
+1. **`episodeCount` measured against request cadence, not data** (the most
+   important — it could have re-introduced a false "seen before" claim for a
+   continuously-present symptom pattern if the owner logged check-ins for weeks
+   without opening the patterns view). Fixed: `PatternObservation` now stores
+   `lastObservedDate` (a DATA date) and counts a new episode only when a fresh
+   detection's **earliest evidencing check-in** is a real ≥14-day gap after it;
+   `PatternMemoryService` derives the evidence dates from the candidate's related
+   check-ins (V18 migration). Residual: a very long unopened stretch beyond the
+   analyzer window can still under/over-count at the margin — documented, and it
+   now takes a far more extreme cadence than before.
+2. **`FoodLogController.create`** returned the stale detached entity, so a
+   backfilled mid-chain main food reported a null `endDate` in its create response
+   — fixed to respond from the relinked instance.
+3. **`FoodBaseline`** same-day main foods were non-deterministic — fixed with a
+   `createdAt` tiebreak.
+4. **Draft restore** didn't remount `CheckInView`, so a restored note stayed
+   invisible in the textarea — fixed by bumping the remount key.
+5. **Draft auto-save fired in edit mode**, so an abandoned edit of a past
+   check-in could later be offered as a new-check-in draft with the wrong date —
+   fixed by skipping auto-save while editing.
+6. **An HR string** used the masculine-only "bio" for the pet — fixed to the
+   slash form.
+
 ## 12. Final differentiation
 
 **PetPattern is a low-effort health timeline that remembers the pet's baseline,

@@ -27,10 +27,17 @@ public final class FoodBaseline {
      * where the next begins; the latest main food stays open (endDate null).
      * Idempotent. Mutates the given logs.
      */
+    // Two main foods can share a start date (e.g. a same-day correction). Break the
+    // tie by creation order so the most-recently-created one deterministically stays
+    // open and reads as the current food, instead of flipping with DB row order.
+    private static final Comparator<FoodLog> BY_START_THEN_CREATED =
+            Comparator.comparing(FoodLog::getDateStarted)
+                    .thenComparing(FoodLog::getCreatedAt, Comparator.nullsFirst(Comparator.naturalOrder()));
+
     public static void relinkChain(List<FoodLog> mainFoods) {
         List<FoodLog> ordered = mainFoods.stream()
                 .filter(log -> log.getFoodKind() == FoodKind.MAIN_FOOD)
-                .sorted(Comparator.comparing(FoodLog::getDateStarted))
+                .sorted(BY_START_THEN_CREATED)
                 .toList();
         for (int i = 0; i < ordered.size(); i++) {
             LocalDate end = i + 1 < ordered.size() ? ordered.get(i + 1).getDateStarted() : null;
@@ -48,7 +55,7 @@ public final class FoodBaseline {
                 .filter(log -> log.getFoodKind() == FoodKind.MAIN_FOOD)
                 .filter(log -> !log.getDateStarted().isAfter(date))
                 .filter(log -> log.getEndDate() == null || date.isBefore(log.getEndDate()))
-                .max(Comparator.comparing(FoodLog::getDateStarted));
+                .max(BY_START_THEN_CREATED);
     }
 
     /**

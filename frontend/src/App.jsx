@@ -80,6 +80,9 @@ function App() {
   const [checkInOpenSeq, setCheckInOpenSeq] = useState(0)
   // A recovered check-in draft to offer the owner (Part 3), or null.
   const [draftPrompt, setDraftPrompt] = useState(null)
+  // True while editing an EXISTING check-in — such a form must never be saved as a
+  // new-check-in draft (it would later be offered with the wrong, past date).
+  const [editingCheckIn, setEditingCheckIn] = useState(false)
   const [foodForm, setFoodForm] = useState(emptyFood)
   const [selectedPattern, setSelectedPattern] = useState(null)
   const [timeline, setTimeline] = useState(null)
@@ -170,10 +173,10 @@ function App() {
   // local, pet-scoped copy so Back / navigation / backgrounding / WebView
   // recreation never lose it. It is never auto-submitted (no duplicate).
   useEffect(() => {
-    if (view === 'check-in' && selectedPet && isMeaningfulDraft(checkInForm)) {
+    if (view === 'check-in' && selectedPet && !editingCheckIn && isMeaningfulDraft(checkInForm)) {
       saveDraft(selectedPet.id, checkInForm)
     }
-  }, [checkInForm, view, selectedPet?.id])
+  }, [checkInForm, view, selectedPet?.id, editingCheckIn])
 
   // On opening a fresh check-in, offer to restore a meaningful draft (but never
   // over an active edit, and never for an untouched form).
@@ -694,6 +697,7 @@ function App() {
     }
     // Editing an existing check-in always opens the full form, never a guided flow.
     setCheckInStartMode('full')
+    setEditingCheckIn(true)
     setCheckInOpenSeq((n) => n + 1)
     go('check-in')
   }
@@ -802,6 +806,7 @@ function App() {
     const startMode = typeof mode === 'string' ? mode : 'full'
     setCheckInStartMode(startMode)
     setCheckInForm(emptyCheckInFor(selectedPet?.species))
+    setEditingCheckIn(false)
     setCheckInOpenSeq((n) => n + 1)
     go('check-in')
   }
@@ -813,6 +818,7 @@ function App() {
     const day = date && date > today ? today : date
     setCheckInStartMode('changed')
     setCheckInForm({ ...emptyCheckInFor(selectedPet?.species), checkInDate: day })
+    setEditingCheckIn(false)
     setCheckInOpenSeq((n) => n + 1)
     go('check-in')
   }
@@ -895,7 +901,13 @@ function App() {
   }
 
   function restoreDraft() {
-    if (draftPrompt) setCheckInForm(draftPrompt.form)
+    if (draftPrompt) {
+      setCheckInForm(draftPrompt.form)
+      // Remount CheckInView (key={checkInOpenSeq}) so its local note state
+      // re-initializes from the restored form instead of staying empty.
+      setEditingCheckIn(false)
+      setCheckInOpenSeq((n) => n + 1)
+    }
     setDraftPrompt(null)
   }
 

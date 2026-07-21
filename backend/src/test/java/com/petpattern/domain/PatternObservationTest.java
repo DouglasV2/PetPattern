@@ -11,8 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * The distinction at the heart of Part 9: {@code detectionCount} counts the
  * calendar days the deterministic engine re-surfaced the SAME evidence (it is
  * internal, used for persistence/sort). {@code episodeCount} counts genuinely
- * SEPARATE periods — the pattern went quiet and later came back. Only the latter
- * may drive any "seen before / repeated" language.
+ * SEPARATE periods — and it is measured against the DATA (the evidencing
+ * check-in dates), never against how often the app is opened.
  */
 class PatternObservationTest {
 
@@ -32,9 +32,10 @@ class PatternObservationTest {
     @Test
     void resurfacingOnConsecutiveDaysBumpsDetectionCountButNotEpisodeCount() {
         PatternObservation obs = newObservation();
-        obs.recordDetection(DAY0.plusDays(1), "LOW", "t", "s");
-        obs.recordDetection(DAY0.plusDays(2), "LOW", "t", "s");
-        obs.recordDetection(DAY0.plusDays(3), "LOW", "t", "s");
+        // Continuous data: each detection's evidence sits next to the last observed day.
+        obs.recordDetection(DAY0.plusDays(1), DAY0.plusDays(1), DAY0.plusDays(1), "LOW", "t", "s");
+        obs.recordDetection(DAY0.plusDays(2), DAY0.plusDays(2), DAY0.plusDays(2), "LOW", "t", "s");
+        obs.recordDetection(DAY0.plusDays(3), DAY0.plusDays(3), DAY0.plusDays(3), "LOW", "t", "s");
 
         assertThat(obs.getDetectionCount()).isEqualTo(4);
         // Same continuous stretch — NOT three separate recurrences.
@@ -42,29 +43,52 @@ class PatternObservationTest {
     }
 
     @Test
+    void aLongCalendarGapWithContinuousDataStaysOneEpisode() {
+        // The bug this pins: opening the patterns view rarely must NOT invent
+        // recurrences when the pattern was continuously present in the data.
+        PatternObservation obs = newObservation();
+        LocalDate later = DAY0.plusDays(40);
+        // Detected 40 calendar days later, but the DATA is continuous (evidence runs
+        // right up to just after the first observation).
+        obs.recordDetection(later, DAY0.plusDays(1), later, "LOW", "t", "s");
+
+        assertThat(obs.getEpisodeCount()).isEqualTo(1);
+    }
+
+    @Test
     void resurfacingTheSameDayChangesNeitherCount() {
         PatternObservation obs = newObservation();
-        obs.recordDetection(DAY0, "LOW", "t", "s");
+        obs.recordDetection(DAY0, DAY0, DAY0, "LOW", "t", "s");
         assertThat(obs.getDetectionCount()).isEqualTo(1);
         assertThat(obs.getEpisodeCount()).isEqualTo(1);
     }
 
     @Test
-    void aGapWithinTheThresholdIsStillTheSameEpisode() {
+    void aDataGapWithinTheThresholdIsStillTheSameEpisode() {
         PatternObservation obs = newObservation();
-        obs.recordDetection(DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS - 1), "LOW", "t", "s");
+        LocalDate within = DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS - 1);
+        obs.recordDetection(within, within, within, "LOW", "t", "s");
         assertThat(obs.getEpisodeCount()).isEqualTo(1);
     }
 
     @Test
-    void reappearingAfterTheGapThresholdCountsAsASeparateEpisode() {
+    void reappearingAfterADataGapCountsAsASeparateEpisode() {
         PatternObservation obs = newObservation();
-        // Detected, went quiet for two weeks, then came back — a genuinely separate period.
-        obs.recordDetection(DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS), "LOW", "t", "s");
+        // The pattern went quiet in the DATA: the earliest new evidence is a real gap.
+        LocalDate firstReturn = DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS);
+        obs.recordDetection(firstReturn, firstReturn, firstReturn, "LOW", "t", "s");
         assertThat(obs.getEpisodeCount()).isEqualTo(2);
 
-        // A third separate period after another long quiet stretch.
-        obs.recordDetection(DAY0.plusDays(PatternObservation.EPISODE_GAP_DAYS * 2L), "LOW", "t", "s");
+        LocalDate secondReturn = firstReturn.plusDays(PatternObservation.EPISODE_GAP_DAYS);
+        obs.recordDetection(secondReturn, secondReturn, secondReturn, "LOW", "t", "s");
         assertThat(obs.getEpisodeCount()).isEqualTo(3);
+    }
+
+    @Test
+    void detectionWithoutEvidenceDatesNeverInventsAnEpisode() {
+        PatternObservation obs = newObservation();
+        // A candidate with no related check-ins (null evidence dates) must not bump.
+        obs.recordDetection(DAY0.plusDays(40), null, null, "LOW", "t", "s");
+        assertThat(obs.getEpisodeCount()).isEqualTo(1);
     }
 }

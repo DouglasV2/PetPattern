@@ -93,6 +93,13 @@ public class FoodLogController {
                     .toList();
             FoodBaseline.relinkChain(mainFoods);
             foodLogRepository.saveAll(mainFoods);
+            // Respond from the relinked instance, not the detached `saved` (whose
+            // endDate is stale when a main food is backfilled into the middle).
+            return mainFoods.stream()
+                    .filter(existing -> existing.getId().equals(saved.getId()))
+                    .findFirst()
+                    .map(FoodLogResponse::from)
+                    .orElseGet(() -> FoodLogResponse.from(saved));
         }
         return FoodLogResponse.from(saved);
     }

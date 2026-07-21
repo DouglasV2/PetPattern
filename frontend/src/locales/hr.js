@@ -724,7 +724,7 @@ export default {
   'No change': 'Bez promjene',
   'Carries the last check-in forward — including anything still off.':
     'Prenosi zadnji unos dalje — uključujući ono što je i dalje drukčije.',
-  'Was {name} off but back to normal now?': 'Je li {name} bio drukčije, a sad je opet u redu?',
+  'Was {name} off but back to normal now?': 'Je li {name} bio/la drukčije, a sad je opet u redu?',
   'Back to usual': 'Opet kao inače',
   'Save a quiet day in one tap.': 'Spremi miran dan jednim dodirom.',
   'Today is logged': 'Danas je zabilježeno',

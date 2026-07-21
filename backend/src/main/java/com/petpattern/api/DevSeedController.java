@@ -507,6 +507,10 @@ public class DevSeedController {
                                    String summary) {
         PatternObservation observation = new PatternObservation(pet, pet.getId() + ":" + keySuffix, type, firstDetected);
         observation.setLastDetectedDate(lastDetected);
+        // Baseline the data-observation date to the last detection so the next live
+        // re-detection (from the recent seeded check-ins) doesn't read the seed's
+        // old firstDetected as a spurious new-episode gap. See PatternObservation.
+        observation.setLastObservedDate(lastDetected);
         // detectionCount = engine-run-days (internal); episodeCount = separate
         // periods (the only "seen before" signal). See PatternObservation.
         observation.setDetectionCount(detectionCount);
