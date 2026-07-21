@@ -309,6 +309,8 @@ export default {
     'Ovo nije dijagnoza — samo mogući obrazac iz tvojih zapisa koji možeš spomenuti veterinaru.',
   // Food screen + careful food tracking
   'Food & treats': 'Hrana i poslastice',
+  'Current main food:': 'Trenutna glavna hrana:',
+  'since {date}': 'od {date}',
   '{name} · food': '{name} · hrana',
   'Main ingredient': 'Glavni sastojak',
   'Other ingredients': 'Dodatni sastojci',
@@ -449,6 +451,9 @@ export default {
   "{name}'s last {days} days": 'Zadnjih {days} dana — {name}',
   'calmest stretch': 'mirniji dani',
   'avg scratching': 'prosječno češanje',
+  'unchanged days': 'dana bez promjene',
+  'days with a change': 'dana s promjenom',
+  'For your vet': 'Za veterinara',
   'Scratching averaged {recent}/10 — {label} than the month before ({prior}/10).':
     'Grebanje je u prosjeku {recent}/10 — {label} nego mjesec prije ({prior}/10).',
   'Scratching averaged {recent}/10 — about the same as the month before ({prior}/10).':

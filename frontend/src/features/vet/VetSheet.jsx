@@ -40,6 +40,13 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
       </VetBlock>
 
       <VetBlock title={t('Food & treats')}>
+        {summary.currentFood && (
+          <p className="vet-current-food">
+            <strong>{t('Current main food:')}</strong> {summary.currentFood.label}
+            {summary.currentFood.primaryProtein ? ` (${proteinLabel(summary.currentFood.primaryProtein)})` : ''}
+            {summary.currentFood.dateStarted ? ` — ${t('since {date}', { date: formatDate(summary.currentFood.dateStarted) })}` : ''}
+          </p>
+        )}
         {summary.foodChanges?.length ? (
           <ul className="vet-list">
             {summary.foodChanges.map((food, index) => (

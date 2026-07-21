@@ -121,6 +121,12 @@ public class VetSummaryService {
         VetSummaryDto.StoolSummary stoolSummary = stoolSummary(pet, checkIns);
         VetSummaryDto.CatSignals catSignals = pet.getSpecies() == Species.CAT ? catSignals(pet, checkIns) : null;
         VetSummaryDto.WellbeingNotes wellbeing = wellbeing(pet, checkIns);
+        // Current main food snapshot (Part 4): the active MAIN_FOOD today, even if it
+        // started before the window — a vet needs to know what the pet eats now.
+        VetSummaryDto.FoodChange currentFood = com.petpattern.patterns.FoodBaseline
+                .currentMainFood(foodLogRepository.findByPetOrderByDateStartedDesc(pet), today)
+                .map(this::foodChange)
+                .orElse(null);
         List<VetSummaryDto.FoodChange> foodChanges = foodChanges(foodLogs);
         List<VetSummaryDto.MedicationLine> medications = medications(pet, rangeStart, rangeEnd);
         List<VetSummaryDto.PatternSummary> patternSummaries = patternSummaries(patterns);
@@ -133,7 +139,7 @@ public class VetSummaryService {
         String mainConcern = mainConcern(pet, patterns, checkInSummary, stoolSummary);
 
         String plainText = plainText(identity, today, rangeStart, rangeEnd, days, mainConcern,
-                checkInSummary, stoolSummary, catSignals, wellbeing, foodChanges, medications, patternSummaries,
+                checkInSummary, stoolSummary, catSignals, wellbeing, currentFood, foodChanges, medications, patternSummaries,
                 ownerNotes, observations, visibleChanges);
 
         return new VetSummaryDto(
@@ -147,6 +153,7 @@ public class VetSummaryService {
                 stoolSummary,
                 catSignals,
                 wellbeing,
+                currentFood,
                 foodChanges,
                 medications,
                 patternSummaries,
@@ -317,16 +324,20 @@ public class VetSummaryService {
     private List<VetSummaryDto.FoodChange> foodChanges(List<FoodLog> foodLogs) {
         List<VetSummaryDto.FoodChange> changes = new ArrayList<>();
         for (FoodLog food : foodLogs) {
-            Protein protein = food.getPrimaryProtein();
-            changes.add(new VetSummaryDto.FoodChange(
-                    food.getDateStarted(),
-                    foodLabel(food),
-                    Copy.t(titleCase(food.getFoodKind() == null ? FoodKind.MAIN_FOOD.name() : food.getFoodKind().name())),
-                    (protein == null || protein == Protein.UNKNOWN) ? null : Copy.proteinLabel(protein),
-                    food.isNewFood()
-            ));
+            changes.add(foodChange(food));
         }
         return changes;
+    }
+
+    private VetSummaryDto.FoodChange foodChange(FoodLog food) {
+        Protein protein = food.getPrimaryProtein();
+        return new VetSummaryDto.FoodChange(
+                food.getDateStarted(),
+                foodLabel(food),
+                Copy.t(titleCase(food.getFoodKind() == null ? FoodKind.MAIN_FOOD.name() : food.getFoodKind().name())),
+                (protein == null || protein == Protein.UNKNOWN) ? null : Copy.proteinLabel(protein),
+                food.isNewFood()
+        );
     }
 
     private List<VetSummaryDto.MedicationLine> medications(Pet pet, LocalDate rangeStart, LocalDate rangeEnd) {
@@ -498,6 +509,7 @@ public class VetSummaryService {
                              VetSummaryDto.StoolSummary stoolSummary,
                              VetSummaryDto.CatSignals catSignals,
                              VetSummaryDto.WellbeingNotes wellbeing,
+                             VetSummaryDto.FoodChange currentFood,
                              List<VetSummaryDto.FoodChange> foodChanges,
                              List<VetSummaryDto.MedicationLine> medications,
                              List<VetSummaryDto.PatternSummary> patterns,
@@ -520,6 +532,18 @@ public class VetSummaryService {
 
         out.append(Copy.t("RECENT CHECK-IN SUMMARY")).append('\n');
         out.append("- ").append(checkInSummary.narrative()).append("\n\n");
+
+        if (currentFood != null) {
+            out.append(Copy.t("CURRENT MAIN FOOD")).append('\n');
+            out.append("- ").append(currentFood.label());
+            if (currentFood.primaryProtein() != null) {
+                out.append(" (").append(currentFood.primaryProtein()).append(")");
+            }
+            if (currentFood.dateStarted() != null) {
+                out.append(" — ").append(Copy.t("since {0}", currentFood.dateStarted()));
+            }
+            out.append("\n\n");
+        }
 
         out.append(Copy.t("FOOD EXPOSURE HISTORY")).append('\n');
         if (foodChanges.isEmpty()) {

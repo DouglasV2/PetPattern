@@ -19,12 +19,20 @@ function RecapView({ pet, recap, onBack, onVetSummary }) {
       <p className="kicker">{t('Looking back')}</p>
       <h1>{t("{name}'s last {days} days", { name: pet.name, days: recap.days })}</h1>
       <p className="lead">{recap.headline}</p>
+      {recap.factualSummary && <p className="recap-factual">{recap.factualSummary}</p>}
 
       <div className="recap-grid">
         <RecapStat value={`${recap.daysLogged}/${recap.days}`} label={t('days logged')} />
-        <RecapStat value={t('{n} days', { n: recap.calmestStreakDays })} label={t('calmest stretch')} />
-        <RecapStat value={itching.recentAvg != null ? `${itching.recentAvg}/10` : '—'} label={t('avg scratching')} />
+        <RecapStat value={recap.unchangedDays} label={t('unchanged days')} />
+        <RecapStat value={recap.changedDays} label={t('days with a change')} />
       </div>
+
+      {itching.recentAvg != null && (
+        <div className="recap-grid recap-grid-itching">
+          <RecapStat value={t('{n} days', { n: recap.calmestStreakDays })} label={t('calmest stretch')} />
+          <RecapStat value={`${itching.recentAvg}/10`} label={t('avg scratching')} />
+        </div>
+      )}
 
       {itching.recentAvg != null && itching.priorAvg != null && itching.label && (
         <article className="panel recap-trend">
@@ -33,6 +41,13 @@ function RecapView({ pet, recap, onBack, onVetSummary }) {
               ? t('Scratching averaged {recent}/10 — about the same as the month before ({prior}/10).', { recent: itching.recentAvg, prior: itching.priorAvg })
               : t('Scratching averaged {recent}/10 — {label} than the month before ({prior}/10).', { recent: itching.recentAvg, label: trendWord(itching.label), prior: itching.priorAvg })}
           </p>
+        </article>
+      )}
+
+      {recap.vetParagraph && (
+        <article className="panel recap-vet-paragraph">
+          <div className="panel-heading"><Stethoscope size={18} /><h2>{t('For your vet')}</h2></div>
+          <p>{recap.vetParagraph}</p>
         </article>
       )}
 
@@ -48,6 +63,8 @@ function RecapView({ pet, recap, onBack, onVetSummary }) {
           <p className="muted">{t('Keep logging — more shows up here as the history grows.')}</p>
         )}
       </article>
+
+      {recap.trackingSuggestion && <p className="recap-suggestion">{recap.trackingSuggestion}</p>}
 
       <p className="muted recap-did">{t('Food changes: {food} · Photos: {photos} · Trials: {trials}.', { food: recap.foodChanges, photos: recap.photosAdded, trials: recap.trialsRun })}</p>
 

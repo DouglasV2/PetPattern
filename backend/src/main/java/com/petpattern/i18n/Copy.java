@@ -544,6 +544,8 @@ public final class Copy {
         put("{0} to {1} ({2} days)", "{0} do {1} ({2} d.)");
         put("OWNER-OBSERVED CONCERN", "ZAPAŽANJE VLASNIKA");
         put("RECENT CHECK-IN SUMMARY", "SAŽETAK NEDAVNIH UNOSA");
+        put("CURRENT MAIN FOOD", "TRENUTNA GLAVNA HRANA");
+        put("since {0}", "od {0}");
         put("FOOD EXPOSURE HISTORY", "POVIJEST HRANE");
         put("No food changes logged in this period.",
                 "U ovom razdoblju nema zabilježenih promjena hrane.");
@@ -640,6 +642,27 @@ public final class Copy {
         put("Started a photo record", "Započet foto-zapis");
         put("A visual history to compare over time.",
                 "Vizualna povijest za usporedbu kroz vrijeme.");
+        // Factual weekly counts + vet paragraph + tracking suggestion (Part 5)
+        put("This period included {0} check-ins, {1} unchanged days and {2} with a change.",
+                "Ovo razdoblje uključuje {0} unosa, {1} dana bez promjene i {2} s promjenom.");
+        put("{0} food change(s) were logged.",
+                "Zabilježeno promjena hrane: {0}.");
+        put("Over the last {0} days, {1} was checked in on {2} of them: {3} with a logged change and {4} steady.",
+                "U zadnjih {0} dana unos je zabilježen {2} dana: {3} s promjenom i {4} bez promjene.");
+        put("{0} food change(s) were recorded in this period.",
+                "U ovom razdoblju zabilježeno promjena hrane: {0}.");
+        put("No repeating relationship is visible yet.",
+                "Zasad nije vidljiv nikakav obrazac koji se ponavlja.");
+        put("This is an owner-kept record to review together, not a diagnosis.",
+                "Ovo je zapis koji vodi vlasnik i služi za zajednički pregled, nije dijagnoza.");
+        put("Logging food changes when they happen makes the timeline easier to compare later.",
+                "Bilježenje promjena hrane kad se dogode olakšava kasniju usporedbu.");
+        put("Keep noting the days that feel off — that is what makes a real change stand out.",
+                "Nastavi bilježiti dane koji djeluju drukčije — po tome se prava promjena istakne.");
+        put("A quick check-in on the quiet days too helps show what is normal.",
+                "Kratak unos i na mirne dane pomaže pokazati što je normalno.");
+        put("Adding a dated photo on a change day gives your vet more to compare.",
+                "Datirana fotografija na dan promjene daje veterinaru više za usporedbu.");
 
         // --- Today (overview) ----------------------------------------------------
         put("Start with one quick check-in so PetPattern can begin learning what normal looks like for {0}.",

@@ -1,5 +1,7 @@
 package com.petpattern.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +24,10 @@ public record VetSummaryDto(
         StoolSummary stoolSummary,
         CatSignals catSignals,
         WellbeingNotes wellbeing,
+        // The pet's current main food right now (spec Part 4 snapshot) — shown even
+        // when the diet has been stable and no change falls inside the window. Null
+        // if no main food was ever logged.
+        FoodChange currentFood,
         List<FoodChange> foodChanges,
         List<MedicationLine> medications,
         List<PatternSummary> patterns,
@@ -102,7 +108,9 @@ public record VetSummaryDto(
     public record PatternSummary(
             String type,
             String title,
-            String confidence,
+            // Internal ranking hint only — not a user-facing confidence level and
+            // never serialized into the shared/exported summary (spec Part 12).
+            @JsonIgnore String confidence,
             String summary,
             String severity,
             String urgentNote

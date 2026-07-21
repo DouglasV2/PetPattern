@@ -14,7 +14,17 @@ public record RecapResponse(
         LocalDate rangeEnd,
         int days,
         int daysLogged,
+        // Species-neutral factual counts (spec Part 5): how the logged days split,
+        // and how many days in the span had no check-in.
+        int changedDays,
+        int unchangedDays,
+        int missingDays,
         String headline,
+        // A plain factual sentence, one vet-ready paragraph, and one neutral
+        // tracking suggestion — all present even when no pattern exists.
+        String factualSummary,
+        String vetParagraph,
+        String trackingSuggestion,
         ItchingTrend itching,
         int calmestStreakDays,
         int foodChanges,

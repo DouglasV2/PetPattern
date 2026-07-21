@@ -9,6 +9,7 @@ import com.petpattern.domain.FoodLog;
 import com.petpattern.domain.FoodTrial;
 import com.petpattern.domain.Pet;
 import com.petpattern.domain.PhotoArea;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petpattern.i18n.Copy;
 import com.petpattern.patterns.PatternMemoryService;
 import com.petpattern.repository.DailyCheckInRepository;
@@ -46,17 +47,20 @@ public class RecapService {
     private final PetPhotoRepository photoRepository;
     private final FoodTrialRepository trialRepository;
     private final PatternMemoryService patternMemoryService;
+    private final ObjectMapper objectMapper;
 
     public RecapService(DailyCheckInRepository checkInRepository,
                         FoodLogRepository foodLogRepository,
                         PetPhotoRepository photoRepository,
                         FoodTrialRepository trialRepository,
-                        PatternMemoryService patternMemoryService) {
+                        PatternMemoryService patternMemoryService,
+                        ObjectMapper objectMapper) {
         this.checkInRepository = checkInRepository;
         this.foodLogRepository = foodLogRepository;
         this.photoRepository = photoRepository;
         this.trialRepository = trialRepository;
         this.patternMemoryService = patternMemoryService;
+        this.objectMapper = objectMapper;
     }
 
     public RecapResponse recap(Pet pet, int requestedDays) {
@@ -93,12 +97,62 @@ public class RecapService {
         int patternsActive = patternMemoryService.activePatterns(pet.getId()).size();
         int totalLoggedDays = (int) checkInRepository.countByPet(pet);
 
+        // Species-neutral factual counts (Part 5) — valuable even with no pattern.
+        int changedDays = (int) window.stream().filter(c -> DayClassifier.isChangedDay(c, objectMapper)).count();
+        int unchangedDays = Math.max(0, daysLogged - changedDays);
+        int missingDays = Math.max(0, span - daysLogged);
+
         String headline = headline(pet.getName(), trendLabel, daysLogged);
+        String factualSummary = factualSummary(daysLogged, unchangedDays, changedDays, foodChanges);
+        String vetParagraph = vetParagraph(pet.getName(), span, daysLogged, changedDays, unchangedDays, foodChanges, patternsActive);
+        String trackingSuggestion = trackingSuggestion(foodChanges, changedDays, missingDays);
         List<Milestone> milestones = milestones(pet, totalLoggedDays, trialsRun > 0, photosAdded > 0, patternsActive > 0);
 
         return new RecapResponse(
-                PetResponse.from(pet), rangeStart, today, span, daysLogged, headline, itching,
+                PetResponse.from(pet), rangeStart, today, span, daysLogged,
+                changedDays, unchangedDays, missingDays, headline,
+                factualSummary, vetParagraph, trackingSuggestion, itching,
                 calmestStreak, foodChanges, photosAdded, trialsRun, patternsActive, totalLoggedDays, milestones);
+    }
+
+    /** A plain "what the data holds" sentence — never "not enough data yet". */
+    private String factualSummary(int daysLogged, int unchangedDays, int changedDays, int foodChanges) {
+        String base = Copy.t("This period included {0} check-ins, {1} unchanged days and {2} with a change.",
+                daysLogged, unchangedDays, changedDays);
+        if (foodChanges > 0) {
+            base += " " + Copy.t("{0} food change(s) were logged.", foodChanges);
+        }
+        return base;
+    }
+
+    /** One factual, vet-ready paragraph, present even when no pattern exists. */
+    private String vetParagraph(String name, int span, int daysLogged, int changedDays,
+                                int unchangedDays, int foodChanges, int patternsActive) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(Copy.t("Over the last {0} days, {1} was checked in on {2} of them: {3} with a logged change and {4} steady.",
+                span, name, daysLogged, changedDays, unchangedDays));
+        if (foodChanges > 0) {
+            sb.append(" ").append(Copy.t("{0} food change(s) were recorded in this period.", foodChanges));
+        }
+        if (patternsActive == 0) {
+            sb.append(" ").append(Copy.t("No repeating relationship is visible yet."));
+        }
+        sb.append(" ").append(Copy.t("This is an owner-kept record to review together, not a diagnosis."));
+        return sb.toString();
+    }
+
+    /** One neutral, always-present suggestion for useful continued tracking. */
+    private String trackingSuggestion(int foodChanges, int changedDays, int missingDays) {
+        if (foodChanges == 0) {
+            return Copy.t("Logging food changes when they happen makes the timeline easier to compare later.");
+        }
+        if (changedDays == 0) {
+            return Copy.t("Keep noting the days that feel off — that is what makes a real change stand out.");
+        }
+        if (missingDays > 0) {
+            return Copy.t("A quick check-in on the quiet days too helps show what is normal.");
+        }
+        return Copy.t("Adding a dated photo on a change day gives your vet more to compare.");
     }
 
     private List<DailyCheckIn> between(List<DailyCheckIn> all, LocalDate start, LocalDate end) {
