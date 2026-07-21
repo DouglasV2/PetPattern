@@ -182,10 +182,22 @@ public class PatternTimelineService {
             if (started == null || started.isBefore(window.start()) || started.isAfter(window.end())) {
                 continue;
             }
+            // Treats and supplements are shown distinctly from a main-food change (Part 6).
+            com.petpattern.domain.FoodKind kind = food.getFoodKind();
+            String eventType = switch (kind) {
+                case TREAT -> "TREAT_STARTED";
+                case SUPPLEMENT -> "SUPPLEMENT_STARTED";
+                default -> "FOOD_STARTED";
+            };
+            String title = switch (kind) {
+                case TREAT -> Copy.t("Added treat: {0}", foodLabel(food));
+                case SUPPLEMENT -> Copy.t("Added supplement: {0}", foodLabel(food));
+                default -> Copy.t("Started {0}", foodLabel(food));
+            };
             events.add(new PatternTimelineEventDto(
                     started,
-                    "FOOD_STARTED",
-                    Copy.t("Started {0}", foodLabel(food)),
+                    eventType,
+                    title,
                     foodSummary(food),
                     "info",
                     "FOOD_LOG",

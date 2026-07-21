@@ -134,6 +134,29 @@
   color: var(--coral-text);
 }
 
+/* Visual hierarchy (spec Part 6): routine events (food, treats, meds, notes —
+   severity "info") recede with a smaller, quieter dot and lighter title, so the
+   eye is guided to the notable rows instead of every event weighing the same. */
+.story-row.sev-info .story-dot {
+  width: 24px;
+  height: 24px;
+  margin-top: 4px;
+  background: var(--paper-2);
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+.story-row.sev-info .story-body strong {
+  font-weight: 600;
+}
+
+/* Notable rows carry a touch more weight. */
+.story-row.sev-alert .story-body strong,
+.story-row.sev-pattern .story-body strong,
+.story-row.sev-urgent .story-body strong {
+  font-size: 1.06rem;
+}
+
 /* Urgent-care banner: an owner-logged combination worth acting on soon.
    Flat coral card in the warm health-notebook palette — no shadow, no gradient. */
 .urgent-banner {

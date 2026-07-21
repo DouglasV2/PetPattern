@@ -23,11 +23,11 @@ const STAGE_COPY = {
   trend_baseline: {
     headline: "Building up what's usual for {name}",
     body: "That's most of what the trend comparison needs for a dog — it looks at how {name}'s recent days compare with their usual range over about a month. A few more logged days and it has enough.",
-    next: 'Log food changes too — with about three weeks on record and the same food seen twice, PetPattern can line a protein up against how {name} did afterward.'
+    next: 'Logging food changes too builds a fuller record — so a rough stretch and what changed before it can be lined up for your vet to review.'
   },
   food_trigger_ready: {
-    headline: "Enough logs to line food up against {name}'s signals",
-    body: 'Three weeks of check-ins and at least two food changes are on record. PetPattern can now compare how {name} did after the same protein more than once — it only suggests a food link when the same protein is followed by a rougher stretch twice, never from a single change.',
+    headline: "Enough history to line food changes up with the days after",
+    body: "Three weeks of check-ins and at least two food changes are on record. PetPattern can now line up how {name} did after the same protein more than once, and show you and your vet what repeated and what didn't — it never calls this a cause.",
     next: ''
   }
 }

@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, ArrowLeft, ClipboardList, Droplets, FlaskConical, HeartPulse, Pill, Stethoscope, Utensils } from 'lucide-react'
+import { Activity, AlertTriangle, ArrowLeft, ClipboardList, Cookie, Droplets, FlaskConical, HeartPulse, Pill, Sparkles, Stethoscope, Utensils } from 'lucide-react'
 import { t } from '../../i18n'
 import { formatDate } from '../../lib/date'
 import { isProfilePhoto, photoAreaLabel } from '../../lib/photos'
@@ -7,6 +7,10 @@ function timelineIcon(type) {
   switch (type) {
     case 'FOOD_STARTED':
       return <Utensils size={15} />
+    case 'TREAT_STARTED':
+      return <Cookie size={15} />
+    case 'SUPPLEMENT_STARTED':
+      return <Sparkles size={15} />
     case 'MEDICATION_STARTED':
     case 'MEDICATION_ENDED':
       return <Pill size={15} />

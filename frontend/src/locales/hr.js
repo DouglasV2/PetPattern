@@ -662,8 +662,10 @@ export default {
     'Zabilježi samo ono što si primijetio. Kratki check-in je dovoljan.',
   'Food, stool, itching, vomiting, litter box, appetite, energy — small notes become useful over time.':
     'Hrana, stolica, češanje, povraćanje, pijesak, apetit, energija — male bilješke s vremenom postaju korisne.',
-  "Not a diagnosis. Not a vet chatbot. Just a clearer memory for your pet's health.":
-    'Nije dijagnoza. Nije zamjena za veterinara. Samo jasnija memorija za zdravlje tvog ljubimca.',
+  "Not a diagnosis. Not a vet chatbot. Just a clearer record for your pet's health.":
+    'Nije dijagnoza. Nije zamjena za veterinara. Samo jasniji zapis za zdravlje tvog ljubimca.',
+  'Each check-in adds to a clear, dated record you can hand your vet — useful from the very first one.':
+    'Svaki unos nadopunjuje jasan, datiran zapis koji možeš dati veterinaru — koristan već od prvog.',
 
   // No-change quick log (Item 8)
   'No change noticed': 'Nisam primijetio promjenu',
@@ -936,11 +938,12 @@ export default {
   "Two weeks of {name}'s days are on record": 'Zabilježena su dva tjedna dana za {name}',
   "That's most of what the trend comparison needs for a dog — it looks at how {name}'s recent days compare with their usual range over about a month. A few more logged days and it has enough.":
     'To je većina onoga što je psu potrebno za usporedbu trenda — gleda kako se noviji dani za {name} uspoređuju s uobičajenim rasponom tijekom otprilike mjesec dana. Još nekoliko zabilježenih dana i bit će dovoljno.',
-  'Log food changes too — with about three weeks on record and the same food seen twice, PetPattern can line a protein up against how {name} did afterward.':
-    'Bilježi i promjene hrane — uz otprilike tri tjedna zapisa i istu hranu zabilježenu dvaput, PetPattern može usporediti protein s tim kako se {name} osjećao/la nakon toga.',
-  "Enough logs to line food up against {name}'s signals": 'Dovoljno zapisa da se hrana uspoređuje sa signalima za {name}',
-  'Three weeks of check-ins and at least two food changes are on record. PetPattern can now compare how {name} did after the same protein more than once — it only suggests a food link when the same protein is followed by a rougher stretch twice, never from a single change.':
-    'Zabilježena su tri tjedna zapisa i barem dvije promjene hrane. PetPattern sada može usporediti kako se {name} osjećao/la nakon iste vrste proteina više puta — vezu s hranom predlaže samo kad nakon istog proteina dvaput slijedi teže razdoblje, nikad na temelju jedne promjene.',
+  'Logging food changes too builds a fuller record — so a rough stretch and what changed before it can be lined up for your vet to review.':
+    'Bilježenje i promjena hrane gradi potpuniji zapis — pa se teže razdoblje i ono što mu je prethodilo mogu složiti za pregled kod veterinara.',
+  'Enough history to line food changes up with the days after':
+    'Dovoljno zapisa da se promjene hrane slože s danima koji su uslijedili',
+  "Three weeks of check-ins and at least two food changes are on record. PetPattern can now line up how {name} did after the same protein more than once, and show you and your vet what repeated and what didn't — it never calls this a cause.":
+    'Zabilježena su tri tjedna zapisa i barem dvije promjene hrane. PetPattern sada može složiti kako je bilo nakon iste vrste proteina više puta i pokazati tebi i veterinaru što se ponovilo, a što nije — nikad to ne naziva uzrokom.',
   '{done} of {total} days logged': '{done} od {total} zabilježenih dana',
   '{n} days logged': '{n} zabilježenih dana',
   '{n} possible pattern noticed': 'Uočen {n} mogući obrazac',
@@ -948,8 +951,8 @@ export default {
   'First weekly overview ready': 'Prvi tjedni pregled spreman',
   'Days that are the same as usual are just as useful — they are what "different" gets measured against.':
     'Dani koji su isti kao i inače jednako su korisni — prema njima se mjeri to što je "drugačije".',
-  'Log a quick check-in each day — even a calm "same as usual" counts. Normal days are what "different" gets measured against.':
-    'Bilježi brzi zapis svaki dan — čak se i miran "sve kao i inače" računa. Prema običnim danima mjeri se to što je "drugačije".',
+  'A quick check-in each day takes a few seconds — even a calm "same as usual" counts. Normal days are what "different" gets measured against.':
+    'Brzi zapis svaki dan traje nekoliko sekundi — čak se i miran "sve kao i inače" računa. Prema običnim danima mjeri se to što je "drugačije".',
   "After about a week of notes, PetPattern has enough for {name}'s first weekly overview.":
     'Nakon otprilike tjedan dana zapisa, PetPattern ima dovoljno za prvi tjedni pregled za {name}.',
   'It only points out a change when the same thing repeats — never from a single odd day, and never as a diagnosis.':

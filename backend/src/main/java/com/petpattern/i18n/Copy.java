@@ -410,6 +410,8 @@ public final class Copy {
         put("PetPattern looks at the days before {0}'s signals changed.",
                 "PetPattern gleda dane prije nego što su se znakovi promijenili.");
         put("Started {0}", "Početak: {0}");
+        put("Added treat: {0}", "Nova poslastica: {0}");
+        put("Added supplement: {0}", "Novi dodatak: {0}");
         put("Finished {0}", "Kraj: {0}");
         put("A medication or care note was logged.",
                 "Zabilježen je lijek ili bilješka o njezi.");

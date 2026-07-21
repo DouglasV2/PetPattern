@@ -83,7 +83,7 @@ describe('<PatternMemoryProgress/>', () => {
     }
     const { container } = render(<PatternMemoryProgress pet={pet} progress={progress} />)
 
-    expect(screen.getByText("Enough logs to line food up against Bella's signals")).toBeInTheDocument()
+    expect(screen.getByText('Enough history to line food changes up with the days after')).toBeInTheDocument()
     // Terminal: a steady "N days logged" line, no dot meter.
     expect(container.querySelector('.baseline-dots')).not.toBeInTheDocument()
     expect(screen.getByText('22 days logged')).toBeInTheDocument()
@@ -137,7 +137,7 @@ describe('<PatternMemoryProgress/>', () => {
     expect(screen.getByText("Building up what's usual for Bella")).toBeInTheDocument()
     // Non-terminal stage: the actionable food-logging next-step MUST render even
     // though logsToNextStage is 0 — the gate keys off nextStageAt, not logsToNextStage.
-    expect(screen.getByText(/Log food changes too/)).toBeInTheDocument()
+    expect(screen.getByText(/Logging food changes too/)).toBeInTheDocument()
   })
 
   it('renders the calm caption in every stage', () => {
