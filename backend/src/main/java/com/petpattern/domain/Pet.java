@@ -41,6 +41,11 @@ public class Pet {
     @Column(precision = 6, scale = 2)
     private BigDecimal currentWeightKg;
 
+    // Owner's standing questions to raise at the next vet visit (spec Part 4).
+    // Free-text the owner edits over time; shown in the vet summary they share.
+    @Column(name = "vet_questions", length = 2000)
+    private String vetQuestions;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -62,6 +67,14 @@ public class Pet {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getVetQuestions() {
+        return vetQuestions;
+    }
+
+    public void setVetQuestions(String vetQuestions) {
+        this.vetQuestions = vetQuestions;
     }
 
     public Species getSpecies() {

@@ -127,6 +127,8 @@ export const api = {
   listPets: () => request('/pets'),
   createPet: (payload) => request('/pets', { method: 'POST', body: JSON.stringify(payload) }),
   deletePet: (petId) => request(`/pets/${petId}`, { method: 'DELETE' }),
+  updateVetQuestions: (petId, questions) =>
+    request(`/pets/${petId}/vet-questions`, { method: 'PUT', body: JSON.stringify({ questions }) }),
   getOverview: (petId) => request(`/pets/${petId}/overview`),
   listCheckIns: (petId) => request(`/pets/${petId}/check-ins`),
   latestCheckIn: (petId) => request(`/pets/${petId}/check-ins/latest`),

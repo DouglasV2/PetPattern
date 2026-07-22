@@ -545,6 +545,8 @@ public final class Copy {
         put("DATE RANGE", "RASPON DATUMA");
         put("{0} to {1} ({2} days)", "{0} do {1} ({2} d.)");
         put("OWNER-OBSERVED CONCERN", "ZAPAŽANJE VLASNIKA");
+        put("QUESTIONS FOR YOUR VET", "PITANJA ZA VETERINARA");
+        put("TIMELINE", "VREMENSKA CRTA");
         put("RECENT CHECK-IN SUMMARY", "SAŽETAK NEDAVNIH UNOSA");
         put("CURRENT MAIN FOOD", "TRENUTNA GLAVNA HRANA");
         put("since {0}", "od {0}");

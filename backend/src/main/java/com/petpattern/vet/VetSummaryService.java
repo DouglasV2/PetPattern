@@ -137,10 +137,14 @@ public class VetSummaryService {
         VetSummaryDto.ObservationSummary observations = speciesObservations(pet, checkIns);
         VetSummaryDto.VisibleChangeSummary visibleChanges = visibleChanges(pet, checkIns, visibleChangePhotos);
         String mainConcern = mainConcern(pet, patterns, checkInSummary, stoolSummary);
+        // A short chronological event list merged from the dated items (Part 4).
+        List<VetSummaryDto.TimelineEntry> timeline =
+                buildTimeline(foodChanges, medications, ownerNotes, visibleChanges);
+        String vetQuestions = trimToNull(pet.getVetQuestions());
 
         String plainText = plainText(identity, today, rangeStart, rangeEnd, days, mainConcern,
                 checkInSummary, stoolSummary, catSignals, wellbeing, currentFood, foodChanges, medications, patternSummaries,
-                ownerNotes, observations, visibleChanges);
+                ownerNotes, observations, visibleChanges, timeline, vetQuestions);
 
         return new VetSummaryDto(
                 today,
@@ -160,9 +164,65 @@ public class VetSummaryService {
                 ownerNotes,
                 observations,
                 visibleChanges,
+                timeline,
+                vetQuestions,
                 disclaimer(),
                 plainText
         );
+    }
+
+    /** Merge the already-dated sections into one ascending chronological list. */
+    private List<VetSummaryDto.TimelineEntry> buildTimeline(
+            List<VetSummaryDto.FoodChange> foodChanges,
+            List<VetSummaryDto.MedicationLine> medications,
+            List<VetSummaryDto.OwnerNote> ownerNotes,
+            VetSummaryDto.VisibleChangeSummary visibleChanges) {
+        List<VetSummaryDto.TimelineEntry> entries = new ArrayList<>();
+        for (VetSummaryDto.FoodChange food : foodChanges) {
+            if (food.dateStarted() != null) {
+                entries.add(new VetSummaryDto.TimelineEntry(food.dateStarted(), "food",
+                        Copy.t("Started {0}", food.label())));
+            }
+        }
+        for (VetSummaryDto.MedicationLine med : medications) {
+            if (med.startDate() != null) {
+                entries.add(new VetSummaryDto.TimelineEntry(med.startDate(), "med-start",
+                        Copy.t("Started {0}", med.name())));
+            }
+            if (med.endDate() != null) {
+                entries.add(new VetSummaryDto.TimelineEntry(med.endDate(), "med-end",
+                        Copy.t("Finished {0}", med.name())));
+            }
+        }
+        for (VetSummaryDto.OwnerNote note : ownerNotes) {
+            if (note.date() != null && note.note() != null && !note.note().isBlank()) {
+                entries.add(new VetSummaryDto.TimelineEntry(note.date(), "note", excerpt(note.note())));
+            }
+        }
+        if (visibleChanges != null && visibleChanges.entries() != null) {
+            for (VetSummaryDto.VisibleChangeEntry change : visibleChanges.entries()) {
+                if (change.date() != null) {
+                    String label = change.value() != null && !change.value().isBlank()
+                            ? change.value() : Copy.t("VISIBLE CHANGES OVER TIME");
+                    entries.add(new VetSummaryDto.TimelineEntry(change.date(), "visible-change", label));
+                }
+            }
+        }
+        entries.sort(java.util.Comparator.comparing(VetSummaryDto.TimelineEntry::date));
+        return entries;
+    }
+
+    private String excerpt(String text) {
+        String trimmed = text.strip();
+        return trimmed.length() <= 100 ? trimmed : trimmed.substring(0, 99).strip() + "…";
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.strip();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     // --- Sections ---------------------------------------------------------
@@ -515,7 +575,9 @@ public class VetSummaryService {
                              List<VetSummaryDto.PatternSummary> patterns,
                              List<VetSummaryDto.OwnerNote> ownerNotes,
                              VetSummaryDto.ObservationSummary observations,
-                             VetSummaryDto.VisibleChangeSummary visibleChanges) {
+                             VetSummaryDto.VisibleChangeSummary visibleChanges,
+                             List<VetSummaryDto.TimelineEntry> timeline,
+                             String vetQuestions) {
         StringBuilder out = new StringBuilder();
         out.append(Copy.t("PetPattern — Vet Visit Summary")).append('\n');
         out.append(Copy.t("Generated {0}", rangeEnd)).append("\n\n");
@@ -529,6 +591,11 @@ public class VetSummaryService {
 
         out.append(Copy.t("OWNER-OBSERVED CONCERN")).append('\n');
         out.append(mainConcern).append("\n\n");
+
+        if (vetQuestions != null && !vetQuestions.isBlank()) {
+            out.append(Copy.t("QUESTIONS FOR YOUR VET")).append('\n');
+            out.append(vetQuestions).append("\n\n");
+        }
 
         out.append(Copy.t("RECENT CHECK-IN SUMMARY")).append('\n');
         out.append("- ").append(checkInSummary.narrative()).append("\n\n");
@@ -658,6 +725,14 @@ public class VetSummaryService {
                     out.append(": ").append(pattern.urgentNote());
                 }
                 out.append("\n");
+            }
+            out.append("\n");
+        }
+
+        if (timeline != null && !timeline.isEmpty()) {
+            out.append(Copy.t("TIMELINE")).append('\n');
+            for (VetSummaryDto.TimelineEntry entry : timeline) {
+                out.append("- ").append(entry.date()).append(": ").append(entry.label()).append("\n");
             }
             out.append("\n");
         }

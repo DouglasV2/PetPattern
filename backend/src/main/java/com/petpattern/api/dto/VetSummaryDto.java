@@ -34,9 +34,22 @@ public record VetSummaryDto(
         List<OwnerNote> ownerNotes,
         ObservationSummary observations,
         VisibleChangeSummary visibleChanges,
+        // A short chronological event list merged from the dated items above
+        // (spec Part 4) — food changes, medications, notes, visible changes.
+        List<TimelineEntry> timeline,
+        // The owner's standing questions to raise at the visit (spec Part 4).
+        String vetQuestions,
         String disclaimer,
         String plainText
 ) {
+
+    /** One dated event on the merged vet-summary timeline. */
+    public record TimelineEntry(
+            LocalDate date,
+            String kind,
+            String label
+    ) {
+    }
 
     public record MedicationLine(
             String name,

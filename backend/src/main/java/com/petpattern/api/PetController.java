@@ -357,6 +357,16 @@ public class PetController {
         return PetResponse.from(saved);
     }
 
+    /** Update the owner's standing "questions for your vet" (spec Part 4). */
+    @PutMapping("/{petId}/vet-questions")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateVetQuestions(@PathVariable UUID petId,
+                                   @Valid @RequestBody VetQuestionsRequest request) {
+        Pet pet = petAccess.requireOwnedPet(petId);
+        pet.setVetQuestions(clean(request.questions()));
+        petRepository.save(pet);
+    }
+
     /**
      * Permanently delete one of MY pets and all of its data. Owner-only: a pet
      * shared with me as a caregiver is not found here (I'd "leave" it instead),

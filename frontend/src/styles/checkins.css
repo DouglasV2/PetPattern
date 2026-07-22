@@ -307,6 +307,35 @@
   gap: 0.6rem;
 }
 
+/* "Questions for your vet" (spec Part 4): edited above the sheet (no-print), the
+   saved text is rendered inside the shareable/printable sheet. */
+.vet-questions-edit {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+
+.vet-questions-input {
+  width: 100%;
+  min-height: 72px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.vet-questions-text {
+  white-space: pre-wrap;
+}
+
+.vet-timeline {
+  display: grid;
+  gap: 0.2rem;
+}
+
 .day-range,
 .vet-actions {
   display: flex;

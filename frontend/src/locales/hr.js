@@ -619,6 +619,14 @@ export default {
   'PetPattern summary — {name}': 'PetPattern sažetak — {name}',
   'days': 'dana',
   'Owner-observed concern': 'Zabrinutost koju je vlasnik primijetio',
+  'Questions for your vet': 'Pitanja za veterinara',
+  'Jot anything you want to ask. It appears in the summary you share.':
+    'Zapiši sve što želiš pitati. Pojavljuje se u sažetku koji dijeliš.',
+  'e.g. Is the scratching worth allergy testing?':
+    'npr. Vrijedi li zbog češanja napraviti alergijske testove?',
+  'Save questions': 'Spremi pitanja',
+  'Saving…': 'Spremanje…',
+  'Saved': 'Spremljeno',
   'Recent check-in summary': 'Sažetak nedavnih pregleda',
   'Food exposure history': 'Povijest izloženosti hrani',
   'No food changes logged in this period.': 'U ovom razdoblju nema zabilježenih promjena hrane.',

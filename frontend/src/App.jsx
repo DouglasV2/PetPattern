@@ -440,6 +440,15 @@ function App() {
     }
   }
 
+  // Save the owner's standing "questions for your vet" and refresh the summary so
+  // the shared/printed document reflects them (Part 4).
+  async function saveVetQuestions(questions) {
+    if (!selectedPet) return
+    await api.updateVetQuestions(selectedPet.id, questions)
+    const data = await api.vetSummary(selectedPet.id, vetDays)
+    setVetSummary(data)
+  }
+
   // Show a brief confirmation. A new object each time (via the bumping seq) so
   // the dismiss effect re-runs and the timer restarts even for a repeat message.
   function showToast(message) {
@@ -1241,6 +1250,7 @@ function App() {
             onBack={() => go('today')}
             onChangeDays={openVetSummary}
             onMedications={() => go('medications')}
+            onSaveVetQuestions={saveVetQuestions}
           />
         )}
 

@@ -35,6 +35,12 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
         <p>{summary.mainConcern}</p>
       </VetBlock>
 
+      {summary.vetQuestions && (
+        <VetBlock title={t('Questions for your vet')} tone="key">
+          <p className="vet-questions-text">{summary.vetQuestions}</p>
+        </VetBlock>
+      )}
+
       <VetBlock title={t('Recent check-in summary')}>
         <p>{summary.checkInSummary?.narrative}</p>
       </VetBlock>
@@ -178,6 +184,18 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
               </div>
             </div>
           ))}
+        </VetBlock>
+      )}
+
+      {summary.timeline?.length > 0 && (
+        <VetBlock title={t('Timeline')}>
+          <ul className="vet-list vet-timeline">
+            {summary.timeline.map((event, index) => (
+              <li key={`${event.date}-${index}`}>
+                <strong>{formatDate(event.date)}</strong> — {event.label}
+              </li>
+            ))}
+          </ul>
         </VetBlock>
       )}
 

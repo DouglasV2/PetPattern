@@ -5,7 +5,52 @@ import { VetStats } from './VetStats'
 import { VetShareCard } from './VetShareCard'
 import { VetSheet } from './VetSheet'
 
-function VetSummaryView({ pet, summary, loading, days, checkIns, onBack, onChangeDays, onMedications }) {
+// An editable "questions for your vet" note. Edited here (never printed); the
+// saved text appears inside the shareable/printable sheet below (spec Part 4).
+function VetQuestionsEditor({ initial, onSave }) {
+  const [text, setText] = useState(initial || '')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const dirty = (text || '') !== (initial || '')
+
+  async function save() {
+    if (!onSave) return
+    setSaving(true)
+    setSaved(false)
+    try {
+      await onSave(text.trim())
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2200)
+    } catch (err) {
+      setSaved(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="vet-questions-edit no-print panel">
+      <label htmlFor="vet-questions"><strong>{t('Questions for your vet')}</strong></label>
+      <p className="muted">{t('Jot anything you want to ask. It appears in the summary you share.')}</p>
+      <textarea
+        id="vet-questions"
+        className="vet-questions-input"
+        value={text}
+        maxLength={2000}
+        rows={3}
+        placeholder={t('e.g. Is the scratching worth allergy testing?')}
+        onChange={(event) => setText(event.target.value)}
+      />
+      <div className="action-row">
+        <button className="secondary-button" type="button" onClick={save} disabled={saving || !dirty}>
+          {saving ? t('Saving…') : saved ? t('Saved') : t('Save questions')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function VetSummaryView({ pet, summary, loading, days, checkIns, onBack, onChangeDays, onMedications, onSaveVetQuestions }) {
   const [copied, setCopied] = useState(false)
   // Native share is mostly a phone/tablet capability; on a desktop without it the
   // "Copy summary" button below is the fallback, so we simply hide Share there.
@@ -94,6 +139,8 @@ function VetSummaryView({ pet, summary, loading, days, checkIns, onBack, onChang
           </button>
         </div>
       </div>
+
+      <VetQuestionsEditor key={pet.id} initial={summary.vetQuestions} onSave={onSaveVetQuestions} />
 
       <VetSheet summary={summary} species={pet?.species} onMedications={onMedications} checkIns={checkIns} />
     </section>
