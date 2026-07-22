@@ -3,7 +3,7 @@ import { t } from '../../i18n'
 import { isStarterSpecies } from '../../speciesProfiles'
 import { starterObservationRows, titleCase } from '../../lib/checkins'
 import { formatDate, formatLongDate } from '../../lib/date'
-import { foodKindLabel, proteinLabel } from '../../lib/food'
+import { proteinLabel } from '../../lib/food'
 import { VetBlock } from './VetBlock'
 
 function VetSheet({ summary, species, onMedications, checkIns }) {
@@ -58,7 +58,10 @@ function VetSheet({ summary, species, onMedications, checkIns }) {
             {summary.foodChanges.map((food, index) => (
               <li key={`${food.dateStarted}-${index}`}>
                 <strong>{formatDate(food.dateStarted)}</strong> — {food.label}
-                <span className="muted"> ({[foodKindLabel(food.foodKind), food.primaryProtein ? proteinLabel(food.primaryProtein) : null, food.newFood ? t('new food') : null].filter(Boolean).join(', ')})</span>
+                {/* foodKind is already a localized label from the backend ("Treat" /
+                    "Main food"); render it directly — passing it through the enum-keyed
+                    foodKindLabel() mislabeled every entry as "Main food". */}
+                <span className="muted"> ({[food.foodKind, food.primaryProtein ? proteinLabel(food.primaryProtein) : null, food.newFood ? t('new food') : null].filter(Boolean).join(', ')})</span>
               </li>
             ))}
           </ul>

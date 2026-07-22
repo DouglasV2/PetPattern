@@ -182,10 +182,10 @@ also runs its tests inside the Docker image build.
   provenance — the last two need edit-history/soft-delete in the data model and
   should not be faked. Treat/supplement distinctness and visual hierarchy **are**
   done.
-- **Vet-summary snapshot (Part 4):** current food, latest food history and a
-  no-confidence shared doc are done; "owner questions for the vet" and a single
-  merged chronological event list remain (the former needs a small storage
-  decision).
+- **Vet-summary snapshot (Part 4):** DONE — current food + a no-confidence shared
+  doc, plus (added after the review) an editable **"questions for your vet"**
+  (`Pet.vetQuestions`, V19) and a merged **chronological event list**, both
+  inherited by share/copy/PDF.
 - **Play Console / production data / user testing:** listing copy is drafted
   (`docs/store-listing.md`) but not published; retention/activation impact needs
   real usage.
